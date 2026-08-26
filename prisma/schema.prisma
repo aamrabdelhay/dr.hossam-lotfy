@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+
+enum LawyerTitle {
+  DOCTOR // دكتور
+  ADVOCATE // محامي
+}
+
+enum LocationType {
+  COURT // محكمة
+  INVESTMENT_AGENCY // هيئة الاستثمار
+  EXPERTS_OFFICE // مكتب الخبراء
+  REAL_ESTATE_REGISTRATION // الشهر العقاري
+  GOVERNMENT_AGENCY // جهة حكومية
+  OTHER // أخرى
+}
+
+enum TaskStatus {
+  PENDING // قيد التنفيذ
+  IN_PROGRESS // جاري التنفيذ
+  COMPLETED // تم التنفيذ
+  CANCELLED // ملغي
+}
+
+enum UserRole {
+  ADMIN
+}
+
+// ─────────────────────────── Users / Auth ───────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  comments      Comment[]
+  notifications Notification[]
+  tasks         Task[]
+  activities    ActivityLog[]
+
+  @@map("users")
+}
+
+model Lawyer {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  fullName        String
+  title           LawyerTitle
+  phone           String?
+  email           String?
+  specialization  String?
+  bio             String?
+  position        String?
+  profilePhotoUrl String?
+  coverPhotoUrl   String?
+  sortOrder       Int         @default(100)
+  isPrincipal     Boolean     @default(false)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  assignments    TaskAssignment[]
+  posts          Task[]            @relation("LawyerPosts")
+  completedTasks TaskAssignment[]  @relation("CompletedBy")
+  comments       Comment[]
+  accessTokens   AccessToken[]
+  notifications  Notification[]
+  activities     ActivityLog[]
+
+  @@index([sortOrder, fullName])
+  @@map("lawyers")
+}
+
+model AccessToken {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  lawyerId   String
+  label      String?
+  expiresAt  DateTime?
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  lawyer Lawyer @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+
+  @@index([lawyerId])
+  @@map("access_tokens")
+}
+
+// ─────────────────────────── Locations / Courts ───────────────────────────
+
+model Location {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  name        String
+  type        LocationType
+  description String?
+  address     String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tasks Task[]
+
+  @@index([type])
+  @@map("locations")
+}
+
+model CaseRecord {
+  id          String  @id @default(cuid())
+  name        String
+  number      String
+  description String?
+
+  tasks Task[]
+
+  @@map("case_records")
+}
+
+// ─────────────────────────── Tasks / Sessions ───────────────────────────
+
+/// A Task represents an operational assignment: a court session, an attendance at a
+/// legal destination, or a reported activity. It is the single source of truth and is
+/// referenced (never duplicated) from the main feed, lawyer profiles, location pages,
+/// the session sidebar, the calendar and the admin area.
+model Task {
+  id            String     @id @default(cuid())
+  locationId    String
+  caseId        String?
+  description   String
+  notes         String?
+  scheduledDate DateTime?  @db.Date
+  scheduledTime String?
+  status        TaskStatus @default(PENDING)
+  completedAt   DateTime?
+  authorId      String? // lawyer who authored the post (null ⇒ created by admin)
+  createdById   String? // admin user
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  location   Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  caseRecord CaseRecord?      @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  author     Lawyer?          @relation("LawyerPosts", fields: [authorId], references: [id], onDelete: SetNull)
+  createdBy  User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  assignees  TaskAssignment[]
+  comments   Comment[]
+  activity   ActivityLog[]
+
+  @@index([scheduledDate, status])
+  @@index([locationId, scheduledDate])
+  @@index([createdAt])
+  @@index([status])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id            String    @id @default(cuid())
+  taskId        String
+  lawyerId      String
+  completedAt   DateTime?
+  completedById String?
+  createdAt     DateTime  @default(now())
+
+  task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  lawyer      Lawyer  @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  completedBy Lawyer? @relation("CompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, lawyerId])
+  @@index([lawyerId])
+  @@map("task_assignments")
+}
+
+// ─────────────────────────── Social ───────────────────────────
+
+model Comment {
+  id             String   @id @default(cuid())
+  taskId         String
+  text           String
+  authorLawyerId String?
+  authorUserId   String?
+  authorName     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  task         Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorLawyer Lawyer? @relation(fields: [authorLawyerId], references: [id], onDelete: SetNull)
+  authorUser   User?   @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+  @@map("comments")
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  lawyerId       String?
+  userId         String?
+  type           String
+  title          String
+  body           String?
+  link           String?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  lawyer Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lawyerId, readAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  action     String
+  summary    String
+  taskId     String?
+  lawyerId   String?
+  locationId String?
+  byUserId   String?
+  byLawyerId String?
+  createdAt  DateTime @default(now())
+
+  task     Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  lawyer   Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+  byUser   User?   @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([lawyerId])
+  @@index([taskId])
+  @@map("activity_logs")
+}

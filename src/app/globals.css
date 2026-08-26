@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import "@fontsource-variable/cairo";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@theme {
+  --color-navy-950: #07111c;
+  --color-navy-900: #0b1623;
+  --color-navy-850: #0e1a2b;
+  --color-navy-800: #111827;
+  --color-navy-700: #1b2a3b;
+  --color-navy-600: #24354a;
+  --color-navy-500: #33475e;
+  --color-navy-300: #8fa1b5;
+  --color-navy-200: #b8c4d2;
+  --color-navy-100: #e2e8f0;
+
+  --color-gold-200: #ecd9a0;
+  --color-gold-300: #e2c56b;
+  --color-gold-400: #d4af37;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a9881f;
+  --color-gold-700: #8a6e18;
+
+  --color-ivory-50: #fdfcf9;
+  --color-ivory-100: #f7f4ec;
+  --color-ivory-200: #efeae0;
+  --color-ivory-300: #e3dccc;
+
+  --font-sans: "Cairo Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-latin: "Inter", "Cairo Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-ivory-100);
+  color: var(--color-navy-900);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Elegant thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c9c2b2 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #c9c2b2;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Utility: Latin text */
+.font-latin {
+  font-family: var(--font-latin);
+}
+
+/* Utility: gold hairline */
+.gold-hairline {
+  background-image: linear-gradient(to left, transparent, #c9a227 20%, #c9a227 80%, transparent);
+  height: 1px;
+}
+
+/* Subtle paper texture for hero surfaces */
+.paper {
+  background-image: radial-gradient(circle at 1px 1px, rgba(7, 17, 28, 0.045) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+/* Animations: restrained */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.28s ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+@keyframes slide-in-start {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+[dir="rtl"] .animate-slide-in-start {
+  animation: slide-in-start 0.25s ease-out both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #eceadf 25%, #f5f2e9 50%, #eceadf 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid #c9a227;
+  outline-offset: 2px;
+}
+
+/* Number inputs: hide spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
