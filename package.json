@@ -1,0 +1,50 @@
+{
+  "name": "hl-lawfirm-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DR. HOSSAM LOTFY LAW FIRM - Law Firm Operations, Court Sessions & Lawyers Social Management Platform",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "build": "prisma generate && next build",
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "typecheck": "tsc --noEmit",
+    "pg:server": "node scripts/pg-server.mjs",
+    "db:init": "node scripts/db-init.mjs",
+    "db:migrate": "node scripts/apply-migrations.mjs",
+    "db:deploy": "node scripts/apply-migrations.mjs",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:setup": "node scripts/db-init.mjs && node scripts/apply-migrations.mjs && tsx prisma/seed.ts",
+    "prestart": "node scripts/ensure-db.mjs",
+    "postinstall": "node scripts/patch-prisma-offline.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/cairo": "^5.2.5",
+    "@fontsource/inter": "^5.2.5",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@vercel/blob": "^2.8.0",
+    "bcryptjs": "^3.0.2",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
+    "embedded-postgres": "18.4.0-beta.17",
+    "lucide-react": "^1.34.0",
+    "next": "^15.5.0",
+    "pg": "^8.23.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@embedded-postgres/linux-x64": "18.4.0-beta.17",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "prisma": "^7.10.0",
+    "tailwindcss": "^4.3.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
