@@ -34,10 +34,6 @@ export default async function LocationsPage() {
       governorate: l.governorate,
       city: l.city,
       district: l.district,
-      address: l.address,
-      phone: l.phone,
-      website: l.website,
-      googleMapsUrl: l.googleMapsUrl,
       lat: l.lat,
       lng: l.lng,
       workingHours: l.workingHours,
@@ -71,7 +67,7 @@ export default async function LocationsPage() {
             <h1 className="text-xl font-extrabold text-navy-950">دليل المحامي في مصر</h1>
             <p className="mt-1 text-[13px] font-medium text-navy-400">محاكم، نيابات، جهات حكومية وخدمية — مع بحث وخدمات ومسافة من مكتب الدقي.</p>
           </div>
-          <div className="rounded-lg border border-gold-500/20 bg-gold-500/5 px-3 py-2 text-[11px] font-bold text-navy-600">نقطة المرجع: الدقي – الجيزة · 30.0380, 31.2000</div>
+          <div className="rounded-lg border border-gold-500/20 bg-gold-500/5 px-3 py-2 text-[11px] font-bold text-navy-600">نقطة المرجع: الدقي – الجيزة</div>
         </div>
       </div>
       <LocationsClient rows={rows} governorates={governorates} types={types} categories={categories} buckets={[...buckets]} />

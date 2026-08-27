@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Landmark, Building2, MapPin, Clock, FileText } from 'lucide-react';
+import { Landmark, Building2, Clock, FileText } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getSidebarData, toTaskVM } from '@/lib/queries';
 import { getCurrentUser } from '@/lib/auth';
@@ -77,11 +77,9 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                 <h1 className="text-xl font-extrabold text-ivory-50 sm:text-2xl">{location.name}</h1>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <Badge tone="gold">{LOCATION_TYPE_LABEL[location.type] ?? location.type}</Badge>
-                  {location.address && (
-                    <span className="flex items-center gap-1 text-[12px] font-semibold text-ivory-300">
-                      <MapPin size={12} className="text-gold-400" />
-                      {location.address}
-                    </span>
+                  {location.subType && <span className="text-[12px] font-semibold text-ivory-300">{location.subType}</span>}
+                  {[location.city, location.governorate].filter(Boolean).join(' — ') && (
+                    <span className="flex items-center gap-1 text-[12px] font-semibold text-ivory-300">{location.city || location.governorate}</span>
                   )}
                 </div>
               </div>
@@ -100,8 +98,8 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
           </div>
         </Card>
 
-        {/* Directory info — extended location profile */}
-        {(location.phone || location.email || location.workingHours || location.services.length > 0 || location.googleMapsUrl || location.distanceBucket || location.jurisdiction || location.governorate) && (
+        {/* Directory info — extended location profile (privacy: no contacts/maps) */}
+        {(location.workingHours || location.services.length > 0 || location.distanceBucket || location.jurisdiction || location.governorate) && (
           <Card className="mt-4 p-5">
             <div className="grid gap-4 text-[12.5px] sm:grid-cols-2 lg:grid-cols-3">
               {location.governorate && (
@@ -125,18 +123,6 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                   <p className="mt-1 font-bold text-navy-800">{location.jurisdiction}</p>
                 </div>
               )}
-              {location.phone && (
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">الهاتف</p>
-                  <a href={`tel:${location.phone}`} className="ltr mt-1 inline-block font-bold text-navy-800 hover:text-gold-700">{location.phone}</a>
-                </div>
-              )}
-              {location.email && (
-                <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">البريد الإلكتروني</p>
-                  <a href={`mailto:${location.email}`} className="ltr mt-1 inline-block font-bold text-navy-800 hover:text-gold-700">{location.email}</a>
-                </div>
-              )}
               {location.distanceBucket && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">المسافة من مكتب الدقي</p>
@@ -157,12 +143,6 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1">
-                {location.googleMapsUrl && (
-                  <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 px-3 py-1.5 text-[12px] font-extrabold text-navy-700 transition hover:border-gold-500 hover:text-gold-700">
-                    <MapPin size={13} />
-                    الموقع على الخريطة
-                  </a>
-                )}
                 {location.hasOnlineService && <Badge tone="green">خدمة أونلاين متاحة</Badge>}
                 {location.requiresPersonal && <Badge tone="amber">الحضور الشخصي مطلوب</Badge>}
               </div>

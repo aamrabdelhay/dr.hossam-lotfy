@@ -14,7 +14,7 @@ export type TaskVM = {
   createdAt: string;
   urgency: Urgency;
   daysLeft: number | null;
-  location: { id: string; slug: string; name: string; type: Location['type']; address: string | null };
+  location: { id: string; slug: string; name: string; type: Location['type'] };
   caseName: string | null;
   caseNumber: string | null;
   author: { id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null } | null;
@@ -50,7 +50,7 @@ type TaskShape = {
   status: Task['status'];
   completedAt: Date | null;
   createdAt: Date;
-  location: { id: string; slug: string; name: string; type: Location['type']; address: string | null };
+  location: { id: string; slug: string; name: string; type: Location['type'] };
   caseRecord: { name: string; number: string } | null;
   author: { id: string; fullName: string; title: Lawyer['title']; slug: string; profilePhotoUrl: string | null } | null;
   createdBy: { name: string } | null | undefined;
@@ -71,7 +71,7 @@ export function toTaskVM(t: TaskShape): TaskVM {
     createdAt: t.createdAt.toISOString(),
     urgency: urgencyOf(date),
     daysLeft: date ? daysUntil(date) : null,
-    location: { id: t.location.id, slug: t.location.slug, name: t.location.name, type: t.location.type, address: t.location.address },
+    location: { id: t.location.id, slug: t.location.slug, name: t.location.name, type: t.location.type },
     caseName: t.caseRecord?.name ?? null,
     caseNumber: t.caseRecord?.number ?? null,
     author: t.author

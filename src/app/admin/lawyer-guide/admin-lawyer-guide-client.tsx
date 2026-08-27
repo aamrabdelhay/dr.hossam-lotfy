@@ -16,7 +16,6 @@ type AdminLocation = {
   governorate: string | null;
   city: string | null;
   district: string | null;
-  address: string | null;
   confidence: string | null;
   confidenceLevel: string;
   verificationStatus: string;
@@ -51,7 +50,7 @@ export function AdminLawyerGuideClient({
   const filtered = locations.filter((l) => {
     if (q) {
       const needle = q.toLowerCase();
-      const hay = [l.name, l.nameEn, l.address, l.governorate, l.city, l.district, l.categoryName].filter(Boolean).join(' ').toLowerCase();
+      const hay = [l.name, l.nameEn, l.governorate, l.city, l.district, l.categoryName].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(needle)) return false;
     }
     if (statusFilter && l.verificationStatus !== statusFilter) return false;

@@ -31,8 +31,8 @@ export default async function AdminPage() {
     prisma.location.findMany({
       select: {
         id: true, slug: true, name: true, nameEn: true, type: true, subType: true,
-        governorate: true, city: true, district: true, address: true, phone: true, email: true,
-        website: true, googleMapsUrl: true, workingHours: true, jurisdiction: true,
+        governorate: true, city: true, district: true,
+        workingHours: true, jurisdiction: true,
         distanceBucket: true, services: true, description: true,
       },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],

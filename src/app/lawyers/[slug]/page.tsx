@@ -306,9 +306,6 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
                 const time = formatTimeDisplay(task.scheduledTime);
                 const locName = cleanDemo(task.location.name);
                 const desc = cleanDemo(task.description);
-                const mapsHref = task.location.address
-                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.address)}`
-                  : null;
                 return (
                   <div key={task.id} className="grid grid-cols-[90px_110px_1fr] gap-4 border-b border-[#E8ECF2] py-5 sm:gap-6">
                     {/* Date */}
@@ -339,14 +336,9 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
                         {desc}
                       </Link>
                       <div className="mt-3 flex gap-4">
-                        <Link href={`/sessions/${task.id}`} className="text-[11px] tracking-[0.5px] text-[#A07E2C] hover:text-[#1D2433] transition-colors" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                        <Link href={`/sessions/${task.id}`} className="text-[11px] tracking-[0.5px] text-[#D4AF51] hover:text-[#1D2433] transition-colors" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                           التفاصيل
                         </Link>
-                        {mapsHref && (
-                          <a href={mapsHref} target="_blank" rel="noreferrer" className="text-[11px] tracking-[0.5px] text-[#5B6B84] hover:text-[#1D2433] transition-colors" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                            الاتجاهات
-                          </a>
-                        )}
                       </div>
                     </div>
                   </div>

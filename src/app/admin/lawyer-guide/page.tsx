@@ -41,7 +41,6 @@ export default async function AdminLawyerGuidePage() {
         governorate: l.governorate,
         city: l.city,
         district: l.district,
-        address: l.address,
         confidence: l.confidence,
         confidenceLevel: l.confidenceLevel as string,
         verificationStatus: l.verificationStatus as string,
