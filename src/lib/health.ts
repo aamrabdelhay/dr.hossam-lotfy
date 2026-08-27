@@ -7,7 +7,7 @@ import { Client } from 'pg';
  * while Prisma's own runner records the timestamped directory name. Health
  * checks deliberately accept both formats.
  */
-export const EXPECTED_MIGRATIONS = ['init', 'extend_location', 'lawyer_guide'] as const;
+export const EXPECTED_MIGRATIONS = ['init', 'extend_location', 'lawyer_guide', 'lawyer_access_approval_email_reminders'] as const;
 
 const EXTENDED_LOCATION_COLUMNS = [
   'nameEn',
