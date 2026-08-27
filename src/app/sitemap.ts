@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dr-hossam-lotfy.vercel.app';
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dr-hossam-lotfy-hw88-aamrabdelhays-projects.vercel.app';
 
 export const dynamic = 'force-dynamic';
 

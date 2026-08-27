@@ -15,7 +15,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "node scripts/db-init.mjs && node scripts/apply-migrations.mjs && tsx prisma/seed.ts",
     "prestart": "node scripts/ensure-db.mjs",
-    "postinstall": "node scripts/patch-prisma-offline.mjs"
+    "postinstall": "node scripts/patch-prisma-offline.mjs",
+    "vercel-build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
     "@fontsource-variable/cairo": "^5.2.5",
