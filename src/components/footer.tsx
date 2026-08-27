@@ -89,7 +89,7 @@ export function Footer() {
               +20 2 3760 6575
             </a>
             <Link
-              href="/admin/login"
+              href="/api/auth/login" prefetch={false}
               className="mt-6 inline-block text-[10px] tracking-[1.5px] uppercase text-white/30 hover:text-white/60 transition-colors"
               style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
             >
