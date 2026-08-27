@@ -107,7 +107,9 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   }
   if (session.role === 'lawyer' && session.lawyerId) {
     const lawyer = await prisma.lawyer.findUnique({ where: { id: session.lawyerId } });
-    if (!lawyer || !lawyer.active) return null;
+    // Pending (not yet approved) lawyers must not be able to act on the office
+    // feed — they can only log in once the admin approves them.
+    if (!lawyer || !lawyer.active || !lawyer.approvedAt) return null;
     return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug };
   }
   return null;
@@ -142,4 +144,30 @@ export async function isLawyer(lawyerId: string): Promise<boolean> {
 
 export function safeComparePassword(password: string, hash: string): boolean {
   return bcrypt.compareSync(password, hash);
+}
+
+/**
+ * Signed, expiring state token for OAuth flows (CSRF protection). The value
+ * embeds a random nonce + expiry and is HMAC-signed with SESSION_SECRET, so a
+ * callback only succeeds for the exact request we initiated.
+ */
+export function createOAuthState(ttlMs = 10 * 60 * 1000): string {
+  const raw = crypto.randomBytes(24).toString('base64url');
+  const exp = Date.now() + ttlMs;
+  const body = `${raw}.${exp}`;
+  return `${body}.${hmac(body)}`;
+}
+
+export function verifyOAuthState(state: string | null | undefined): boolean {
+  if (!state) return false;
+  const parts = state.split('.');
+  if (parts.length !== 3) return false;
+  const [raw, expStr, sig] = parts;
+  const body = `${raw}.${expStr}`;
+  const expected = hmac(body);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  const exp = Number(expStr);
+  return Number.isFinite(exp) && Date.now() <= exp;
 }

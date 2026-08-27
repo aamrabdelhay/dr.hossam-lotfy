@@ -133,13 +133,21 @@ body_contains 'فلاتر دليل المحامي' 'بحث وتصفية دليل
 request 'قائمة الأماكن العامة' GET '/api/locations' 200 || true
 body_contains 'الأماكن العامة تُرجع قائمة' '"locations"'
 
-request 'الصفحة الداخلية (الرئيسية) تُحوّل للدخول' GET '/' 307 || true
-request 'صفحة الجلسات تُحوّل للدخول' GET '/sessions' 307 || true
-request 'صفحة التقويم تُحوّل للدخول' GET '/calendar' 307 || true
-header_matches 'وجهة تحويل الصفحات الداخلية' '^location:.*\/admin\/login'
+request 'الصفحة الرئيسية مفتوحة للزائر' GET '/' 200 || true
+request 'صفحة الجلسات مفتوحة للزائر' GET '/sessions' 200 || true
+request 'صفحة التقويم مفتوحة للزائر' GET '/calendar' 200 || true
+
+request 'بوابة الدخول (٣ خيارات)' GET '/auth' 200 || true
+body_contains 'خيار دخول محامي' 'دخول محامي'
+body_contains 'خيار تسجيل أول مرة' 'تسجيل أول مرة'
+body_contains 'خيار دخول الإدارة' 'تسجيل دخول إدارة'
+
+request 'دخول الإدارة بكود خاطئ يُرفض' POST '/api/auth/admin' 401 --header 'Content-Type: application/json' --data '{"code":"wrong"}'
 
 request 'البحث محمي خلف تسجيل الدخول (إنجليزي)' GET '/api/search?q=tax' 401 || true
 request 'البحث محمي خلف تسجيل الدخول (عربي)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
+
+request 'تذكيرات الإيميل (كرون) متاحة' GET '/api/cron/email-reminders' 200 || true
 
 request 'إدارة الزائر تُحوّل للدخول' GET '/admin' 307 || true
 header_matches 'وجهة تحويل الإدارة' '^location:.*\/admin\/login'

@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: 'المحامون' };
 export default async function LawyersPage() {
   const [lawyers, sidebar, session] = await Promise.all([
     prisma.lawyer.findMany({
-      where: { active: true },
+      where: { active: true, approvedAt: { not: null } },
       orderBy: [{ sortOrder: 'asc' }, { fullName: 'asc' }],
       include: {
         assignments: {

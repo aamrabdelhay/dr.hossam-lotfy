@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     type === 'location' || type === 'session'
       ? Promise.resolve([] as Array<{ id: string; slug: string; fullName: string; title: 'DOCTOR' | 'ADVOCATE'; profilePhotoUrl: string | null; isPrincipal: boolean; assignments: unknown[] }>)
       : prisma.lawyer.findMany({
-          where: { active: true, OR: orAcross(['fullName', 'specialization', 'position']) },
+          where: { active: true, approvedAt: { not: null }, OR: orAcross(['fullName', 'specialization', 'position']) },
           take: 20,
           orderBy: [{ isPrincipal: 'desc' }, { sortOrder: 'asc' }],
           include: {

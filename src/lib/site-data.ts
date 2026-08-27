@@ -5,7 +5,8 @@ import type { NavLawyer, NavLocation } from './constants';
 export async function getSiteNav() {
   const [lawyers, locations] = await Promise.all([
     prisma.lawyer.findMany({
-      where: { active: true },
+      // Only approved lawyers appear in public navigation.
+      where: { active: true, approvedAt: { not: null } },
       select: { id: true, slug: true, fullName: true, title: true, profilePhotoUrl: true, isPrincipal: true, sortOrder: true },
       orderBy: [{ sortOrder: 'asc' }, { fullName: 'asc' }],
     }),
