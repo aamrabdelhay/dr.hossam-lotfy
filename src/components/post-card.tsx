@@ -15,6 +15,7 @@ import {
   UserRound,
   StickyNote,
   Loader2,
+  Navigation,
 } from 'lucide-react';
 import {Avatar, Badge, Button, Card, Modal} from './ui';import { cn } from '@/lib/cn';
 import { StatusBadge, UrgencyBadge } from './urgency';
@@ -207,7 +208,17 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, sh
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 border-t border-navy-100 px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1 border-t border-navy-100 px-2 py-1.5">
+        {task.location.address && (
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.address)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 rounded-md bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-bold text-gold-700 hover:bg-gold-500/20"
+          >
+            <Navigation size={13} /> الاتجاهات
+          </a>
+        )}
         {showComments && (
           <button
             onClick={toggleComments}

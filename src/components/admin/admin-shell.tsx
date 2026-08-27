@@ -138,6 +138,7 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'tasks', label: 'الجلسات والمهام' },
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
           { id: 'locations', label: 'الأماكن', count: props.stats.locations },
+          { id: 'cases', label: 'القضايا', count: props.stats.cases },
           { id: 'activity', label: 'النشاط' },
           { id: 'notifications', label: 'الإشعارات' },
         ]}
@@ -148,6 +149,7 @@ export function AdminShell(props: AdminShellProps) {
       {tab === 'tasks' && <TasksTab locations={props.locations} lawyers={props.lawyers} onEdit={(t) => setModal({ kind: 'editTask', data: t })} />}
       {tab === 'lawyers' && <LawyersTab lawyers={props.lawyers} onAdd={() => setModal({ kind: 'lawyer' })} onEdit={(l) => setModal({ kind: 'lawyer', data: l })} />}
       {tab === 'locations' && <LocationsTab locations={props.locations} onAdd={() => setModal({ kind: 'location' })} onEdit={(l) => setModal({ kind: 'location', data: l })} />}
+      {tab === 'cases' && <CasesTab cases={props.cases} />}
       {tab === 'activity' && <ActivityTab initial={props.activity} />}
       {tab === 'notifications' && <NotificationsTab notifications={props.notifications} />}
 
@@ -669,6 +671,34 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: NavLocation[]; 
 }
 
 /* ─────────────────────────── Activity ─────────────────────────── */
+
+function CasesTab({ cases }: { cases: Array<{ id: string; name: string; number: string }> }) {
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 bg-ivory-50 px-5 py-4">
+        <div>
+          <h2 className="text-base font-extrabold text-navy-950">ملفات القضايا</h2>
+          <p className="mt-1 text-[11px] font-semibold text-navy-400">القضية هي المحور الذي يجمع الجلسات والمهام داخل المكتب.</p>
+        </div>
+        <span className="rounded-full bg-gold-500/15 px-3 py-1 text-[11px] font-extrabold text-gold-700">{cases.length} قضية مسجلة</span>
+      </div>
+      {cases.length === 0 ? <EmptyState title="لا توجد قضايا بعد" hint="أضف قضية من نموذج الجلسة لتظهر هنا." /> : (
+        <div className="divide-y divide-navy-100">
+          {cases.map((item, index) => (
+            <div key={item.id} className="flex items-center gap-3 px-5 py-4 hover:bg-ivory-50">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-950 text-xs font-extrabold text-gold-300">{index + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-extrabold text-navy-900">{item.name}</p>
+                <p className="mt-0.5 truncate font-latin text-[11px] font-semibold text-navy-400" dir="ltr">{item.number}</p>
+              </div>
+              <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-gold-700 hover:bg-gold-500/10">عرض المرتبط</Link>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 function ActivityTab({ initial }: { initial: Array<{ id: string; action: string; summary: string; createdAt: string }> }) {
   const [items, setItems] = React.useState<
