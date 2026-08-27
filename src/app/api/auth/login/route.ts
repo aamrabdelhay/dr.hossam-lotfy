@@ -8,7 +8,7 @@ import { isStaffRole } from '@/lib/rbac';
 import { rateLimit, rateLimitReset, loginRateKey } from '@/lib/rate-limit';
 
 const schema = z.object({
-  email: z.string().email('بريد إلكتروني غير صالح').optional(),
+  email: z.string().email('بريد إلكتروني غير صالح'),
   password: z.string().min(1, 'كلمة المرور مطلوبة'),
 });
 
@@ -20,7 +20,7 @@ const schema = z.object({
 export const POST = handle(async (req: Request) => {
   const { email, password } = await readJson(req as never, schema);
 
-  const key = loginRateKey(req, email ?? 'admin');
+  const key = loginRateKey(req, email);
   const rl = rateLimit(key, 5, 15 * 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json(
@@ -30,9 +30,9 @@ export const POST = handle(async (req: Request) => {
   }
 
   const staffRoles: UserRole[] = ['ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SECRETARY', 'LAWYER', 'VIEWER'];
-  const admin = email
-    ? await prisma.user.findFirst({ where: { email: email.toLowerCase().trim(), role: { in: staffRoles } } })
-    : await prisma.user.findFirst({ where: { role: { in: staffRoles } }, orderBy: { createdAt: 'asc' } });
+  const admin = await prisma.user.findFirst({
+    where: { email: email.toLowerCase().trim(), role: { in: staffRoles } },
+  });
 
   if (!admin || !safeComparePassword(password, admin.passwordHash)) {
     return NextResponse.json({ error: 'بيانات الدخول غير صحيحة.' }, { status: 401 });
