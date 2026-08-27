@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, PenLine, X } from 'lucide-react';
-import { Avatar, Button, Card, Field, Input, Select, Textarea } from './ui';
+import { Avatar, Button, Card, Field, Input, Textarea } from './ui';
+import { SelectWithAdd } from './select-with-add';
 import { toastSuccess, toastError } from './toasts';
 import { cn } from '@/lib/cn';
 import type { NavLocation } from '@/lib/constants';
@@ -29,8 +30,8 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locationId || !description.trim()) {
-      toastError('المكان ووصف المهمة مطلوبان.');
+    if (!locationId) {
+      toastError('المكان مطلوب.');
       return;
     }
     setBusy(true);
@@ -39,7 +40,7 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         locationId,
-        description: description.trim(),
+        description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         scheduledDate: date || undefined,
         scheduledTime: time || undefined,
@@ -59,6 +60,17 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
       const d = await res.json().catch(() => ({}));
       toastError(d.error ?? 'تعذر النشر.');
     }
+  };
+
+  const addLocation = async (label: string): Promise<string | void> => {
+    const res = await fetch('/api/locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: label, type: 'OTHER' }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (res.ok && d?.location?.id) return d.location.id as string;
+    toastError(d.error ?? 'تعذر إضافة المكان.');
   };
 
   return (
@@ -85,12 +97,14 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="المكان" required>
-              <Select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-                <option value="">اختر المكان…</option>
-                {locations.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </Select>
+              <SelectWithAdd
+                ariaLabel="المكان"
+                placeholder="اختر المكان…"
+                options={locations.map((l) => ({ value: l.id, label: l.name }))}
+                value={locationId}
+                onChange={setLocationId}
+                onAdd={addLocation}
+              />
             </Field>
             <Field label="التاريخ">
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -99,7 +113,7 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
               <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
             </Field>
           </div>
-          <Field label="المهمة — هتعمل إيه؟" required>
+          <Field label="المهمة — هتعمل إيه؟" hint="اختياري">
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="مثال: حضور جلسة محكمة النقض…" />
           </Field>
           <Field label="ملاحظات">

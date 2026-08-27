@@ -131,36 +131,31 @@ export function Badge({ tone = 'gray', className, children }: { tone?: BadgeTone
 
 /* ────────────────────────── Avatar ────────────────────────── */
 
-const AVATAR_BG = [
-  'linear-gradient(135deg,#0b1623,#24354a)',
-  'linear-gradient(135deg,#111827,#33475e)',
-  'linear-gradient(135deg,#8a6e18,#c9a227)',
-  'linear-gradient(135deg,#0e1a2b,#4a3b18)',
-];
-
-export function Avatar({ name, src, size = 40, className, ring }: { name: string; src?: string | null; size?: number; className?: string; ring?: boolean }) {
+/**
+ * Rectangular initials avatar — letters only. Never renders a photo and never
+ * a circle: border #E0D8CC on bg #F7F5F0, Cormorant Garamond initials.
+ */
+export function Avatar({ name, src: _src, size = 40, className }: { name: string; src?: string | null; size?: number; className?: string; ring?: boolean }) {
   const initials = React.useMemo(() => {
     const parts = name.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return '?';
     if (parts.length === 1) return parts[0].slice(0, 2);
     return (parts[0][0] ?? '') + (parts[parts.length - 1][0] ?? '');
   }, [name]);
-  const hash = React.useMemo(() => name.split('').reduce((a, c) => a + c.charCodeAt(0), 0), [name]);
-  return src ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={name}
-      width={size}
-      height={size}
-      className={cn('rounded-full object-cover shrink-0 bg-navy-100', ring && 'ring-2 ring-gold-500/60 ring-offset-2 ring-offset-white', className)}
-      style={{ width: size, height: size }}
-    />
-  ) : (
+  void _src; // photos intentionally unused — letters-only design
+  return (
     <span
       aria-hidden
-      className={cn('inline-flex shrink-0 items-center justify-center rounded-full font-latin font-semibold text-ivory-100', ring && 'ring-2 ring-gold-500/60 ring-offset-2 ring-offset-white', className)}
-      style={{ width: size, height: size, background: AVATAR_BG[hash % AVATAR_BG.length], fontSize: Math.max(11, size * 0.34) }}
+      className={cn('inline-flex shrink-0 select-none items-center justify-center border border-[#E0D8CC] bg-[#F7F5F0] text-[#101C2C]', className)}
+      style={{
+        width: Math.round(size * 1.18),
+        height: size,
+        fontFamily: '"Cormorant Garamond", serif',
+        fontWeight: 600,
+        fontSize: Math.max(11, size * 0.42),
+        letterSpacing: '0.5px',
+        lineHeight: 1,
+      }}
     >
       {initials}
     </span>

@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button, Field, Input, Modal, Select, Textarea } from './ui';
+import { SelectWithAdd } from './select-with-add';
 import { toastSuccess, toastError } from './toasts';
 import type { NavLocation } from '@/lib/constants';
 import { TASK_STATUS, TASK_STATUS_LABEL } from './task-constants';
@@ -99,6 +100,17 @@ export function SessionEditForm({
     }
   };
 
+  const addLocation = async (label: string): Promise<string | void> => {
+    const res = await fetch('/api/locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: label, type: 'OTHER' }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (res.ok && d?.location?.id) return d.location.id as string;
+    toastError(d.error ?? 'تعذر إضافة المكان.');
+  };
+
   return (
     <Modal open={open} onClose={onClose} title="تعديل المهمة / الجلسة" wide
       footer={
@@ -114,11 +126,13 @@ export function SessionEditForm({
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="المحكمة / المكان" required>
-            <Select value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-              {locations.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </Select>
+            <SelectWithAdd
+              ariaLabel="المحكمة أو المكان"
+              options={locations.map((l) => ({ value: l.id, label: l.name }))}
+              value={locationId}
+              onChange={setLocationId}
+              onAdd={addLocation}
+            />
           </Field>
           <Field label="الحالة">
             <Select value={status} onChange={(e) => setStatus(e.target.value)}>

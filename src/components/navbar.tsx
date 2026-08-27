@@ -155,26 +155,21 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
 
-        {/* Logo - DR. HOSSAM LOTFY / LAW FIRM */}
+        {/* Logo - DR. HOSSAM LOTFY / LAW FIRM (single instance — the sub-line
+            is hidden on small screens instead of rendering a second copy) */}
         <Link href="/" className="flex min-w-0 items-center gap-3">
-          <span className="hidden min-w-0 md:block">
+          <span className="block min-w-0">
             <span
-              className="block text-[14px] tracking-[2px] text-white"
+              className="block truncate text-[14px] tracking-[2px] text-white md:text-[15px]"
               style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400, fontVariant: 'small-caps', letterSpacing: '2px' }}
             >
               DR. HOSSAM LOTFY
             </span>
             <span
-              className="block text-[9px] tracking-[3px] text-white/60 uppercase"
+              className="hidden text-[9px] tracking-[3px] text-white/60 uppercase md:block"
               style={{ fontFamily: 'Cormorant Garamond, serif', letterSpacing: '3px' }}
             >
               LAW FIRM
-            </span>
-          </span>
-          {/* Mobile logo */}
-          <span className="block md:hidden">
-            <span className="block text-[13px] tracking-[2px] text-white" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}>
-              DR. HOSSAM LOTFY
             </span>
           </span>
         </Link>

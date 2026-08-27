@@ -97,7 +97,7 @@ export function SessionsDrawerButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="fixed bottom-5 end-5 z-[80] flex items-center gap-2 rounded-full bg-navy-950 px-5 py-3 text-[13px] font-extrabold text-gold-300 shadow-xl ring-1 ring-gold-500/40 hover:bg-navy-900 lg:hidden"
+      className="fixed bottom-5 end-5 z-[75] flex items-center gap-2 rounded-full border border-[#101C2C] bg-[#101C2C] px-5 py-3 text-[13px] font-extrabold text-[#F7F5F0] shadow-xl ring-1 ring-[#8A6A3A]/40 hover:bg-[#18263A] lg:hidden"
     >
       <CalendarClock size={17} />
       الجلسات القادمة

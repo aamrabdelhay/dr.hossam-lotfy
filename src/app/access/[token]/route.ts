@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { buildSessionCookie } from '@/lib/auth';
+import { createSessionCookie } from '@/lib/auth';
 
 /**
  * Magic-link access: GET /access/<token> validates the one-time token and
@@ -23,7 +23,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   await prisma.accessToken.update({ where: { token }, data: { consumedAt: new Date() } });
 
   const res = NextResponse.redirect(new URL(`/lawyers/${record.lawyer.slug}`, req.url), { status: 307 });
-  const cookie = buildSessionCookie({ role: 'lawyer', id: record.lawyer.id });
+  const cookie = await createSessionCookie({
+    role: 'lawyer',
+    lawyerId: record.lawyer.id,
+    ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+    userAgent: req.headers.get('user-agent') ?? undefined,
+  });
   res.cookies.set(cookie.name, cookie.value, cookie.options as never);
   return res;
 }
