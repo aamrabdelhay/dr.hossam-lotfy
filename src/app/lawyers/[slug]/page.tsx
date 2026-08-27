@@ -125,6 +125,12 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   if (!lawyer) notFound();
   const session = await getCurrentUser();
   const isSelf = session?.role === 'lawyer' && session.lawyerId === lawyer.id;
+  const isAdminSession = session?.role === 'admin';
+
+  // A self-registered lawyer who is still waiting for approval has no public
+  // profile — only the office (or the lawyer's own pending session) may see it.
+  if (!lawyer.approvedAt && !isSelf && !isAdminSession) notFound();
+  const pendingApproval = !lawyer.approvedAt;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -242,7 +248,8 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
                   {lawyer.phone}
                 </a>
               )}
-              {lawyer.email && (
+              {/* Public contact = name + phone only. E-mail is private (office / owner). */}
+              {(isSelf || isAdminSession) && lawyer.email && (
                 <a href={`mailto:${lawyer.email}`} className="rounded-full border border-[#E8ECF2] bg-white px-4 py-2 text-[12px] text-[#5B6B84] shadow-soft transition-all hover:border-gold-500/40 hover:text-[#1D2433]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }} dir="ltr">
                   {lawyer.email}
                 </a>
@@ -263,7 +270,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
               { label: 'المكتب', value: 'DR. HOSSAM LOTFY LAW FIRM' },
               { label: 'التخصص', value: specializationClean },
               { label: 'مجالات العمل', value: workFields },
-              { label: 'الحالة', value: 'ACTIVE', isBadge: true },
+              { label: 'الحالة', value: pendingApproval ? 'بانتظار الاعتماد' : 'ACTIVE', isBadge: true },
             ].map((row) => (
               <div key={row.label} className="flex items-center justify-between border-b border-[#E8ECF2] py-3">
                 <span className="text-[13px] text-[#5B6B84]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>

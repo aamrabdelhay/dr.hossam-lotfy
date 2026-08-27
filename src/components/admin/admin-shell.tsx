@@ -21,6 +21,7 @@ import {
   Users2,
   CalendarDays,
   FilePlus2,
+  ShieldCheck,
 } from 'lucide-react';
 import {Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, Select, Tabs} from '../ui';
 import { cn } from '@/lib/cn';
@@ -45,6 +46,8 @@ type LawyerRow = {
   title: 'DOCTOR' | 'ADVOCATE';
   phone: string | null;
   email: string | null;
+  googleEmail: string | null;
+  approved: boolean;
   specialization: string | null;
   bio: string | null;
   position: string | null;
@@ -472,6 +475,19 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
   const photoTargetRef = React.useRef<LawyerRow | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
+  const approve = async (l: LawyerRow) => {
+    setBusy(true);
+    const res = await fetch(`/api/lawyers/${l.id}/approve`, { method: 'POST' });
+    setBusy(false);
+    if (res.ok) {
+      toastSuccess(`تم اعتماد ${l.name} ✓`);
+      router.refresh();
+    } else {
+      const d = await res.json().catch(() => ({}));
+      toastError(d.error ?? 'تعذر الاعتماد.');
+    }
+  };
+
   const genLink = async (l: LawyerRow) => {
     setLinkFor(l);
     setLink(null);
@@ -548,15 +564,23 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
               <div className="flex flex-wrap items-center gap-2">
                 <Link href={`/lawyers/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
                 <Badge tone={l.isPrincipal ? 'gold' : 'gray'}>{TITLE_LABEL[l.title]}</Badge>
+                {!l.approved && <Badge tone="amber">بانتظار الاعتماد</Badge>}
                 {!l.active && <Badge tone="red">مخفي</Badge>}
               </div>
               <p className="mt-0.5 text-[11px] font-semibold text-navy-400">
                 {l.phone && <span className="font-latin" dir="ltr">{l.phone}</span>}
+                {l.googleEmail && <span className="font-latin" dir="ltr">{` • ${l.googleEmail}`}</span>}
                 {l.specialization && ` • ${l.specialization}`}
                 {` • ${l.upcoming} مهمة قادمة`}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              {!l.approved && (
+                <button onClick={() => approve(l)} disabled={busy} className="flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-600/10 px-2.5 py-1.5 text-[11px] font-extrabold text-emerald-700 hover:bg-emerald-600/20" title="اعتماد المحامي">
+                  <ShieldCheck size={12} />
+                  اعتماد
+                </button>
+              )}
               <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
                 <ImagePlus size={15} />
               </button>

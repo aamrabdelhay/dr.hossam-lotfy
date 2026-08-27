@@ -10,6 +10,7 @@ const updateSchema = z.object({
   title: z.enum(['DOCTOR', 'ADVOCATE']).optional(),
   phone: z.string().min(6).max(20).nullable().optional(),
   email: z.string().email().max(120).nullable().optional(),
+  googleEmail: z.string().email().max(120).nullable().optional(),
   specialization: z.string().max(200).nullable().optional(),
   bio: z.string().max(2000).nullable().optional(),
   position: z.string().max(120).nullable().optional(),

@@ -120,11 +120,11 @@ export function Footer() {
               </a>
             </div>
             <Link
-              href="/api/auth/login" prefetch={false}
+              href="/auth" prefetch={false}
               className="mt-4 inline-block text-[10px] tracking-[1.5px] uppercase text-white/30 transition-colors hover:text-gold-400/80"
               style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
             >
-              Admin Login
+              الدخول
             </Link>
           </div>
         </div>

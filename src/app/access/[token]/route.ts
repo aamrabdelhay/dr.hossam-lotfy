@@ -18,6 +18,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (record.consumedAt) return err('هذا الرابط منتهي — اطلب رابطاً جديداً من إدارة المكتب');
   if (record.expiresAt && record.expiresAt < new Date()) return err('انتهت صلاحية هذا الرابط');
   if (!record.lawyer.active) return err('هذا الحساب غير مفعّل — تواصل مع إدارة المكتب');
+  if (!record.lawyer.approvedAt) return err('حسابك بانتظار اعتماد الإدارة — ستتمكن من الدخول فور اعتماده');
 
   // Atomically consume the token. This prevents two concurrent requests from
   // both redeeming the same one-time link between the read and the write.

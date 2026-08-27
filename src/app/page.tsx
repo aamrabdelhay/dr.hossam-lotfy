@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { CalendarClock, Landmark, Scale, Search, BriefcaseBusiness, ClipboardList, AlertTriangle, Users, MapPinned } from 'lucide-react';
 import { getSidebarData, getFeed, getAdminStats } from '@/lib/queries';
 import { can } from '@/lib/rbac';
@@ -14,8 +13,8 @@ import { FeedMore } from '@/components/feed-more';
 const FEED_PAGE_SIZE = 12;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ feedPage?: string }> }) {
+  // Public home — visitors can browse the office feed without logging in.
   const session = await getCurrentUser();
-  if (!session) redirect('/admin/login');
 
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.feedPage ?? '1', 10) || 1);
@@ -27,13 +26,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     getAdminStats(),
   ]);
 
-  const lawyerSession = session.role === 'lawyer' ? session : null;
+  const lawyerSession = session?.role === 'lawyer' ? session : null;
+  const isAdmin = session?.role === 'admin';
+  const canWriteTasks = session ? (session.role === 'admin' && can(session.userRole, 'writeTasks')) : false;
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
       <aside className="hidden w-[330px] shrink-0 lg:block">
         <div className="sticky top-[88px]">
-          <SessionSidebar data={sidebar} isAdmin={session.role === 'admin'} />
+          <SessionSidebar data={sidebar} isAdmin={isAdmin} />
         </div>
       </aside>
 
@@ -100,7 +101,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         ) : (
           <div className="space-y-4">
             {feed.items.map((t) => (
-              <PostCard key={t.id} task={t} sessionRole={session.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={session.role === 'admin' && can(session.userRole, 'writeTasks')} />
+              <PostCard key={t.id} task={t} sessionRole={session?.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={canWriteTasks} />
             ))}
           </div>
         )}
@@ -117,7 +118,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <li><Link href="/lawyers" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Scale size={14} className="text-gold-600" />المحامون</Link></li>
               <li><Link href="/calendar" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><CalendarClock size={14} className="text-gold-600" />التقويم</Link></li>
               <li><Link href="/search" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Search size={14} className="text-gold-600" />البحث المتقدم</Link></li>
-              {session.role === 'admin' && <li><Link href="/admin?tab=cases" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-bold text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><BriefcaseBusiness size={14} className="text-gold-600" />ملفات القضايا</Link></li>}
+              {isAdmin && <li><Link href="/admin?tab=cases" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-bold text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><BriefcaseBusiness size={14} className="text-gold-600" />ملفات القضايا</Link></li>}
             </ul>
           </Card>
 

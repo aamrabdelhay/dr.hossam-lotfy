@@ -85,6 +85,11 @@ model Lawyer {
   sortOrder       Int         @default(100)
   isPrincipal     Boolean     @default(false)
   active          Boolean     @default(true)
+  // Gmail (Google OAuth) login identity — private, never exposed publicly.
+  googleEmail     String?     @unique
+  googleSub       String?     @unique
+  // null ⇒ self-registered and waiting for admin approval.
+  approvedAt      DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -592,4 +597,21 @@ model AdminSetting {
   updatedAt DateTime @default(now())
 
   @@map("admin_settings")
+}
+
+// ─────────────────────────── Email Reminders ───────────────────────────
+
+/// Ledger of reminder emails already sent by the daily cron
+/// (/api/cron/email-reminders). One row per (task, lawyer, kind) so a
+/// reminder is never delivered twice.
+model EmailReminder {
+  id       String   @id @default(cuid())
+  taskId   String
+  lawyerId String
+  kind     String   @default("session")
+  sentAt   DateTime @default(now())
+
+  @@unique([taskId, lawyerId, kind])
+  @@index([taskId])
+  @@map("email_reminders")
 }

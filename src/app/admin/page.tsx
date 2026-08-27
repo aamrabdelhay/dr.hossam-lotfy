@@ -18,7 +18,7 @@ export default async function AdminPage() {
   const [stats, lawyers, locations, cases, feed, activity, notifications] = await Promise.all([
     getAdminStats(),
     prisma.lawyer.findMany({
-      where: { active: true },
+      // Includes self-registered lawyers who are still waiting for approval.
       orderBy: [{ sortOrder: 'asc' }, { fullName: 'asc' }],
       include: {
         assignments: {
@@ -60,6 +60,8 @@ export default async function AdminPage() {
           title: l.title,
           phone: l.phone,
           email: l.email,
+          googleEmail: l.googleEmail,
+          approved: l.approvedAt != null,
           specialization: l.specialization,
           bio: l.bio,
           position: l.position,

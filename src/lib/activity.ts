@@ -13,6 +13,9 @@ export type ActivityAction =
   | 'PROFILE_UPDATED'
   | 'LOCATION_ADDED'
   | 'LAWYER_ADDED'
+  | 'LAWYER_REGISTERED'
+  | 'LAWYER_APPROVED'
+  | 'LAWYER_REJECTED'
   | 'USER_ADDED'
   | 'USER_UPDATED'
   | 'USER_DELETED';
@@ -55,6 +58,9 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   PROFILE_UPDATED: 'تحديث الملف',
   LOCATION_ADDED: 'إضافة مكان',
   LAWYER_ADDED: 'إضافة محامي',
+  LAWYER_REGISTERED: 'تسجيل محامٍ جديد',
+  LAWYER_APPROVED: 'اعتماد محامٍ',
+  LAWYER_REJECTED: 'رفض محامٍ',
   USER_ADDED: 'إضافة حساب',
   USER_UPDATED: 'تعديل حساب',
   USER_DELETED: 'حذف حساب',

@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { CalendarClock, MapPin, Clock3 } from 'lucide-react';
 import { getFeed } from '@/lib/queries';
-import { getCurrentUser } from '@/lib/auth';
 import { Card, Badge, EmptyState } from '@/components/ui';
 import { formatDay } from '@/lib/dates';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
@@ -12,9 +10,6 @@ export const metadata: Metadata = { title: 'الجلسات والمواعيد' }
 export const dynamic = 'force-dynamic';
 
 export default async function SessionsPage() {
-  const session = await getCurrentUser();
-  if (!session) redirect('/admin/login');
-
   const [upcoming, past] = await Promise.all([
     getFeed({ from: new Date().toISOString().slice(0, 10), limit: 50 }),
     getFeed({ to: new Date(Date.now() - 86400000).toISOString().slice(0, 10), limit: 25 }),

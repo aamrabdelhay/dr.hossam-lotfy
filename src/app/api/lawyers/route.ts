@@ -7,20 +7,26 @@ import { prisma as db } from '@/lib/prisma';
 
 export async function GET() {
   const session = await user();
+  const isAdmin = session?.role === 'admin';
+
   const lawyers = await prisma.lawyer.findMany({
-    where: { active: true },
+    // Public visitors only ever see approved lawyers; the office sees everyone
+    // (including self-registered lawyers waiting for approval).
+    where: isAdmin ? {} : { active: true, approvedAt: { not: null } },
     orderBy: [{ sortOrder: 'asc' }, { fullName: 'asc' }],
     select: {
       id: true, slug: true, fullName: true, title: true, phone: true, email: true,
       specialization: true, profilePhotoUrl: true, isPrincipal: true,
+      active: true, approvedAt: true, googleEmail: true,
     },
   });
 
-  // Workload and direct contact details are operational data. Only an
-  // authenticated office user receives them; public profile browsing gets the
-  // non-sensitive identity fields.
-  if (!session) {
-    return json({ lawyers: lawyers.map(({ phone, email, ...publicProfile }) => publicProfile) });
+  if (!isAdmin) {
+    // Public contract: identity fields only (name + phone). The contact e-mail
+    // and the private Google login identity are stripped for visitors.
+    return json({
+      lawyers: lawyers.map(({ email, googleEmail, approvedAt, active, ...publicProfile }) => publicProfile),
+    });
   }
 
   const counts = await db.$queryRaw<{ lawyerId: string; upcoming: number }[]>`
@@ -31,7 +37,15 @@ export async function GET() {
       AND (t."scheduledDate" >= CURRENT_DATE OR t."scheduledDate" IS NULL)
     GROUP BY "lawyerId"`;
   const countMap = new Map(counts.map((c) => [c.lawyerId, c.upcoming]));
-  return json({ lawyers: lawyers.map((l) => ({ ...l, upcoming: countMap.get(l.id) ?? 0 })) });
+
+  return json({
+    lawyers: lawyers.map((l) => ({
+      ...l,
+      approved: l.approvedAt != null,
+      googleEmail: l.googleEmail ?? null,
+      upcoming: countMap.get(l.id) ?? 0,
+    })),
+  });
 }
 
 const createSchema = z.object({
@@ -39,6 +53,7 @@ const createSchema = z.object({
   title: z.enum(['DOCTOR', 'ADVOCATE'], { message: 'اختر الصفة: دكتور أو محامي' }),
   phone: z.string().min(6, 'رقم التليفون مطلوب').max(20),
   email: z.string().email('بريد إلكتروني غير صالح').max(120).optional().or(z.literal('').transform(() => undefined)),
+  googleEmail: z.string().email('بريد Gmail غير صالح').max(120).optional().or(z.literal('').transform(() => undefined)),
   specialization: z.string().max(200).optional(),
   bio: z.string().max(2000).optional(),
   position: z.string().max(120).optional(),
@@ -61,9 +76,12 @@ export const POST = handle(async (req: Request) => {
       title: data.title,
       phone: data.phone.trim(),
       email: data.email,
+      googleEmail: data.googleEmail?.trim().toLowerCase() || null,
       specialization: data.specialization?.trim() || null,
       bio: data.bio?.trim() || null,
       position: data.position?.trim() || null,
+      // Admin-created profiles are approved immediately.
+      approvedAt: new Date(),
     },
   });
 
