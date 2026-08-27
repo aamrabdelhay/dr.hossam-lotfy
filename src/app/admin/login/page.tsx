@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 import { AdminLoginForm } from './login-client';
 
-export const metadata: Metadata = { title: 'دخول المسؤول' };
+export const metadata: Metadata = { title: 'دخول الإدارة' };
 
 export default function AdminLoginPage() {
   return (
@@ -12,9 +12,9 @@ export default function AdminLoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="logo" className="h-full w-full object-cover" />
         </div>
-        <h1 className="text-center text-lg font-extrabold text-navy-950">بوابة المسؤول</h1>
+        <h1 className="text-center text-lg font-extrabold text-navy-950">دخول إدارة المكتب</h1>
         <p className="mb-6 mt-1 text-center text-[12.5px] font-semibold text-navy-400">
-          هذه المنطقة مخصصة لفريق المكتب فقط. أدخل بريدك وكلمة المرور للمتابعة.
+          أدخل كود المكتب التجريبي للانتقال إلى صفحة إدارة المكتب.
         </p>
         <AdminLoginForm />
       </div>
