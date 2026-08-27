@@ -19,7 +19,7 @@ export function SessionCard({ task, showCase = true }: { task: TaskVM; showCase?
   return (
     <div
       className={cn(
-        'group rounded-lg border border-navy-100 border-s-[3px] bg-white px-3 py-2.5 transition hover:shadow-md hover:border-navy-200',
+        'group rounded-xl border border-navy-100/90 border-s-[3px] bg-white px-3 py-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-card',
         URGENCY_BORDER[task.urgency],
         done && 'opacity-70',
       )}

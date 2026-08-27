@@ -11,19 +11,23 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 
 export function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md', extra?: string) {
   const base =
-    'inline-flex items-center justify-center gap-2 font-semibold transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none select-none whitespace-nowrap';
+    'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none select-none whitespace-nowrap active:scale-[0.98]';
   const sizes: Record<ButtonSize, string> = {
-    sm: 'h-8 px-3 text-[13px] rounded-md',
-    md: 'h-10 px-4 text-sm rounded-lg',
-    lg: 'h-12 px-6 text-base rounded-lg',
+    sm: 'h-8 px-3 text-[13px] rounded-lg',
+    md: 'h-10 px-4 text-sm rounded-xl',
+    lg: 'h-12 px-6 text-base rounded-xl',
   };
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-navy-900 text-ivory-50 hover:bg-navy-800 active:bg-navy-950',
-    gold: 'bg-gold-500 text-navy-950 hover:bg-gold-400 active:bg-gold-600',
-    outline: 'border border-navy-200 bg-white text-navy-800 hover:border-gold-500 hover:text-navy-950',
-    ghost: 'text-navy-700 hover:bg-navy-900/5',
-    danger: 'bg-red-700 text-white hover:bg-red-800',
-    subtle: 'bg-navy-900/5 text-navy-800 hover:bg-navy-900/10',
+    primary:
+      'bg-gradient-to-b from-navy-800 to-navy-900 text-ivory-50 shadow-soft hover:from-navy-700 hover:to-navy-800 hover:shadow-card active:bg-navy-950',
+    gold:
+      'bg-gradient-to-b from-gold-400 to-gold-500 text-navy-950 shadow-[0_2px_8px_-2px_rgba(212,169,63,0.5)] hover:from-gold-300 hover:to-gold-400 hover:shadow-glow-gold active:from-gold-500 active:to-gold-600',
+    outline:
+      'border border-navy-200 bg-white text-navy-800 shadow-soft hover:border-gold-500/60 hover:text-navy-950 hover:shadow-card',
+    ghost: 'text-navy-700 hover:bg-navy-900/[0.06]',
+    danger:
+      'bg-gradient-to-b from-red-600 to-red-700 text-white shadow-soft hover:from-red-500 hover:to-red-600 hover:shadow-card',
+    subtle: 'bg-navy-900/[0.06] text-navy-800 hover:bg-navy-900/[0.1]',
   };
   return cn(base, sizes[size], variants[variant], extra);
 }
@@ -42,8 +46,8 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        'h-10 w-full rounded-lg border border-navy-200 bg-white px-3 text-sm text-navy-900 placeholder:text-navy-300',
-        'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none transition',
+        'h-10 w-full rounded-xl border border-navy-200/80 bg-ivory-50/60 px-3.5 text-sm text-navy-900 transition-all placeholder:text-navy-300',
+        'focus:border-gold-500/70 focus:bg-white focus:ring-2 focus:ring-gold-500/20 focus:outline-none',
         className,
       )}
       {...props}
@@ -57,8 +61,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
     <textarea
       ref={ref}
       className={cn(
-        'w-full rounded-lg border border-navy-200 bg-white px-3 py-2.5 text-sm text-navy-900 placeholder:text-navy-300 min-h-[90px]',
-        'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none transition resize-y',
+        'w-full rounded-xl border border-navy-200/80 bg-ivory-50/60 px-3.5 py-2.5 text-sm text-navy-900 transition-all placeholder:text-navy-300 min-h-[90px]',
+        'focus:border-gold-500/70 focus:bg-white focus:ring-2 focus:ring-gold-500/20 focus:outline-none resize-y',
         className,
       )}
       {...props}
@@ -72,8 +76,8 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
     <select
       ref={ref}
       className={cn(
-        'h-10 w-full appearance-none rounded-lg border border-navy-200 bg-white px-3 pe-9 text-sm text-navy-900',
-        'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none transition cursor-pointer',
+        'h-10 w-full appearance-none rounded-xl border border-navy-200/80 bg-ivory-50/60 px-3.5 pe-9 text-sm text-navy-900 transition-all cursor-pointer',
+        'focus:border-gold-500/70 focus:bg-white focus:ring-2 focus:ring-gold-500/20 focus:outline-none',
         'bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22/%3E%3C/svg%3E")] bg-end-3 bg-no-repeat',
         className,
       )}
@@ -103,7 +107,7 @@ export function Field({ label, hint, error, required, children }: { label: strin
 
 export function Card({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('rounded-xl border border-navy-100 bg-white shadow-[0_1px_3px_rgba(7,17,28,0.06)]', className)} {...props}>
+    <div className={cn('rounded-2xl border border-navy-100/80 bg-white shadow-card', className)} {...props}>
       {children}
     </div>
   );
@@ -133,7 +137,7 @@ export function Badge({ tone = 'gray', className, children }: { tone?: BadgeTone
 
 /**
  * Rectangular initials avatar — letters only. Never renders a photo and never
- * a circle: border #E0D8CC on bg #F7F5F0, Cormorant Garamond initials.
+ * a circle: border #D9DFE9 on bg #F4F6F9, Cormorant Garamond initials.
  */
 export function Avatar({ name, src: _src, size = 40, className }: { name: string; src?: string | null; size?: number; className?: string; ring?: boolean }) {
   const initials = React.useMemo(() => {
@@ -146,7 +150,7 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
   return (
     <span
       aria-hidden
-      className={cn('inline-flex shrink-0 select-none items-center justify-center border border-[#E0D8CC] bg-[#F7F5F0] text-[#101C2C]', className)}
+      className={cn('inline-flex shrink-0 select-none items-center justify-center rounded-lg border border-[#D9DFE9] bg-gradient-to-b from-[#FBFCFD] to-[#EAEFF4] text-[#0A101D] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]', className)}
       style={{
         width: Math.round(size * 1.18),
         height: size,
@@ -196,7 +200,7 @@ export function Modal({
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
       <div
         className={cn(
-          'relative w-full animate-fade-in-up rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[85vh]',
+          'relative w-full animate-fade-in-up rounded-t-3xl bg-white shadow-lift ring-1 ring-navy-950/10 flex flex-col max-h-[92vh] sm:max-h-[85vh] sm:rounded-3xl',
           wide ? 'sm:max-w-3xl' : 'sm:max-w-xl',
         )}
       >
@@ -217,7 +221,7 @@ export function Modal({
 
 export function EmptyState({ title, hint, icon, action }: { title: string; hint?: string; icon?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-navy-200 bg-ivory-50/60 px-6 py-10 text-center">
+    <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-navy-200/80 bg-gradient-to-b from-ivory-50 to-white px-6 py-10 text-center">
       <span className="text-navy-200">{icon ?? <Inbox size={34} strokeWidth={1.5} />}</span>
       <p className="text-sm font-bold text-navy-700">{title}</p>
       {hint && <p className="max-w-sm text-xs leading-6 text-navy-300">{hint}</p>}
@@ -246,15 +250,15 @@ export function Tabs({ tabs, active, onChange, className }: { tabs: Array<{ id: 
           aria-selected={active === t.id}
           onClick={() => onChange(t.id)}
           className={cn(
-            'relative -mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap px-4 py-2.5 text-[13px] font-bold transition-colors',
+            'relative -mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-[13px] font-bold transition-all',
             active === t.id ? 'text-navy-950' : 'text-navy-300 hover:text-navy-600',
           )}
         >
           {t.label}
           {typeof t.count === 'number' && (
-            <span className={cn('rounded-full px-1.5 text-[10px] font-bold', active === t.id ? 'bg-gold-500/15 text-gold-700' : 'bg-navy-900/5 text-navy-300')}>{t.count}</span>
+            <span className={cn('rounded-full px-1.5 text-[10px] font-bold transition-colors', active === t.id ? 'bg-gold-500/15 text-gold-700' : 'bg-navy-900/5 text-navy-300')}>{t.count}</span>
           )}
-          {active === t.id && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-gold-500" />}
+          {active === t.id && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-gradient-to-l from-gold-400 to-gold-600" />}
         </button>
       ))}
     </div>
