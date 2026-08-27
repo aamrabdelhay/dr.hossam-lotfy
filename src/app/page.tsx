@@ -15,7 +15,7 @@ const FEED_PAGE_SIZE = 12;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ feedPage?: string }> }) {
   const session = await getCurrentUser();
-  if (!session) redirect('/admin/login');
+  if (!session) redirect('/api/auth/login');
 
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.feedPage ?? '1', 10) || 1);
@@ -38,7 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </aside>
 
       <section className="min-w-0 flex-1 space-y-4">
-        <section aria-labelledby="dashboard-title" className="overflow-hidden rounded-2xl border border-navy-100/80 bg-white shadow-card">
+        <section aria-labelledby="dashboard-title" className="overflow-hidden rounded-2xl border border-navy-100/80 bg-navy-850 shadow-card">
           <div className="mesh-gold flex items-center justify-between gap-3 border-b border-navy-800 bg-gradient-to-l from-navy-950 via-navy-900 to-navy-850 px-4 py-4 sm:px-5">
             <div>
               <p className="text-[10px] font-bold tracking-[0.18em] text-gold-400">مركز القيادة</p>
@@ -52,29 +52,29 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               تحديث مباشر من السجلات
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-px bg-navy-100/70 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-px bg-white/10 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { label: 'جلسات اليوم', value: stats.today, icon: CalendarClock, tone: 'bg-gold-500/15 text-gold-600 ring-gold-500/30' },
+              { label: 'جلسات اليوم', value: stats.today, icon: CalendarClock, tone: 'bg-gold-500/15 text-gold-500 ring-gold-500/30' },
               { label: 'جلسات الغد', value: stats.tomorrow, icon: CalendarClock, tone: 'bg-orange-500/10 text-orange-600 ring-orange-500/25' },
               { label: 'جلسات حرجة', value: stats.critical, icon: AlertTriangle, tone: 'bg-red-600/10 text-red-600 ring-red-600/25' },
-              { label: 'مهام مفتوحة', value: stats.uncompleted, icon: ClipboardList, tone: 'bg-navy-700/10 text-navy-700 ring-navy-700/20' },
+              { label: 'مهام مفتوحة', value: stats.uncompleted, icon: ClipboardList, tone: 'bg-navy-700/10 text-ivory-300 ring-navy-700/20' },
               { label: 'المحامون', value: stats.lawyers, icon: Users, tone: 'bg-emerald-600/10 text-emerald-600 ring-emerald-600/25' },
-              { label: 'المواعيد القادمة', value: stats.upcoming30, icon: MapPinned, tone: 'bg-gold-600/10 text-gold-700 ring-gold-600/25' },
+              { label: 'المواعيد القادمة', value: stats.upcoming30, icon: MapPinned, tone: 'bg-gold-600/10 text-gold-500 ring-gold-600/25' },
             ].map((item) => {
               const Icon = item.icon;
               return (
-                <Link key={item.label} href="/calendar" className="group relative bg-white p-3.5 transition-all duration-200 hover:bg-ivory-50 hover:shadow-soft sm:p-4">
+                <Link key={item.label} href="/calendar" className="group relative bg-navy-850 p-3.5 transition-all duration-200 hover:bg-navy-800 hover:shadow-soft sm:p-4">
                   <span className={`mb-2.5 flex h-8 w-8 items-center justify-center rounded-xl ring-1 ring-inset transition-transform duration-200 group-hover:scale-110 ${item.tone}`}>
                     <Icon size={15} />
                   </span>
-                  <strong className="block text-2xl font-extrabold leading-none text-navy-950">{item.value}</strong>
+                  <strong className="block text-2xl font-extrabold leading-none text-ivory-50">{item.value}</strong>
                   <span className="mt-1.5 block text-[10.5px] font-bold text-navy-400">{item.label}</span>
                 </Link>
               );
             })}
           </div>
           <div className="flex items-center gap-3 border-t border-navy-100 px-4 py-3 text-[11px] font-semibold text-navy-400 sm:px-5">
-            <BriefcaseBusiness size={14} className="text-gold-600" />
+            <BriefcaseBusiness size={14} className="text-gold-500" />
             <span>توزيع المواعيد خلال الشهر</span>
             <div className="flex h-6 flex-1 items-end gap-1" aria-label="مؤشر المواعيد القادمة">
               {[stats.today, stats.tomorrow, stats.critical, stats.important, stats.upcoming30].map((v, i) => (
@@ -88,11 +88,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         {lawyerSession && <Composer lawyerName={lawyerSession.name} locations={nav.locations} />}
 
         <div className="flex items-center justify-between">
-          <h1 className="flex items-center gap-2.5 text-[15px] font-extrabold text-navy-900">
+          <h1 className="flex items-center gap-2.5 text-[15px] font-extrabold text-ivory-100">
             <span className="h-4 w-1 rounded-full bg-gradient-to-b from-gold-400 to-gold-600" />
             فيد المكتب
           </h1>
-          <span className="rounded-full bg-navy-900/[0.06] px-2.5 py-1 text-[11px] font-bold text-navy-500">{feed.total} منشور</span>
+          <span className="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-bold text-navy-400">{feed.total} منشور</span>
         </div>
 
         {feed.items.length === 0 ? (
@@ -111,13 +111,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <aside className="hidden w-[250px] shrink-0 xl:block">
         <div className="sticky top-[88px] space-y-4">
           <Card className="p-4">
-            <h3 className="mb-3 text-[12px] font-extrabold text-navy-800">تنقّل سريع</h3>
+            <h3 className="mb-3 text-[12px] font-extrabold text-ivory-200">تنقّل سريع</h3>
             <ul className="space-y-1 text-[12.5px] font-bold">
-              <li><Link href="/locations" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Landmark size={14} className="text-gold-600" />المحاكم والأماكن</Link></li>
-              <li><Link href="/lawyers" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Scale size={14} className="text-gold-600" />المحامون</Link></li>
-              <li><Link href="/calendar" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><CalendarClock size={14} className="text-gold-600" />التقويم</Link></li>
-              <li><Link href="/search" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Search size={14} className="text-gold-600" />البحث المتقدم</Link></li>
-              {session.role === 'admin' && <li><Link href="/admin?tab=cases" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-bold text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><BriefcaseBusiness size={14} className="text-gold-600" />ملفات القضايا</Link></li>}
+              <li><Link href="/locations" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-300 transition-colors hover:bg-navy-800 hover:text-ivory-50"><Landmark size={14} className="text-gold-500" />المحاكم والأماكن</Link></li>
+              <li><Link href="/lawyers" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-300 transition-colors hover:bg-navy-800 hover:text-ivory-50"><Scale size={14} className="text-gold-500" />المحامون</Link></li>
+              <li><Link href="/calendar" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-300 transition-colors hover:bg-navy-800 hover:text-ivory-50"><CalendarClock size={14} className="text-gold-500" />التقويم</Link></li>
+              <li><Link href="/search" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-300 transition-colors hover:bg-navy-800 hover:text-ivory-50"><Search size={14} className="text-gold-500" />البحث المتقدم</Link></li>
+              {session.role === 'admin' && <li><Link href="/admin?tab=cases" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-bold text-navy-300 transition-colors hover:bg-navy-800 hover:text-ivory-50"><BriefcaseBusiness size={14} className="text-gold-500" />ملفات القضايا</Link></li>}
             </ul>
           </Card>
 

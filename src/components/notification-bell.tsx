@@ -107,7 +107,7 @@ export function NotificationBell({ unread }: { unread: number }) {
     <div className="relative" ref={wrapRef}>
       <button
         onClick={toggle}
-        className="relative rounded-full p-2 text-navy-400 transition-colors hover:bg-navy-900/[0.06] hover:text-navy-900"
+        className="relative rounded-full p-2 text-navy-400 transition-colors hover:bg-white/[0.06] hover:text-ivory-100"
         aria-label="الإشعارات"
       >
         <Bell size={16} />
@@ -119,9 +119,9 @@ export function NotificationBell({ unread }: { unread: number }) {
       </button>
       {open && (
         <div className="absolute end-0 top-full w-80 pt-3">
-          <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-lift ring-1 ring-navy-950/5">
-            <div className="flex items-center justify-between bg-[#0A101D] px-4 py-2.5">
-              <p className="text-[10px] font-bold tracking-[1.5px] uppercase text-gold-300" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+          <div className="overflow-hidden rounded-2xl border border-navy-100 bg-navy-850 shadow-lift ring-1 ring-navy-950/5">
+            <div className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
+              <p className="text-[10px] font-bold tracking-[1.5px] uppercase text-gold-300" style={{ fontFamily: 'var(--font-arabic)' }}>
                 الإشعارات
               </p>
               {unread > 0 && (
@@ -129,7 +129,7 @@ export function NotificationBell({ unread }: { unread: number }) {
                   onClick={() => void markAll()}
                   disabled={markingAll}
                   className="flex items-center gap-1 text-[10px] font-bold text-white/60 hover:text-white disabled:opacity-50"
-                  style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+                  style={{ fontFamily: 'var(--font-arabic)' }}
                 >
                   <CheckCheck size={11} />
                   تعليم الكل كمقروء
@@ -138,9 +138,9 @@ export function NotificationBell({ unread }: { unread: number }) {
             </div>
             <ul className="max-h-80 overflow-y-auto overscroll-contain py-1">
               {!loaded ? (
-                <li className="px-4 py-6 text-center text-[11px] text-[#5B6B84]">جارٍ التحميل…</li>
+                <li className="px-4 py-6 text-center text-[11px] text-navy-300">جارٍ التحميل…</li>
               ) : items.length === 0 ? (
-                <li className="px-4 py-6 text-center text-[11px] text-[#5B6B84]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <li className="px-4 py-6 text-center text-[11px] text-navy-300" style={{ fontFamily: 'var(--font-arabic)' }}>
                   لا توجد إشعارات بعد
                 </li>
               ) : (
@@ -150,20 +150,20 @@ export function NotificationBell({ unread }: { unread: number }) {
                       onClick={() => void openItem(n)}
                       disabled={busyId === n.id}
                       className={cn(
-                        'flex w-full items-start gap-2.5 px-4 py-3 text-start hover:bg-ivory-100 disabled:opacity-60',
+                        'flex w-full items-start gap-2.5 px-4 py-3 text-start hover:bg-navy-800 disabled:opacity-60',
                         !n.readAt && 'bg-gold-500/[0.06]',
                       )}
-                      style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+                      style={{ fontFamily: 'var(--font-arabic)' }}
                     >
-                      <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded', !n.readAt ? 'bg-[#8A6A3A]/15 text-[#8A6A3A]' : 'bg-[#101C2C]/5 text-[#6B6B6B]')}>
+                      <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded', !n.readAt ? 'bg-gold-500/15 text-gold-500' : 'bg-white/5 text-navy-400')}>
                         {n.type === 'TASK_COMPLETED' ? <CheckCheck size={14} /> : <Bell size={14} />}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-1.5">
-                          <span className={cn('text-[12px] font-bold', n.readAt ? 'text-[#5B6B84]' : 'text-[#1D2433]')}>{n.title}</span>
-                          <span className="rounded bg-navy-900/5 px-1 py-px text-[9px] font-bold text-navy-400">{TYPE_LABEL[n.type] ?? n.type}</span>
+                          <span className={cn('text-[12px] font-bold', n.readAt ? 'text-navy-300' : 'text-ivory-100')}>{n.title}</span>
+                          <span className="rounded bg-white/5 px-1 py-px text-[9px] font-bold text-navy-400">{TYPE_LABEL[n.type] ?? n.type}</span>
                         </span>
-                        {n.body && <span className="mt-0.5 line-clamp-1 block text-[11px] text-[#5B6B84]">{n.body}</span>}
+                        {n.body && <span className="mt-0.5 line-clamp-1 block text-[11px] text-navy-300">{n.body}</span>}
                         <span className="mt-0.5 block text-[9.5px] text-navy-300">{timeAgo(n.createdAt)}</span>
                       </span>
                       {!n.readAt && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-gold-500" />}
@@ -175,8 +175,8 @@ export function NotificationBell({ unread }: { unread: number }) {
             <Link
               href="/notifications"
               onClick={() => setOpen(false)}
-              className="block border-t border-navy-100 bg-ivory-50 px-4 py-2.5 text-center text-[11px] font-bold text-gold-700 transition-colors hover:bg-gold-500/10"
-              style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+              className="block border-t border-navy-100 bg-navy-800 px-4 py-2.5 text-center text-[11px] font-bold text-gold-500 transition-colors hover:bg-gold-500/10"
+              style={{ fontFamily: 'var(--font-arabic)' }}
             >
               عرض كل الإشعارات ←
             </Link>

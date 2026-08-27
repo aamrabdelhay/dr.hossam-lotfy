@@ -164,7 +164,7 @@ export function SessionEditForm({
         <Field label="المحامي/المحامون المسؤولون" hint={`(${lawyerIds.length}/20)`}>
           <div className="grid max-h-44 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-navy-200 p-2 sm:grid-cols-2">
             {lawyers.map((l) => (
-              <label key={l.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] font-semibold text-navy-700 hover:bg-ivory-100">
+              <label key={l.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] font-semibold text-ivory-300 hover:bg-navy-800">
                 <input
                   type="checkbox"
                   checked={lawyerIds.includes(l.id)}

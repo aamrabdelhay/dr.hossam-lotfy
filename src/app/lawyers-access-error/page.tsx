@@ -12,8 +12,8 @@ export default async function AccessErrorPage({ searchParams }: { searchParams: 
       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/10 text-red-600">
         <ShieldX size={30} />
       </span>
-      <h1 className="text-lg font-extrabold text-navy-950">تعذر تسجيل الدخول</h1>
-      <p className="text-[13px] leading-7 text-navy-500">
+      <h1 className="text-lg font-extrabold text-ivory-50">تعذر تسجيل الدخول</h1>
+      <p className="text-[13px] leading-7 text-navy-400">
         {reason ?? 'الرابط غير صالح'}. اطلب رابط دخول جديد من إدارة المكتب.
       </p>
       <Link href="/"><Button variant="outline">العودة للرئيسية</Button></Link>

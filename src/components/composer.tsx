@@ -76,9 +76,9 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
   return (
     <Card className="overflow-hidden">
       {!open ? (
-        <button onClick={() => setOpen(true)} className="flex w-full items-center gap-3 px-4 py-3 text-start hover:bg-ivory-50">
+        <button onClick={() => setOpen(true)} className="flex w-full items-center gap-3 px-4 py-3 text-start hover:bg-navy-800">
           <Avatar name={lawyerName} src={lawyerPhoto} size={40} />
-          <span className="flex-1 rounded-lg border border-navy-200 bg-ivory-50 px-3 py-2.5 text-[13px] font-semibold text-navy-300">
+          <span className="flex-1 rounded-lg border border-navy-200 bg-navy-800 px-3 py-2.5 text-[13px] font-semibold text-navy-300">
             اكتب مهمة أو نشاطاً جديداً…
           </span>
           <PenLine size={17} className="text-navy-300" />
@@ -88,10 +88,10 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
           <div className="flex items-center gap-2.5">
             <Avatar name={lawyerName} src={lawyerPhoto} size={36} />
             <div className="flex-1">
-              <p className="text-[13px] font-extrabold text-navy-900">{lawyerName}</p>
+              <p className="text-[13px] font-extrabold text-ivory-100">{lawyerName}</p>
               <p className="text-[11px] text-navy-300">بوست جديد — سيظهر في صفحتك وفي الفيد الرئيسي</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-navy-300 hover:bg-navy-900/5">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-navy-300 hover:bg-white/5">
               <X size={16} />
             </button>
           </div>

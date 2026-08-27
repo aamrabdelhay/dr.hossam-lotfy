@@ -70,7 +70,7 @@ export function SearchPageClient() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-5">
-        <h1 className="text-xl font-extrabold text-navy-950">البحث</h1>
+        <h1 className="text-xl font-extrabold text-ivory-50">البحث</h1>
         <p className="mt-1 text-[13px] font-medium text-navy-400">
           ابحث عن محكمة أو مكان قانوني أو محامي أو جلسة — يدعم البحث الجزئي بالعربية والإنجليزية.
         </p>
@@ -118,8 +118,8 @@ export function SearchPageClient() {
 
             {showLocations && results.locations.length > 0 && (
               <section>
-                <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-navy-800">
-                  <Landmark size={15} className="text-gold-600" />
+                <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-ivory-200">
+                  <Landmark size={15} className="text-gold-500" />
                   المحاكم والأماكن
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -131,7 +131,7 @@ export function SearchPageClient() {
                             {l.type === 'COURT' ? <Landmark size={18} /> : <Building2 size={18} />}
                           </span>
                           <div className="min-w-0">
-                            <p className="truncate text-[14px] font-extrabold text-navy-950">{l.name}</p>
+                            <p className="truncate text-[14px] font-extrabold text-ivory-50">{l.name}</p>
                             <p className="mt-0.5 text-[11px] font-bold text-navy-300">{LOCATION_TYPE_LABEL[l.type] ?? l.type}</p>
                             {l.upcoming > 0 && <Badge tone="gold" className="mt-1.5">{l.upcoming} جلسة قادمة</Badge>}
                           </div>
@@ -145,8 +145,8 @@ export function SearchPageClient() {
 
             {showLawyers && results.lawyers.length > 0 && (
               <section>
-                <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-navy-800">
-                  <Scale size={15} className="text-gold-600" />
+                <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-ivory-200">
+                  <Scale size={15} className="text-gold-500" />
                   المحامون
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -156,7 +156,7 @@ export function SearchPageClient() {
                         <div className="flex items-center gap-3">
                           <Avatar name={l.name} src={l.photo} size={44} ring={l.isPrincipal} />
                           <div className="min-w-0">
-                            <p className="truncate text-[14px] font-extrabold text-navy-950">{l.name}</p>
+                            <p className="truncate text-[14px] font-extrabold text-ivory-50">{l.name}</p>
                             <p className="text-[11px] font-bold text-navy-300">{TITLE_LABEL[l.title] ?? l.title}</p>
                             {l.upcoming > 0 && <Badge tone="gold" className="mt-1">{l.upcoming} مهمة قادمة</Badge>}
                           </div>
@@ -170,8 +170,8 @@ export function SearchPageClient() {
 
             {showSessions && results.sessions.length > 0 && (
               <section>
-                <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-navy-800">
-                  <CalendarDays size={15} className="text-gold-600" />
+                <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-ivory-200">
+                  <CalendarDays size={15} className="text-gold-500" />
                   الجلسات
                 </h2>
                 <div className="grid gap-2.5 sm:grid-cols-2">
@@ -189,9 +189,9 @@ export function SearchPageClient() {
         )}
 
         {!loading && !q.trim() && (
-          <div className="rounded-xl border border-dashed border-navy-200 bg-white/60 px-6 py-10 text-center">
-            <Search size={30} className="mx-auto text-navy-200" />
-            <p className="mt-3 text-sm font-bold text-navy-500">ابدأ الكتابة لعرض النتائج فوراً</p>
+          <div className="rounded-xl border border-dashed border-navy-200 bg-navy-850/60 px-6 py-10 text-center">
+            <Search size={30} className="mx-auto text-navy-300" />
+            <p className="mt-3 text-sm font-bold text-navy-400">ابدأ الكتابة لعرض النتائج فوراً</p>
             <p className="mt-1 text-xs font-medium text-navy-300">
               أمثلة: «محكمة جنوب القاهرة» • «هيئة الاستثمار» • «أحمد محمد»
             </p>

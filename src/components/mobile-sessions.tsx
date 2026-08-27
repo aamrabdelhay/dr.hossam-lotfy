@@ -1,16 +1,15 @@
 'use client';
 
-import * as React from 'react';
-import { SessionsDrawer, SessionsDrawerButton } from './session-sidebar';
+import { SessionsDrawer } from './session-sidebar';
+import { useSessionsUI } from './sessions-ui';
 import type { SidebarData } from '@/lib/queries';
 
-/** Floating "الجلسات القادمة" button + drawer (mobile / tablet only). */
+/**
+ * Mobile sessions drawer — opened from the BottomNav "الجلسات" button via
+ * SessionsUIProvider. (The old floating button is gone in the Command Center
+ * layout; desktop uses the numbered SideNav → SESSIONS.)
+ */
 export function MobileSessions({ data, isAdmin }: { data: SidebarData; isAdmin: boolean }) {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <>
-      <SessionsDrawerButton onOpen={() => setOpen(true)} />
-      <SessionsDrawer open={open} onClose={() => setOpen(false)} data={data} isAdmin={isAdmin} />
-    </>
-  );
+  const { open, setOpen } = useSessionsUI();
+  return <SessionsDrawer open={open} onClose={() => setOpen(false)} data={data} isAdmin={isAdmin} />;
 }

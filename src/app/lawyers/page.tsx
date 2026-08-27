@@ -42,40 +42,49 @@ export default async function LawyersPage() {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <div className="mb-5">
-          <h1 className="text-xl font-extrabold text-navy-950">المحامون</h1>
-          <p className="mt-1 text-[13px] font-medium text-navy-400">
-            فريق المكتب — اضغط على أي محامي لفتح صفحته ومتابعة مهامه ونشاطه.
-          </p>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="font-mono text-[10px] font-semibold tracking-[0.3em] text-gold-500">03 — ATTORNEYS</p>
+            <h1 className="mt-1.5 text-xl font-extrabold text-ivory-50">المحامون</h1>
+            <p className="mt-1 text-[13px] font-medium text-navy-400">
+              فريق المكتب — اضغط على أي محامي لفتح صفحته ومتابعة مهامه ونشاطه. الصور رمادي وتتلوّن عند التمرير.
+            </p>
+          </div>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-[0.12em] text-navy-300">
+            {String(sorted.length).padStart(2, '0')} FILES
+          </span>
         </div>
 
         {sorted.length === 0 ? (
           <EmptyState title="لم يتم إضافة محامين بعد" hint="يضيف المسؤول المحامين من منطقة الإدارة." />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {sorted.map((l) => (
+            {sorted.map((l, i) => (
               <Link key={l.id} href={`/lawyers/${l.slug}`} className="group">
-                <Card className={`card-hover h-full p-5 ${l.isPrincipal ? 'border-gold-500/60 shadow-[0_0_0_1px_rgba(212,169,63,0.3)]' : 'hover:border-gold-500/50'}`}>
+                <Card className={`card-hover relative h-full p-5 ${l.isPrincipal ? 'border-gold-500/60 shadow-[0_0_0_1px_rgba(200,255,61,0.25)]' : 'hover:border-gold-500/40'}`}>
+                  <span className="absolute end-4 top-4 font-mono text-[10px] font-semibold tracking-[0.2em] text-navy-400 transition-colors group-hover:text-gold-500">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   <div className="flex items-start gap-4">
                     <Avatar name={l.fullName} src={l.profilePhotoUrl} size={64} ring={l.isPrincipal} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-[15px] font-extrabold text-navy-950 group-hover:underline">{l.fullName}</p>
+                        <p className="truncate text-[15px] font-extrabold text-ivory-50 group-hover:underline">{l.fullName}</p>
                         {l.isPrincipal && <Badge tone="gold">رئيس المكتب</Badge>}
                       </div>
                       <p className="mt-0.5 text-[12px] font-bold text-navy-400">{TITLE_LABEL[l.title]}</p>
                       {l.specialization && (
-                        <p className="mt-1.5 flex items-center gap-1 truncate text-[11.5px] font-semibold text-navy-500">
-                          <Briefcase size={11} className="shrink-0 text-gold-600" />
+                        <p className="mt-1.5 flex items-center gap-1 truncate text-[11.5px] font-semibold text-navy-400">
+                          <Briefcase size={11} className="shrink-0 text-gold-500" />
                           {l.specialization}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center gap-3 border-t border-navy-100 pt-3">
+                  <div className="mt-4 flex items-center gap-3 border-t border-white/[0.06] pt-3">
                     {l.phone && (
-                      <span className="flex items-center gap-1.5 font-latin text-[12px] font-semibold text-navy-500" dir="ltr">
-                        <Phone size={12} className="text-gold-600" />
+                      <span className="flex items-center gap-1.5 font-latin text-[12px] font-semibold text-navy-400" dir="ltr">
+                        <Phone size={12} className="text-gold-500" />
                         {l.phone}
                       </span>
                     )}
