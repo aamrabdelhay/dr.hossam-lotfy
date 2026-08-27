@@ -249,7 +249,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
 
           {!session ? (
             <Link
-              href="/admin/login"
+              href="/api/auth/login" prefetch={false}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] tracking-[1.5px] uppercase text-white/50 hover:text-white"
               style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
               title="دخول المسؤول"
@@ -314,7 +314,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
                 <Search size={14} className="text-white/30" /> البحث
               </Link>
               {!session && (
-                <Link href="/admin/login" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/40 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Link href="/api/auth/login" prefetch={false} className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/40 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                   <KeyRound size={14} /> Admin Login
                 </Link>
               )}
