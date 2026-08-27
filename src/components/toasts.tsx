@@ -37,12 +37,12 @@ export function Toaster() {
       {items.map((t) => (
         <div
           key={t.id}
-          className="pointer-events-auto flex items-start gap-2.5 rounded-2xl border border-navy-100/80 bg-navy-850/95 px-4 py-3 shadow-lift ring-1 ring-navy-950/5 backdrop-blur animate-fade-in-up"
+          className="pointer-events-auto flex items-start gap-2.5 rounded-2xl border border-navy-100/80 bg-white/95 px-4 py-3 shadow-lift ring-1 ring-navy-950/5 backdrop-blur animate-fade-in-up"
         >
-          {t.kind === 'success' && <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-400" />}
-          {t.kind === 'error' && <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-400" />}
-          {t.kind === 'info' && <Info size={18} className="mt-0.5 shrink-0 text-gold-500" />}
-          <p className="text-[13px] font-semibold leading-6 text-ivory-200">{t.text}</p>
+          {t.kind === 'success' && <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />}
+          {t.kind === 'error' && <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-600" />}
+          {t.kind === 'info' && <Info size={18} className="mt-0.5 shrink-0 text-gold-600" />}
+          <p className="text-[13px] font-semibold leading-6 text-navy-800">{t.text}</p>
         </div>
       ))}
     </div>

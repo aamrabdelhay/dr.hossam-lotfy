@@ -229,8 +229,8 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
     { label: 'جلسات غداً', value: stats.tomorrow, cls: 'text-orange-600', href: '/calendar' },
     { label: 'حرجة (3 أيام)', value: stats.critical, cls: 'text-orange-600', href: '/calendar' },
     { label: 'مهمة (14 يوم)', value: stats.important, cls: 'text-amber-600', href: '/calendar' },
-    { label: 'خلال شهر', value: stats.upcoming30, cls: 'text-gold-500', href: '/calendar' },
-    { label: 'مهام مفتوحة', value: stats.uncompleted, cls: 'text-ivory-300', href: '#/tasks' },
+    { label: 'خلال شهر', value: stats.upcoming30, cls: 'text-gold-600', href: '/calendar' },
+    { label: 'مهام مفتوحة', value: stats.uncompleted, cls: 'text-navy-700', href: '#/tasks' },
     { label: 'مهام مكتملة', value: stats.completed, cls: 'text-emerald-600', href: '#/tasks' },
   ];
   return (
@@ -256,7 +256,7 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-[15px] font-extrabold text-ivory-100">فيد الإدارة</h2>
+            <h2 className="text-[15px] font-extrabold text-navy-900">فيد الإدارة</h2>
             <Button size="sm" variant="gold" onClick={props.onOpenTask}>
               <CalendarPlus size={14} />
               + إضافة جلسة / مهمة
@@ -269,7 +269,7 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
           )}
         </div>
         <div>
-          <h2 className="mb-3 text-[15px] font-extrabold text-ivory-100">آخر النشاط</h2>
+          <h2 className="mb-3 text-[15px] font-extrabold text-navy-900">آخر النشاط</h2>
           <Card className="p-4">
             {activity.length === 0 ? (
               <EmptyState title="لم يتم تسجيل أي نشاط" />
@@ -277,7 +277,7 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
               <div className="space-y-3">
                 {activity.slice(0, 8).map((a) => (
                   <div key={a.id} className="border-s-2 border-gold-500/50 ps-3">
-                    <p className="text-[12.5px] font-semibold leading-6 text-ivory-200">{a.summary}</p>
+                    <p className="text-[12.5px] font-semibold leading-6 text-navy-800">{a.summary}</p>
                     <p className="text-[10.5px] font-semibold text-navy-300">{formatDateTime(new Date(a.createdAt))}</p>
                   </div>
                 ))}
@@ -401,11 +401,11 @@ function TasksTab({
       ) : (
         <Card className="divide-y divide-navy-100 overflow-hidden">
           {items.map((t) => (
-            <div key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-navy-800">
+            <div key={t.id} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-ivory-50/60">
               <div className="w-28 shrink-0">
                 {t.scheduledDate ? (
                   <>
-                    <p className="text-[12px] font-extrabold text-ivory-200">{formatDay(new Date(`${t.scheduledDate}T12:00:00`))}</p>
+                    <p className="text-[12px] font-extrabold text-navy-800">{formatDay(new Date(`${t.scheduledDate}T12:00:00`))}</p>
                     <p className="font-latin text-[11px] font-bold text-navy-400">{t.scheduledTime ? `${t.scheduledTime}` : ''}</p>
                   </>
                 ) : (
@@ -413,7 +413,7 @@ function TasksTab({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <Link href={`/sessions/${t.id}`} className="line-clamp-1 text-[13px] font-bold text-ivory-100 hover:underline">{t.description}</Link>
+                <Link href={`/sessions/${t.id}`} className="line-clamp-1 text-[13px] font-bold text-navy-900 hover:underline">{t.description}</Link>
                 <p className="mt-0.5 text-[11px] font-semibold text-navy-400">
                   {t.location.name}
                   {t.lawyers.map((l) => (
@@ -426,7 +426,7 @@ function TasksTab({
               <div className="flex shrink-0 items-center gap-2">
                 <StatusBadge status={t.status} />
                 {t.scheduledDate && t.status !== 'COMPLETED' && <UrgencyBadge urgency={t.urgency} />}
-                <button onClick={() => onEdit(t)} className="rounded-md p-2 text-navy-400 hover:bg-white/5 hover:text-ivory-200" title="تعديل">
+                <button onClick={() => onEdit(t)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
                   <Pencil size={14} />
                 </button>
                 <button onClick={() => setConfirmDelete(t)} className="rounded-md p-2 text-navy-300 hover:bg-red-600/10 hover:text-red-600" title="حذف">
@@ -456,7 +456,7 @@ function TasksTab({
           </div>
         }
       >
-        <p className="text-sm leading-7 text-ivory-300">سيتم حذف المهمة وجميع تعليقاتها نهائياً. لا يمكن التراجع.</p>
+        <p className="text-sm leading-7 text-navy-700">سيتم حذف المهمة وجميع تعليقاتها نهائياً. لا يمكن التراجع.</p>
       </Modal>
     </div>
   );
@@ -534,7 +534,7 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[13px] font-bold text-navy-400">{lawyers.length} محامي</p>
+        <p className="text-[13px] font-bold text-navy-500">{lawyers.length} محامي</p>
         <Button size="sm" onClick={onAdd}>
           <UserPlus size={14} />
           + إضافة محامي
@@ -546,7 +546,7 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
             <Avatar name={l.name} src={l.photo} size={42} ring={l.isPrincipal} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/lawyers/${l.slug}`} className="text-[13.5px] font-extrabold text-ivory-50 hover:underline">{l.name}</Link>
+                <Link href={`/lawyers/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
                 <Badge tone={l.isPrincipal ? 'gold' : 'gray'}>{TITLE_LABEL[l.title]}</Badge>
                 {!l.active && <Badge tone="red">مخفي</Badge>}
               </div>
@@ -557,13 +557,13 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-white/5 hover:text-ivory-200" title="رفع صورة">
+              <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
                 <ImagePlus size={15} />
               </button>
-              <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-white/5 hover:text-ivory-200" title="تعديل">
+              <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
                 <Pencil size={14} />
               </button>
-              <button onClick={() => genLink(l)} className="flex items-center gap-1 rounded-md border border-gold-500/40 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-extrabold text-gold-500 hover:bg-gold-500/20" title="رابط دخول المحامي">
+              <button onClick={() => genLink(l)} className="flex items-center gap-1 rounded-md border border-gold-500/40 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-extrabold text-gold-700 hover:bg-gold-500/20" title="رابط دخول المحامي">
                 <KeyRound size={12} />
                 رابط الدخول
               </button>
@@ -576,7 +576,7 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
 
       <Modal open={!!linkFor} onClose={() => setLinkFor(null)} title={`رابط دخول: ${linkFor?.name ?? ''}`}>
         <div className="space-y-3">
-          <p className="text-[12.5px] leading-6 text-navy-300">
+          <p className="text-[12.5px] leading-6 text-navy-600">
             أرسل هذا الرابط للمحامي — سيفتح جلوساً آمناً خاصاً به (لن يحتاج كلمة مرور). أي رابط قديم سيصبح منتهياً فور توليد رابط جديد.
           </p>
           {busy ? (
@@ -629,7 +629,7 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[13px] font-bold text-navy-400">{locations.length} مكان — كل مكان له صفحة مستقلة</p>
+        <p className="text-[13px] font-bold text-navy-500">{locations.length} مكان — كل مكان له صفحة مستقلة</p>
         <Button size="sm" onClick={onAdd}>
           <Building2 size={14} />
           + إضافة مكان
@@ -642,14 +642,14 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
               {l.type === 'COURT' ? <Landmark size={16} /> : <Building2 size={16} />}
             </span>
             <div className="min-w-0 flex-1">
-              <Link href={`/locations/${l.slug}`} className="text-[13.5px] font-extrabold text-ivory-50 hover:underline">{l.name}</Link>
+              <Link href={`/locations/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
               <p className="text-[11px] font-semibold text-navy-400">
                 {LOCATION_TYPE_LABEL[l.type] ?? l.type}
                 {l.governorate ? ` — ${l.governorate}` : ''}
                 {l.city ? ` / ${l.city}` : ''}
               </p>
             </div>
-            <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-white/5 hover:text-ivory-200" title="تعديل">
+            <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
               <Pencil size={14} />
             </button>
             <button onClick={() => setConfirmDelete(l)} className="rounded-md p-2 text-navy-300 hover:bg-red-600/10 hover:text-red-600" title="حذف">
@@ -669,7 +669,7 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
           </div>
         }
       >
-        <p className="text-sm leading-7 text-ivory-300">لا يمكن حذف مكان عليه مهام أو جلسات — سيتم رفض الحذف حفاظاً على السجل.</p>
+        <p className="text-sm leading-7 text-navy-700">لا يمكن حذف مكان عليه مهام أو جلسات — سيتم رفض الحذف حفاظاً على السجل.</p>
       </Modal>
     </div>
   );
@@ -680,23 +680,23 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
 function CasesTab({ cases }: { cases: Array<{ id: string; name: string; number: string }> }) {
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 bg-navy-800 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 bg-ivory-50 px-5 py-4">
         <div>
-          <h2 className="text-base font-extrabold text-ivory-50">ملفات القضايا</h2>
+          <h2 className="text-base font-extrabold text-navy-950">ملفات القضايا</h2>
           <p className="mt-1 text-[11px] font-semibold text-navy-400">القضية هي المحور الذي يجمع الجلسات والمهام داخل المكتب.</p>
         </div>
-        <span className="rounded-full bg-gold-500/15 px-3 py-1 text-[11px] font-extrabold text-gold-500">{cases.length} قضية مسجلة</span>
+        <span className="rounded-full bg-gold-500/15 px-3 py-1 text-[11px] font-extrabold text-gold-700">{cases.length} قضية مسجلة</span>
       </div>
       {cases.length === 0 ? <EmptyState title="لا توجد قضايا بعد" hint="أضف قضية من نموذج الجلسة لتظهر هنا." /> : (
         <div className="divide-y divide-navy-100">
           {cases.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-3 px-5 py-4 hover:bg-navy-800">
+            <div key={item.id} className="flex items-center gap-3 px-5 py-4 hover:bg-ivory-50">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-950 text-xs font-extrabold text-gold-300">{index + 1}</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-extrabold text-ivory-100">{item.name}</p>
+                <p className="truncate text-sm font-extrabold text-navy-900">{item.name}</p>
                 <p className="mt-0.5 truncate font-latin text-[11px] font-semibold text-navy-400" dir="ltr">{item.number}</p>
               </div>
-              <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-gold-500 hover:bg-gold-500/10">عرض المرتبط</Link>
+              <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-gold-700 hover:bg-gold-500/10">عرض المرتبط</Link>
             </div>
           ))}
         </div>
@@ -728,14 +728,14 @@ function ActivityTab({ initial }: { initial: Array<{ id: string; action: string;
           <li key={a.id} className="relative">
             <span className="absolute -start-[27px] top-1.5 h-3 w-3 rounded-full bg-gold-500 ring-4 ring-white" />
             <div className="flex flex-wrap items-baseline gap-x-2">
-              <p className="text-[13px] font-semibold leading-6 text-ivory-200">{a.summary}</p>
+              <p className="text-[13px] font-semibold leading-6 text-navy-800">{a.summary}</p>
             </div>
             <p className="mt-0.5 text-[11px] font-semibold text-navy-300">
               {formatDateTime(new Date(a.createdAt))}
               {a.lawyer && (
                 <>
                   {' — '}
-                  <Link href={`/lawyers/${a.lawyer.slug}`} className="text-gold-500 hover:underline">{a.lawyer.fullName}</Link>
+                  <Link href={`/lawyers/${a.lawyer.slug}`} className="text-gold-700 hover:underline">{a.lawyer.fullName}</Link>
                 </>
               )}
             </p>
@@ -776,7 +776,7 @@ function NotificationsTab({ notifications }: { notifications: AdminShellProps['n
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[13px] font-bold text-navy-400">إشعارات الإدارة</p>
+        <p className="text-[13px] font-bold text-navy-500">إشعارات الإدارة</p>
         <Button size="sm" variant="outline" onClick={markAll} disabled={loading}>
           <CheckCheck size={14} />
           تحديد الكل كمقروء
@@ -790,16 +790,16 @@ function NotificationsTab({ notifications }: { notifications: AdminShellProps['n
         ) : (
           items.map((n) => (
             <div key={n.id} className={cn('flex items-start gap-3 px-4 py-3', !n.readAt && 'bg-gold-500/[0.05]')}>
-              <span className={cn('mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', !n.readAt ? 'bg-gold-500/20 text-gold-500' : 'bg-white/5 text-navy-400')}>
+              <span className={cn('mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', !n.readAt ? 'bg-gold-500/20 text-gold-700' : 'bg-navy-900/5 text-navy-400')}>
                 <Bell size={14} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className={cn('text-[13px] font-extrabold', n.readAt ? 'text-navy-300' : 'text-ivory-50')}>{n.title}</p>
+                  <p className={cn('text-[13px] font-extrabold', n.readAt ? 'text-navy-600' : 'text-navy-950')}>{n.title}</p>
                   <Badge tone="outline">{TYPE_LABEL[n.type] ?? n.type}</Badge>
                   {!n.readAt && <span className="h-2 w-2 rounded-full bg-gold-500" />}
                 </div>
-                {n.body && <p className="mt-0.5 text-[12px] font-semibold leading-6 text-navy-400">{n.body}</p>}
+                {n.body && <p className="mt-0.5 text-[12px] font-semibold leading-6 text-navy-500">{n.body}</p>}
                 <p className="mt-0.5 text-[10.5px] font-semibold text-navy-300">{formatDateTime(new Date(n.createdAt))}</p>
               </div>
             </div>

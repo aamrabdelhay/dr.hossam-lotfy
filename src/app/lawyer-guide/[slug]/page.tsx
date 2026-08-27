@@ -89,9 +89,9 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
     <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
       {/* Breadcrumb */}
       <nav className="mb-4 flex items-center gap-2 text-[12px] text-navy-400">
-        <Link href="/lawyer-guide" className="hover:text-gold-500">دليل المحامي</Link>
+        <Link href="/lawyer-guide" className="hover:text-gold-700">دليل المحامي</Link>
         <ChevronLeft size={12} />
-        <span className="text-ivory-300">{location.name}</span>
+        <span className="text-navy-700">{location.name}</span>
       </nav>
 
       {/* Header Card */}
@@ -140,21 +140,21 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
           {/* Overview */}
           {location.description && (
             <Card className="p-5">
-              <h2 className="mb-3 text-[14px] font-extrabold text-ivory-100">نظرة عامة</h2>
-              <p className="text-[13px] leading-7 text-navy-300">{location.description}</p>
+              <h2 className="mb-3 text-[14px] font-extrabold text-navy-900">نظرة عامة</h2>
+              <p className="text-[13px] leading-7 text-navy-600">{location.description}</p>
             </Card>
           )}
 
           {/* Services */}
           {location.locationServices.length > 0 && (
             <Card className="p-5">
-              <h2 className="mb-3 text-[14px] font-extrabold text-ivory-100">الخدمات المتاحة</h2>
+              <h2 className="mb-3 text-[14px] font-extrabold text-navy-900">الخدمات المتاحة</h2>
               <div className="grid gap-2 sm:grid-cols-2">
                 {location.locationServices.map((ls) => (
                   <div key={ls.service.id} className="flex items-center gap-2 rounded-md border border-navy-100 px-3 py-2">
-                    <CheckCircle2 size={14} className="shrink-0 text-gold-500" />
+                    <CheckCircle2 size={14} className="shrink-0 text-gold-600" />
                     <div>
-                      <p className="text-[12px] font-bold text-ivory-200">{ls.service.nameAr}</p>
+                      <p className="text-[12px] font-bold text-navy-800">{ls.service.nameAr}</p>
                       {ls.service.onlineAvailable && (
                         <p className="text-[10px] font-semibold text-green-600">متاح أونلاين</p>
                       )}
@@ -168,7 +168,7 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
           {/* Legacy services array */}
           {location.services.length > 0 && location.locationServices.length === 0 && (
             <Card className="p-5">
-              <h2 className="mb-3 text-[14px] font-extrabold text-ivory-100">الخدمات</h2>
+              <h2 className="mb-3 text-[14px] font-extrabold text-navy-900">الخدمات</h2>
               <div className="flex flex-wrap gap-2">
                 {location.services.map((s) => (
                   <Badge key={s} tone="outline">{s}</Badge>
@@ -180,9 +180,9 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
           {/* Jurisdiction */}
           {(location.jurisdiction || location.locationJurisdictions.length > 0) && (
             <Card className="p-5">
-              <h2 className="mb-3 text-[14px] font-extrabold text-ivory-100">الاختصاص</h2>
+              <h2 className="mb-3 text-[14px] font-extrabold text-navy-900">الاختصاص</h2>
               {location.jurisdiction && (
-                <p className="text-[13px] font-semibold text-ivory-300">{location.jurisdiction}</p>
+                <p className="text-[13px] font-semibold text-navy-700">{location.jurisdiction}</p>
               )}
               {location.locationJurisdictions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -197,7 +197,7 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
           {/* Related Authorities */}
           {location.relationshipsFrom.length > 0 && (
             <Card className="p-5">
-              <h2 className="mb-3 text-[14px] font-extrabold text-ivory-100">الجهات المرتبطة</h2>
+              <h2 className="mb-3 text-[14px] font-extrabold text-navy-900">الجهات المرتبطة</h2>
               <div className="space-y-2">
                 {location.relationshipsFrom.map((rel) => (
                   <Link
@@ -205,9 +205,9 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
                     href={`/lawyer-guide/${rel.toLocation.slug}`}
                     className="flex items-center gap-2 rounded-md border border-navy-100 px-3 py-2 transition hover:border-gold-500"
                   >
-                    <ArrowRight size={12} className="text-gold-500" />
+                    <ArrowRight size={12} className="text-gold-600" />
                     <div className="min-w-0">
-                      <p className="text-[12px] font-bold text-ivory-200">{rel.toLocation.name}</p>
+                      <p className="text-[12px] font-bold text-navy-800">{rel.toLocation.name}</p>
                       <p className="text-[10px] text-navy-400">{RELATIONSHIP_LABELS[rel.type] || rel.type}</p>
                     </div>
                   </Link>
@@ -218,22 +218,22 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
 
           {/* Sources & Verification */}
           <Card className="p-5">
-            <h2 className="mb-3 text-[14px] font-extrabold text-ivory-100">المصادر والتحقق</h2>
+            <h2 className="mb-3 text-[14px] font-extrabold text-navy-900">المصادر والتحقق</h2>
             <div className="space-y-3 text-[12px]">
               {location.lastVerified && (
                 <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-gold-500" />
-                  <span className="font-bold text-navy-300">آخر تحقق: {new Date(location.lastVerified).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  <Calendar size={14} className="text-gold-600" />
+                  <span className="font-bold text-navy-600">آخر تحقق: {new Date(location.lastVerified).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <ShieldCheck size={14} className="text-gold-500" />
-                <span className="font-bold text-navy-300">مستوى الثقة: {location.confidence || location.confidenceLevel}</span>
+                <ShieldCheck size={14} className="text-gold-600" />
+                <span className="font-bold text-navy-600">مستوى الثقة: {location.confidence || location.confidenceLevel}</span>
               </div>
               {location.source && (
                 <div className="flex items-center gap-2">
                   <FileText size={14} className="text-navy-300" />
-                  <span className="font-semibold text-navy-400">المصدر: {location.source}</span>
+                  <span className="font-semibold text-navy-500">المصدر: {location.source}</span>
                 </div>
               )}
               {location.locationSources.length > 0 && (
@@ -242,11 +242,11 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
                     <div key={ls.id} className="flex items-center gap-2">
                       <Globe size={12} className="text-navy-300" />
                       {ls.source.url ? (
-                        <a href={ls.source.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold text-gold-500 hover:underline">
+                        <a href={ls.source.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold text-gold-700 hover:underline">
                           {ls.source.name}
                         </a>
                       ) : (
-                        <span className="text-[11px] font-semibold text-navy-400">{ls.source.name}</span>
+                        <span className="text-[11px] font-semibold text-navy-500">{ls.source.name}</span>
                       )}
                     </div>
                   ))}
@@ -266,29 +266,29 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
         <div className="space-y-5">
           {/* Contact */}
           <Card className="p-5">
-            <h2 className="mb-3 text-[13px] font-extrabold text-ivory-100">بيانات التواصل</h2>
+            <h2 className="mb-3 text-[13px] font-extrabold text-navy-900">بيانات التواصل</h2>
             <div className="space-y-2.5 text-[12px]">
               {location.phone && (
-                <a href={`tel:${location.phone}`} className="flex items-center gap-2 font-bold text-ivory-300 hover:text-gold-500">
-                  <Phone size={13} className="text-gold-500" />
+                <a href={`tel:${location.phone}`} className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
+                  <Phone size={13} className="text-gold-600" />
                   <span className="ltr">{location.phone}</span>
                 </a>
               )}
               {location.email && (
-                <a href={`mailto:${location.email}`} className="flex items-center gap-2 font-bold text-ivory-300 hover:text-gold-500">
-                  <Mail size={13} className="text-gold-500" />
+                <a href={`mailto:${location.email}`} className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
+                  <Mail size={13} className="text-gold-600" />
                   <span className="ltr">{location.email}</span>
                 </a>
               )}
               {location.officialUrl && (
-                <a href={location.officialUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-bold text-ivory-300 hover:text-gold-500">
-                  <Globe size={13} className="text-gold-500" />
+                <a href={location.officialUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
+                  <Globe size={13} className="text-gold-600" />
                   الموقع الرسمي
                 </a>
               )}
               {location.googleMapsUrl && (
-                <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-bold text-ivory-300 hover:text-gold-500">
-                  <MapPin size={13} className="text-gold-500" />
+                <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
+                  <MapPin size={13} className="text-gold-600" />
                   خرائط جوجل
                 </a>
               )}
@@ -298,22 +298,22 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
           {/* Opening Hours */}
           {(location.openingHours.length > 0 || location.workingHours) && (
             <Card className="p-5">
-              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold text-ivory-100">
-                <Clock3 size={14} className="text-gold-500" />
+              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-extrabold text-navy-900">
+                <Clock3 size={14} className="text-gold-600" />
                 مواعيد العمل
               </h2>
               {location.workingHours && (
-                <p className="text-[12px] font-semibold text-ivory-300">{location.workingHours}</p>
+                <p className="text-[12px] font-semibold text-navy-700">{location.workingHours}</p>
               )}
               {location.openingHours.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {location.openingHours.map((oh) => (
                     <div key={oh.id} className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-navy-300">{DAY_LABELS[oh.dayOfWeek]}</span>
+                      <span className="font-bold text-navy-600">{DAY_LABELS[oh.dayOfWeek]}</span>
                       {oh.closed ? (
                         <span className="font-semibold text-red-500">مغلق</span>
                       ) : (
-                        <span className="font-semibold text-navy-400">{oh.opens} — {oh.closes}</span>
+                        <span className="font-semibold text-navy-500">{oh.opens} — {oh.closes}</span>
                       )}
                     </div>
                   ))}
@@ -339,7 +339,7 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
               {location.phone && (
                 <a
                   href={`tel:${location.phone}`}
-                  className="flex w-full items-center justify-center gap-2 rounded-md border border-navy-200 px-4 py-2.5 text-[12px] font-bold text-ivory-300 hover:border-gold-500"
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-navy-200 px-4 py-2.5 text-[12px] font-bold text-navy-700 hover:border-gold-500"
                 >
                   <Phone size={14} />
                   اتصال
@@ -363,13 +363,13 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
           {/* Map placeholder */}
           {location.lat != null && location.lng != null && (
             <Card className="overflow-hidden p-0">
-              <div className="relative h-48 bg-white/[0.06]">
+              <div className="relative h-48 bg-navy-100">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <MapPin size={24} className="mx-auto text-gold-500" />
-                    <p className="mt-2 text-[11px] font-bold text-navy-400">{location.lat.toFixed(4)}, {location.lng.toFixed(4)}</p>
+                    <MapPin size={24} className="mx-auto text-gold-600" />
+                    <p className="mt-2 text-[11px] font-bold text-navy-500">{location.lat.toFixed(4)}, {location.lng.toFixed(4)}</p>
                     {location.googleMapsUrl && (
-                      <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] font-bold text-gold-500 hover:underline">
+                      <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] font-bold text-gold-700 hover:underline">
                         فتح في خرائط جوجل →
                       </a>
                     )}

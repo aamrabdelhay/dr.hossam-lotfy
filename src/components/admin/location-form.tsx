@@ -233,7 +233,7 @@ export function LocationForm({
             {services.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {services.map((s) => (
-                  <span key={s} className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-bold text-ivory-300">
+                  <span key={s} className="inline-flex items-center gap-1 rounded-full bg-navy-900/5 px-2.5 py-1 text-[11px] font-bold text-navy-700">
                     {s}
                     <button type="button" onClick={() => setServices(services.filter((x) => x !== s))} className="text-navy-300 hover:text-red-600" title="حذف">
                       <X size={11} />
@@ -249,7 +249,7 @@ export function LocationForm({
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[60px]" />
         </Field>
 
-        <p className="rounded-lg bg-navy-800 px-3 py-2 text-[11px] font-bold leading-5 text-navy-400">
+        <p className="rounded-lg bg-ivory-100 px-3 py-2 text-[11px] font-bold leading-5 text-navy-400">
           بمجرد الإضافة تُنشأ صفحة مستقلة للمكان تلقائياً (/locations/…) ويبدأ سجلها الزمني.
         </p>
       </form>

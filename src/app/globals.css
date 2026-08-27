@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500&display=swap');
 @import "tailwindcss";
 @import "@fontsource-variable/cairo";
 @import "@fontsource/inter/400.css";
@@ -7,70 +7,62 @@
 @import "@fontsource/inter/700.css";
 
 /* ════════════════════════════════════════════════════════════════
-   LEGAL COMMAND CENTER — dark operations theme
-   Near-black canvas · warm white ink · electric lime signal ·
-   critical red. (Token NAMES unchanged from the previous themes —
-   presentation-only reskin, so every component adopts the palette.)
+   MODERN LAW FIRM THEME — 2026 refresh
+   Ink navy · champagne gold · porcelain neutrals · soft depth
+   (Token NAMES unchanged from the classic theme — presentation-
+   only reskin, so every component adopts the new palette.)
    ════════════════════════════════════════════════════════════════ */
 
 :root {
-  --navy: #090A0A;
-  --navy2: #0E1010;
-  --burgundy: #FF5A5F;
-  --gold: #C8FF3D;
-  --ivory: #F1F0EB;
-  --charcoal: #1C1F1F;
-  --gray: #6E7575;
-  --line: #242828;
-  --line2: #2F3434;
+  --navy: #0A101D;
+  --navy2: #111B31;
+  --burgundy: #7A1F2B;
+  --gold: #A07E2C;
+  --ivory: #F4F6F9;
+  --charcoal: #1D2433;
+  --gray: #5B6B84;
+  --line: #E8ECF2;
+  --line2: #D9DFE9;
 }
 
 @theme {
-  /* Near-black command canvas */
-  --color-navy-950: #050606;
-  --color-navy-900: #090a0a;
-  --color-navy-850: #0e1010;
-  --color-navy-800: #141616;
-  --color-navy-700: #1c1f1f;
-  --color-navy-600: #262a2a;
-  --color-navy-500: #3a4040;
-  --color-navy-400: #6e7575;
-  --color-navy-300: #99a1a1;
-  /* navy-200/100/50 double as hairline borders & chips on dark */
-  --color-navy-200: #2f3434;
-  --color-navy-100: #242828;
-  --color-navy-50: #1a1d1d;
+  /* Ink navy — deeper & cooler for a modern premium feel */
+  --color-navy-950: #05080f;
+  --color-navy-900: #0a101d;
+  --color-navy-850: #0d1526;
+  --color-navy-800: #111b31;
+  --color-navy-700: #182440;
+  --color-navy-600: #203052;
+  --color-navy-500: #2e4270;
+  --color-navy-400: #5c6f96;
+  --color-navy-300: #93a4c2;
+  --color-navy-200: #bcc8dd;
+  --color-navy-100: #e4e9f2;
 
-  /* Electric lime — signal/accent only */
-  --color-gold-200: #ebffb8;
-  --color-gold-300: #deff8c;
-  --color-gold-400: #d3ff60;
-  --color-gold-500: #c8ff3d;
-  --color-gold-600: #a6d62c;
-  --color-gold-700: #7fa81f;
-  --color-lime: #c8ff3d;
+  /* Champagne gold — brighter, more luminous */
+  --color-gold-200: #f3e3b0;
+  --color-gold-300: #ecd08a;
+  --color-gold-400: #e2bd5e;
+  --color-gold-500: #d4a93f;
+  --color-gold-600: #b18a2c;
+  --color-gold-700: #8f6c20;
 
-  /* Warm white ink */
-  --color-ivory-50: #f1f0eb;
-  --color-ivory-100: #e6e5df;
-  --color-ivory-200: #d4d3cb;
-  --color-ivory-300: #b4b3ab;
-
-  /* Critical */
-  --color-crit: #ff5a5f;
-  --color-crit-600: #e14b50;
-  --color-crit-700: #b83a3f;
+  /* Porcelain neutrals — cool & crisp (replaces warm paper) */
+  --color-ivory-50: #fbfcfd;
+  --color-ivory-100: #f4f6f9;
+  --color-ivory-200: #eaeef4;
+  --color-ivory-300: #dde3ec;
 
   --font-sans: "Cairo Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-latin: "Inter", "Cairo Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-arabic: "Cairo Variable", "IBM Plex Sans Arabic", sans-serif;
+  --font-serif-en: "Cormorant Garamond", serif;
+  --font-arabic: "IBM Plex Sans Arabic", sans-serif;
 
-  /* Layered dark elevation */
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
-  --shadow-glow-gold: 0 0 24px -8px rgba(200, 255, 61, 0.38);
+  /* Soft layered elevation */
+  --shadow-soft: 0 1px 2px rgba(5, 8, 15, 0.05);
+  --shadow-card: 0 1px 2px rgba(5, 8, 15, 0.04), 0 8px 24px -12px rgba(5, 8, 15, 0.12);
+  --shadow-lift: 0 2px 4px rgba(5, 8, 15, 0.05), 0 16px 40px -16px rgba(5, 8, 15, 0.22);
+  --shadow-glow-gold: 0 8px 24px -8px rgba(212, 169, 63, 0.45);
 }
 
 html {
@@ -78,38 +70,32 @@ html {
 }
 
 body {
-  background-color: #090a0a;
-  color: var(--color-ivory-50);
+  background-color: #eef2f8;
+  color: var(--color-navy-900);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   background-image:
-    radial-gradient(900px 420px at 85% -180px, rgba(200, 255, 61, 0.06), transparent 60%),
-    radial-gradient(700px 380px at 4% -160px, rgba(200, 255, 61, 0.04), transparent 55%);
+    radial-gradient(1100px 440px at 85% -180px, rgba(212, 169, 63, 0.12), transparent 60%),
+    radial-gradient(900px 400px at 6% -160px, rgba(17, 27, 49, 0.09), transparent 55%);
   background-repeat: no-repeat;
 }
 
-/* Faint command-grid texture */
-.cc-dots {
-  background-image: radial-gradient(circle at 1px 1px, rgba(241, 240, 235, 0.05) 1px, transparent 0);
-  background-size: 24px 24px;
-}
-
-/* Slim dark scrollbars */
+/* Elegant thin scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2f3434 transparent;
+  scrollbar-color: #c3cddb transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #2f3434;
+  background: #c3cddb;
   border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #3a4040;
+  background: #a9b8cc;
 }
 *::-webkit-scrollbar-track {
   background: transparent;
@@ -120,25 +106,20 @@ body {
   font-family: var(--font-latin);
 }
 
-/* Utility: mono (numbers, codes, version tags) */
-.font-mono {
-  font-family: var(--font-mono);
-}
-
-/* Utility: lime hairline */
+/* Utility: gold hairline */
 .gold-hairline {
-  background-image: linear-gradient(to left, transparent, #c8ff3d 20%, #c8ff3d 80%, transparent);
+  background-image: linear-gradient(to left, transparent, #d4a93f 20%, #d4a93f 80%, transparent);
   height: 1px;
 }
 
 /* Utility: glass surfaces (navbar, dropdowns) */
 .glass {
-  background-color: rgba(9, 10, 10, 0.86);
+  background-color: rgba(10, 16, 29, 0.86);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 .glass-light {
-  background-color: rgba(14, 16, 16, 0.85);
+  background-color: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
@@ -153,7 +134,7 @@ body {
   box-shadow: var(--shadow-lift);
 }
 
-/* Utility: lime mesh overlay for dark hero panels */
+/* Utility: gold mesh overlay for dark hero panels */
 .mesh-gold {
   position: relative;
   isolation: isolate;
@@ -164,30 +145,18 @@ body {
   inset: 0;
   z-index: -1;
   background-image:
-    radial-gradient(520px 220px at 88% -40%, rgba(200, 255, 61, 0.1), transparent 62%),
-    radial-gradient(420px 200px at 4% 130%, rgba(200, 255, 61, 0.05), transparent 60%);
+    radial-gradient(520px 220px at 88% -40%, rgba(212, 169, 63, 0.22), transparent 62%),
+    radial-gradient(420px 200px at 4% 130%, rgba(46, 66, 112, 0.5), transparent 60%);
   pointer-events: none;
 }
 
-/* Utility: keycap chip (⌘K) */
-.kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  padding: 1px 6px;
-  border: 1px solid #2f3434;
-  border-bottom-width: 2px;
-  border-radius: 6px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  color: #99a1a1;
-  background: #141616;
-  line-height: 1.4;
+/* Subtle dot-grid texture for hero surfaces */
+.paper {
+  background-image: radial-gradient(circle at 1px 1px, rgba(5, 8, 15, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
 }
 
-/* Animations */
+/* Animations: restrained */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -228,45 +197,10 @@ body {
   animation: slide-in-start 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Live signal pulse (ONLINE / priority) */
-@keyframes signal-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(200, 255, 61, 0.45);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(200, 255, 61, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(200, 255, 61, 0);
-  }
-}
-.signal-live {
-  animation: signal-pulse 2.2s infinite;
-}
-
-@keyframes crit-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 90, 95, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(255, 90, 95, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 90, 95, 0);
-  }
-}
-.crit-live {
-  animation: crit-pulse 1.8s infinite;
-}
-
 /* Deep-linked notification highlight: /sessions/<id>#comment-<id> */
 @keyframes comment-flash {
-  0% {
-    background-color: rgba(200, 255, 61, 0.18);
-  }
-  100% {
-    background-color: rgba(200, 255, 61, 0.05);
-  }
+  0% { background-color: rgba(234, 179, 8, 0.35); }
+  100% { background-color: rgba(234, 179, 8, 0.12); }
 }
 
 .comment-highlight {
@@ -282,14 +216,14 @@ body {
   }
 }
 .skeleton {
-  background: linear-gradient(90deg, #141616 25%, #1c1f1f 50%, #141616 75%);
+  background: linear-gradient(90deg, #e9edf3 25%, #f3f6fa 50%, #e9edf3 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
 }
 
 /* Focus visible */
 :focus-visible {
-  outline: 2px solid #c8ff3d;
+  outline: 2px solid #d4a93f;
   outline-offset: 2px;
 }
 
@@ -336,5 +270,5 @@ span.ltr {
 
 /* Latin serials / numbers inside Arabic lines */
 .font-latin {
-  font-family: "Inter", ui-sans-serif, sans-serif;
+  font-family: "Inter", "Cormorant Garamond", ui-sans-serif, sans-serif;
 }

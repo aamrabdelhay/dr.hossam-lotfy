@@ -111,7 +111,7 @@ export function SelectWithAdd({
             dir="auto"
             placeholder="اكتب الاسم الجديد…"
             aria-label={ariaLabel ? `${ariaLabel} — إدخال جديد` : 'إدخال جديد'}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-gold-500 bg-navy-850 px-3 text-sm text-ivory-100 placeholder:text-navy-300 focus:ring-2 focus:ring-gold-500/25 focus:outline-none"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-gold-500 bg-white px-3 text-sm text-navy-900 placeholder:text-navy-300 focus:ring-2 focus:ring-gold-500/25 focus:outline-none"
           />
           <button
             type="button"
@@ -125,7 +125,7 @@ export function SelectWithAdd({
           <button
             type="button"
             onClick={cancelAdd}
-            className="inline-flex h-10 shrink-0 items-center rounded-lg border border-navy-200 px-2.5 text-navy-400 hover:text-ivory-300"
+            className="inline-flex h-10 shrink-0 items-center rounded-lg border border-navy-200 px-2.5 text-navy-400 hover:text-navy-700"
             title="إلغاء"
           >
             <X size={14} />
@@ -142,7 +142,7 @@ export function SelectWithAdd({
             aria-label={ariaLabel}
             onChange={(e) => onChange(e.target.value)}
             className={cn(
-              'h-10 w-full min-w-0 flex-1 appearance-none rounded-lg border border-navy-200 bg-navy-850 px-3 pe-9 text-sm text-ivory-100',
+              'h-10 w-full min-w-0 flex-1 appearance-none rounded-lg border border-navy-200 bg-white px-3 pe-9 text-sm text-navy-900',
               'focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none transition cursor-pointer',
               !value && 'text-navy-300',
             )}
@@ -160,7 +160,7 @@ export function SelectWithAdd({
             disabled={disabled}
             title={addLabel}
             aria-label={addLabel}
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-gold-500/60 bg-gold-500/10 px-2.5 text-[12px] font-extrabold text-gold-500 transition hover:bg-gold-500/20 disabled:opacity-40"
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-gold-500/60 bg-gold-500/10 px-2.5 text-[12px] font-extrabold text-gold-700 transition hover:bg-gold-500/20 disabled:opacity-40"
           >
             <Plus size={14} />
             <span className="hidden sm:inline">{addLabel}</span>

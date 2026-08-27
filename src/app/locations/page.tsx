@@ -68,10 +68,10 @@ export default async function LocationsPage() {
       <div className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-extrabold text-ivory-50">دليل المحامي في مصر</h1>
+            <h1 className="text-xl font-extrabold text-navy-950">دليل المحامي في مصر</h1>
             <p className="mt-1 text-[13px] font-medium text-navy-400">محاكم، نيابات، جهات حكومية وخدمية — مع بحث وخدمات ومسافة من مكتب الدقي.</p>
           </div>
-          <div className="rounded-lg border border-gold-500/20 bg-gold-500/5 px-3 py-2 text-[11px] font-bold text-navy-300">نقطة المرجع: الدقي – الجيزة · 30.0380, 31.2000</div>
+          <div className="rounded-lg border border-gold-500/20 bg-gold-500/5 px-3 py-2 text-[11px] font-bold text-navy-600">نقطة المرجع: الدقي – الجيزة · 30.0380, 31.2000</div>
         </div>
       </div>
       <LocationsClient rows={rows} governorates={governorates} types={types} categories={categories} buckets={[...buckets]} />

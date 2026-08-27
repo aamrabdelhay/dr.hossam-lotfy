@@ -32,10 +32,7 @@ async function enter(req: NextRequest): Promise<{ cookie: Awaited<ReturnType<typ
 export const GET = handle(async (req: NextRequest) => {
   const result = await enter(req);
   if ('error' in result) {
-    // No configured staff account (never happens with a seeded production
-    // database) — return a small page instead of redirecting (a redirect
-    // here would loop against the auth-gated routes).
-    return NextResponse.json({ error: result.error }, { status: 503 });
+    return NextResponse.redirect(new URL('/admin/login?error=1', req.url));
   }
   const res = NextResponse.redirect(new URL('/admin', req.url));
   res.cookies.set(result.cookie.name, result.cookie.value, result.cookie.options as never);

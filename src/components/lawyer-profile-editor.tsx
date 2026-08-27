@@ -69,7 +69,7 @@ export function LawyerProfileEditor({
     <>
       <button
         onClick={openEditor}
-        className="flex items-center gap-1.5 border border-white/15 px-3 py-1.5 text-[10px] tracking-[1.5px] uppercase text-ivory-200 transition-colors hover:bg-white/10 hover:text-ivory-50"
+        className="flex items-center gap-1.5 border border-[#242424] px-3 py-1.5 text-[10px] tracking-[1.5px] uppercase text-[#242424] transition-colors hover:bg-[#242424] hover:text-[#F7F5F0]"
         style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif', letterSpacing: '1.5px' }}
       >
         <Pencil size={11} />

@@ -138,11 +138,11 @@ export function LocationsClient({
   return (
     <>
       <Card className="mb-6 p-3.5">
-        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12px] font-extrabold text-ivory-300">
-          <Filter size={14} className="text-gold-500" />
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[12px] font-extrabold text-navy-700">
+          <Filter size={14} className="text-gold-600" />
           بحث وتصفية دليل المحامي
           <span className="text-[11px] font-bold text-navy-300">({filtered.length} من {rows.length})</span>
-          {hasFilters && <button onClick={reset} className="ms-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-gold-500 hover:bg-gold-500/10"><RotateCcw size={12} />مسح الفلاتر</button>}
+          {hasFilters && <button onClick={reset} className="ms-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-gold-700 hover:bg-gold-500/10"><RotateCcw size={12} />مسح الفلاتر</button>}
         </div>
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <label className="relative block xl:col-span-2">
@@ -156,21 +156,21 @@ export function LocationsClient({
         </div>
         <div className="mt-2.5 flex flex-wrap gap-2">
           <Select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label="ترتيب النتائج"><option value="distance">الأقرب من الدقي</option><option value="activity">أقرب جلسة أولاً</option><option value="name">الاسم أبجديًا</option></Select>
-          <button type="button" onClick={locateMe} className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 px-3 py-2 text-[11px] font-extrabold text-ivory-300 hover:border-gold-500 hover:text-ivory-50"><Navigation size={13} />الأقرب إليّ</button>
+          <button type="button" onClick={locateMe} className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 px-3 py-2 text-[11px] font-extrabold text-navy-700 hover:border-gold-500 hover:text-navy-950"><Navigation size={13} />الأقرب إليّ</button>
           {nearby && <Badge tone="gold"><MapPin size={11} />تم تفعيل ترتيب موقعك</Badge>}
           {geoError && <span className="text-[11px] font-bold text-red-600">{geoError}</span>}
         </div>
       </Card>
 
-      {nearby && <div className="mb-5 rounded-lg border border-gold-500/20 bg-gold-500/5 px-4 py-3 text-[12px] font-bold text-ivory-300">النتائج الآن مرتبة حسب المسافة من موقعك. لا يتم إرسال الإحداثيات إلى الخادم.</div>}
+      {nearby && <div className="mb-5 rounded-lg border border-gold-500/20 bg-gold-500/5 px-4 py-3 text-[12px] font-bold text-navy-700">النتائج الآن مرتبة حسب المسافة من موقعك. لا يتم إرسال الإحداثيات إلى الخادم.</div>}
 
       <section className="mb-10">
-        <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-ivory-200"><CalendarClock size={17} className="text-gold-500" />أنشطة قادمة — حسب أقرب تاريخ <span className="text-[11px] font-bold text-navy-300">({active.length})</span></h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-navy-800"><CalendarClock size={17} className="text-gold-600" />أنشطة قادمة — حسب أقرب تاريخ <span className="text-[11px] font-bold text-navy-300">({active.length})</span></h2>
         {active.length === 0 ? <EmptyState title={hasFilters ? 'لا توجد نتائج مطابقة.' : 'لا توجد مهام قادمة حالياً.'} hint="يمكنك البحث عن أي محكمة أو جهة أو خدمة من الفلاتر أعلاه." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{active.map((l) => <LocationCard key={l.id} row={l} nearby={nearby} />)}</div>}
       </section>
 
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-ivory-200"><Building2 size={17} className="text-gold-500" />كل الجهات والأماكن <span className="text-[11px] font-bold text-navy-300">({rest.length})</span></h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-navy-800"><Building2 size={17} className="text-gold-600" />كل الجهات والأماكن <span className="text-[11px] font-bold text-navy-300">({rest.length})</span></h2>
         {rest.length === 0 ? <EmptyState title={hasFilters ? 'لا توجد نتائج مطابقة للفلاتر.' : 'لا أماكن أخرى بعد.'} hint="المحاكم، النيابات، الشهر العقاري، الضرائب، السجل التجاري، النقابة والجهات الحكومية." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{rest.map((l) => <LocationCard key={l.id} row={l} nearby={nearby} />)}</div>}
       </section>
     </>
@@ -186,7 +186,7 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
       <div className="flex items-start gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-navy-950 text-gold-400' : 'bg-navy-800 text-ivory-200'}`}>{isCourt ? <Landmark size={20} /> : <Building2 size={20} />}</span>
         <div className="min-w-0 flex-1">
-          <Link href={`/locations/${row.slug}`} className="block"><p className="text-[14px] font-extrabold text-ivory-50 group-hover:text-ivory-200">{row.name}</p></Link>
+          <Link href={`/locations/${row.slug}`} className="block"><p className="text-[14px] font-extrabold text-navy-950 group-hover:text-navy-800">{row.name}</p></Link>
           <p className="mt-0.5 text-[11px] font-bold text-navy-300">{row.category} — {row.subType || (LOCATION_TYPE_LABEL[row.type] ?? row.type)}</p>
           {(row.city || row.governorate) && <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-navy-400"><MapPin size={11} />{[row.city, row.governorate].filter(Boolean).join(' — ')}</p>}
           {row.address && <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-5 text-navy-400">{row.address}</p>}
@@ -198,12 +198,12 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
           </div>
         </div>
       </div>
-      {row.services.length > 0 && <div className="mt-3 border-t border-navy-100 pt-3"><p className="mb-1 text-[10px] font-extrabold text-navy-400">خدمات بارزة</p><div className="flex flex-wrap gap-1">{row.services.slice(0, 4).map((s) => <span key={s} className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-semibold text-navy-300">{s}</span>)}</div></div>}
+      {row.services.length > 0 && <div className="mt-3 border-t border-navy-100 pt-3"><p className="mb-1 text-[10px] font-extrabold text-navy-400">خدمات بارزة</p><div className="flex flex-wrap gap-1">{row.services.slice(0, 4).map((s) => <span key={s} className="rounded bg-navy-50 px-1.5 py-0.5 text-[10px] font-semibold text-navy-600">{s}</span>)}</div></div>}
       <div className="mt-3 flex flex-wrap gap-1.5">
         <Link href={`/locations/${row.slug}`} className="inline-flex items-center gap-1 rounded-md bg-navy-950 px-2.5 py-1.5 text-[10px] font-extrabold text-white hover:bg-navy-800">التفاصيل</Link>
-        {directions && <a href={directions} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-ivory-300 hover:border-gold-500"><Navigation size={11} />الاتجاهات</a>}
-        {row.googleMapsUrl && <a href={row.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-ivory-300 hover:border-gold-500"><ExternalLink size={11} />خرائط</a>}
-        {row.phone && <a href={`tel:${row.phone}`} className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-ivory-300 hover:border-gold-500"><Phone size={11} />اتصال</a>}
+        {directions && <a href={directions} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-navy-700 hover:border-gold-500"><Navigation size={11} />الاتجاهات</a>}
+        {row.googleMapsUrl && <a href={row.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-navy-700 hover:border-gold-500"><ExternalLink size={11} />خرائط</a>}
+        {row.phone && <a href={`tel:${row.phone}`} className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-navy-700 hover:border-gold-500"><Phone size={11} />اتصال</a>}
       </div>
       {(row.workingHours || row.lastVerified) && <div className="mt-2 flex flex-wrap gap-2 text-[9px] font-semibold text-navy-300">{row.workingHours && <span className="inline-flex items-center gap-1"><Clock3 size={10} />{row.workingHours}</span>}{row.lastVerified && <span>آخر تحقق: {new Date(row.lastVerified).toLocaleDateString('ar-EG')}</span>}</div>}
     </Card>
