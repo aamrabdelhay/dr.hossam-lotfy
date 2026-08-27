@@ -41,7 +41,7 @@ export const POST = handle(async (req: Request) => {
     data: {
       name: data.name.trim(),
       email,
-      passwordHash: bcrypt.hashSync(data.password, 10),
+      passwordHash: await bcrypt.hash(data.password, 12),
       role: data.role,
     },
     select: { id: true, name: true, email: true, role: true, createdAt: true },

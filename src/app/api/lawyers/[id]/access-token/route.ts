@@ -24,10 +24,13 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     data: { token, lawyerId: id, label: 'رابط دخول', expiresAt: new Date(Date.now() + 365 * 86400000) },
   });
 
-  // Prefer the configured base URL; otherwise derive origin from the request
-  // Host header so the link works from whatever host the client used.
+  // Prefer the configured public site URL (canonical); fall back to legacy BASE_URL
+  // then to request host so the link works from whatever host the client used.
   const host = req.headers.get('host') || new URL(req.url).host;
-  const proto = req.headers.get('x-forwarded-proto') || 'http';
-  const origin = process.env.NEXT_PUBLIC_BASE_URL || `${proto}://${host}`;
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    `${proto}://${host}`;
   return json({ ok: true, url: `${origin}/access/${token}` }, { status: 201 });
 });

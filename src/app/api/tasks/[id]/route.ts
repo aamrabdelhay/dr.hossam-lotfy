@@ -52,12 +52,9 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   const data = await readJson(req as never, updateSchema);
 
   // lawyers may edit content of their own posts but not the assignment set or status
-  let lawyerIds: string[] | undefined;
-  let status = data.status;
-  if (!isAdmin) {
-    lawyerIds = undefined;
-    status = task.status; // only the complete endpoint changes status
-  }
+  // admin may reassign lawyers and change status
+  let lawyerIds: string[] | undefined = isAdmin ? data.lawyerIds : undefined;
+  let status = isAdmin ? data.status : task.status; // only complete endpoint changes status for lawyers
 
   const location = data.locationId ? await prisma.location.findUnique({ where: { id: data.locationId } }) : task.location;
   if (data.locationId && !location) return json({ error: 'المكان غير موجود' }, { status: 404 });

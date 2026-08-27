@@ -7,7 +7,14 @@ import type { StaffRole } from './constants';
 import { isStaffRole } from './rbac';
 
 const COOKIE = 'hlsession';
+const COOKIE_HOST = '__Host-hlsession';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+function cookieName(): string {
+  // __Host- prefix provides extra protection in production (requires Secure, Path=/, no Domain)
+  // In development we keep plain name for http compatibility
+  return process.env.NODE_ENV === 'production' ? COOKIE_HOST : COOKIE;
+}
 
 export type SessionUser =
   | { role: 'admin'; userId: string; name: string; userRole: StaffRole }
@@ -64,7 +71,7 @@ export async function createSessionCookie(input: {
   const body = `v1.${raw}`;
   const value = `${body}.${hmac(body)}`;
   return {
-    name: COOKIE,
+    name: cookieName(),
     value,
     options: {
       httpOnly: true,
@@ -92,7 +99,9 @@ function parseCookieValue(value: string | undefined | null): string | null {
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
-  const raw = parseCookieValue(store.get(COOKIE)?.value);
+  // Support both __Host- prefixed (production) and legacy cookie during transition
+  const rawValue = store.get(COOKIE_HOST)?.value ?? store.get(COOKIE)?.value;
+  const raw = parseCookieValue(rawValue);
   if (!raw) return null;
 
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
@@ -116,18 +125,27 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 /** Revoke the current session (logout). Route handlers only. */
 export async function revokeCurrentSession(): Promise<void> {
   const store = await cookies();
-  const raw = parseCookieValue(store.get(COOKIE)?.value);
+  const rawValue = store.get(COOKIE_HOST)?.value ?? store.get(COOKIE)?.value;
+  const raw = parseCookieValue(rawValue);
   if (!raw) return;
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
   await prisma.authSession.updateMany({ where: { tokenHash }, data: { revokedAt: new Date() } });
 }
 
 export function clearSessionCookie() {
+  // Clear both possible cookie names for clean logout
   return {
-    name: COOKIE,
+    name: cookieName(),
     value: '',
-    options: { httpOnly: true, path: '/', maxAge: 0 } as Record<string, unknown>,
+    options: { httpOnly: true, path: '/', maxAge: 0, secure: process.env.NODE_ENV === 'production' } as Record<string, unknown>,
   };
+}
+
+export function clearAllSessionCookies() {
+  return [
+    { name: COOKIE, value: '', options: { httpOnly: true, path: '/', maxAge: 0 } },
+    { name: COOKIE_HOST, value: '', options: { httpOnly: true, path: '/', maxAge: 0, secure: true } },
+  ];
 }
 
 export async function isAdmin(): Promise<boolean> {

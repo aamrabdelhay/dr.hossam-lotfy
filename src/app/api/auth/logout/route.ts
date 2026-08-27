@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { clearSessionCookie, revokeCurrentSession } from '@/lib/auth';
+import { clearAllSessionCookies, revokeCurrentSession } from '@/lib/auth';
 
 export async function POST() {
-  // Revoke server-side first, then clear the cookie
+  // Revoke server-side first, then clear all possible cookie names
   await revokeCurrentSession().catch(() => undefined);
-  const c = clearSessionCookie();
+  const cookies = clearAllSessionCookies();
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(c.name, c.value, c.options as never);
+  for (const c of cookies) {
+    res.cookies.set(c.name, c.value, c.options as never);
+  }
   return res;
 }

@@ -28,7 +28,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   const patch: Record<string, unknown> = {};
   if (data.name) patch.name = data.name.trim();
   if (data.role) patch.role = data.role;
-  if (data.password) patch.passwordHash = bcrypt.hashSync(data.password, 10);
+  if (data.password) patch.passwordHash = await bcrypt.hash(data.password, 12);
   if (data.email) {
     const email = data.email.toLowerCase().trim();
     const clash = await prisma.user.findFirst({ where: { email, NOT: { id } } });

@@ -26,15 +26,28 @@ async function main() {
   const email = (process.env.ADMIN_EMAIL || 'admin@loutfilawfirm.net').toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
   if (!existing) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      if (process.env.NODE_ENV === 'production' && process.env.DEMO !== '1') {
+        throw new Error('ADMIN_PASSWORD is required in production. Set it in environment variables.');
+      }
+      console.warn('⚠️ ADMIN_PASSWORD not set — using temporary random password. Set ADMIN_PASSWORD env for production!');
+    }
+    // Use provided password or generate a strong random one for dev
+    const { randomBytes } = await import('node:crypto');
+    const passwordToHash = adminPassword || randomBytes(24).toString('base64url');
     await prisma.user.create({
       data: {
         name: process.env.ADMIN_NAME || 'DR. Hossam Lotfy',
         email,
-        passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Loutfy@Admin2026', 10),
+        passwordHash: await bcrypt.hash(passwordToHash, 12),
         role: 'SUPER_ADMIN',
       },
     });
     console.log(`👤 staff account created: ${email} (SUPER_ADMIN)`);
+    if (!adminPassword) {
+      console.log('🔑 Generated temporary password (store securely and change immediately):', passwordToHash.slice(0, 8) + '***');
+    }
   } else {
     console.log(`👤 staff account exists: ${email}`);
   }

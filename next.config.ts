@@ -6,18 +6,20 @@ const isDev = process.env.NODE_ENV !== 'production';
  * Content-Security-Policy: Next.js needs 'unsafe-inline' for its bootstrap
  * <script> payloads unless a nonce-middleware is used; styles come from
  * self + Google Fonts (@import). Everything else is locked to 'self'.
+ * Added Vercel Blob public domain for production uploads.
  */
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https:",
   "connect-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
 ].join('; ');
 
 const securityHeaders = [
@@ -34,6 +36,12 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.public.blob.vercel-storage.com',
+      },
+    ],
   },
   async headers() {
     return [
