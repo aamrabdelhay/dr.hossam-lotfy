@@ -216,6 +216,9 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
           <Link href="/search" className={navLinkStyle(isActive('/search'))}>
             البحث
           </Link>
+          <Link href="/lawyer-guide" className={navLinkStyle(isActive('/lawyer-guide'))}>
+            دليل المحامي
+          </Link>
         </nav>
 
         {/* Right actions */}
@@ -312,6 +315,9 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
               </Link>
               <Link href="/search" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/60 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                 <Search size={14} className="text-white/30" /> البحث
+              </Link>
+              <Link href="/lawyer-guide" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/60 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Landmark size={14} className="text-white/30" /> دليل المحامي
               </Link>
               {!session && (
                 <Link href="/api/auth/login" prefetch={false} className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/40 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
