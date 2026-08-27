@@ -197,6 +197,9 @@ body {
 .animate-fade-in-up {
   animation: fade-in-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+.animate-fade-in-up {
+  animation: fade-in-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 
 @keyframes fade-in {
   from {
@@ -298,4 +301,84 @@ span.ltr {
 /* Latin serials / numbers inside Arabic lines */
 .font-latin {
   font-family: "Inter", "Cormorant Garamond", ui-sans-serif, sans-serif;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GLOBAL PREMIUM BUBBLE BUTTONS
+   Applied at the base element level so existing buttons benefit
+   without requiring a component-by-component rewrite.
+   ════════════════════════════════════════════════════════════════ */
+
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  transform-origin: center;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+button:hover:not(:disabled),
+[role="button"]:hover:not([aria-disabled="true"]) {
+  transform: scale(1.035);
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]) {
+  transform: scale(0.975);
+  transition-duration: 80ms;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* A restrained lift for filled/action buttons, while keeping the
+   existing color palette and component shadows intact. */
+button[class*="bg-"]:hover:not(:disabled),
+[role="button"][class*="bg-"]:hover:not([aria-disabled="true"]) {
+  box-shadow: 0 7px 18px -10px rgba(5, 8, 15, 0.38);
+}
+
+/* Subtle press feedback without layout shift. */
+button:active:not(:disabled) > svg,
+[role="button"]:active:not([aria-disabled="true"]) > svg {
+  transform: scale(0.97);
+}
+
+button > svg,
+[role="button"] > svg {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+button:hover:not(:disabled) > svg,
+[role="button"]:hover:not([aria-disabled="true"]) > svg {
+  transform: scale(1.04);
+}
+
+/* Keep reduced-motion users comfortable. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  button,
+  [role="button"],
+  button > svg,
+  [role="button"] > svg {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  button:hover:not(:disabled),
+  button:active:not(:disabled),
+  [role="button"]:hover:not([aria-disabled="true"]),
+  [role="button"]:active:not([aria-disabled="true"]) {
+    transform: none;
+  }
 }
