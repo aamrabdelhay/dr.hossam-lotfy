@@ -2,18 +2,27 @@
 -- Additive migration — never drops existing tables or data
 
 -- ─── Verification statuses ───
-CREATE TYPE "VerificationStatus" AS ENUM ('DRAFT', 'PENDING', 'VERIFIED', 'NEEDS_REVIEW', 'ARCHIVED');
+DO $$ BEGIN
+  CREATE TYPE "VerificationStatus" AS ENUM ('DRAFT', 'PENDING', 'VERIFIED', 'NEEDS_REVIEW', 'ARCHIVED');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- ─── Relationship types ───
-CREATE TYPE "RelationshipType" AS ENUM (
-  'LOCATED_IN', 'PART_OF', 'SUBORDINATE_TO',
-  'JURISDICTION_OF', 'SERVES', 'REFERS_TO',
-  'ASSOCIATED_WITH', 'SAME_BUILDING',
-  'MOVED_FROM', 'MOVED_TO'
-);
+DO $$ BEGIN
+  CREATE TYPE "RelationshipType" AS ENUM (
+    'LOCATED_IN', 'PART_OF', 'SUBORDINATE_TO',
+    'JURISDICTION_OF', 'SERVES', 'REFERS_TO',
+    'ASSOCIATED_WITH', 'SAME_BUILDING',
+    'MOVED_FROM', 'MOVED_TO'
+  );
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- ─── Confidence levels ───
-CREATE TYPE "ConfidenceLevel" AS ENUM ('VERIFIED', 'HIGH', 'MEDIUM', 'LOW', 'NEEDS_VERIFICATION');
+DO $$ BEGIN
+  CREATE TYPE "ConfidenceLevel" AS ENUM ('VERIFIED', 'HIGH', 'MEDIUM', 'LOW', 'NEEDS_VERIFICATION');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- ─── Organizations (parent entities) ───
 CREATE TABLE IF NOT EXISTS "organizations" (
