@@ -128,7 +128,7 @@ fi
 
 request 'دليل الأماكن' GET '/locations' 200 || true
 body_contains 'قسم الأنشطة القادمة' 'أنشطة قادمة'
-body_contains 'فلاتر الأماكن' 'تصفية الأماكن'
+body_contains 'فلاتر دليل المحامي' 'بحث وتصفية دليل المحامي'
 
 request 'قائمة الأماكن العامة' GET '/api/locations' 200 || true
 body_contains 'الأماكن العامة تُرجع قائمة' '"locations"'
