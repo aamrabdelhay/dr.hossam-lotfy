@@ -8,7 +8,7 @@
  */
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, LocationType } from '../src/generated/prisma/client';
+import { PrismaClient, LocationType, VerificationStatus, ConfidenceLevel } from '../src/generated/prisma/client';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -260,6 +260,45 @@ function slugFor(name: string, nameEn: string, i: number): string {
   return `${base}-${i}`.replace(/--+/g, '-');
 }
 
+/** ─────────────── Lawyer Guide enrichment ───────────────
+ * Maps each LocationType to its Lawyer-Guide category. The 47 categories are
+ * seeded by migration 20260827000002_lawyer_guide with fixed `cat-*` ids. */
+const CATEGORY_BY_TYPE: Partial<Record<LocationType, string>> = {
+  [LocationType.COURT]: 'cat-courts',
+  [LocationType.PROSECUTION]: 'cat-prosecution',
+  [LocationType.TAX_OFFICE]: 'cat-tax',
+  [LocationType.COMMERCIAL_REGISTRY]: 'cat-commercial-registry',
+  [LocationType.CIVIL_REGISTRY]: 'cat-civil-status',
+  [LocationType.LAWYERS_SYNDICATE]: 'cat-bar-association',
+  [LocationType.SURVEY_AUTHORITY]: 'cat-survey',
+  [LocationType.PASSPORTS]: 'cat-passports',
+  [LocationType.TRAFFIC]: 'cat-traffic',
+  [LocationType.SOCIAL_INSURANCE]: 'cat-social-insurance',
+  [LocationType.LABOR_OFFICE]: 'cat-labour',
+  [LocationType.CUSTOMS]: 'cat-customs',
+  [LocationType.INVESTMENT_AGENCY]: 'cat-gafi',
+  [LocationType.EXPERTS_OFFICE]: 'cat-experts',
+  [LocationType.REAL_ESTATE_REGISTRATION]: 'cat-real-estate-reg',
+  [LocationType.GOVERNMENT_AGENCY]: 'cat-local-gov',
+  [LocationType.OTHER]: 'cat-other',
+};
+
+/** Mirrors normalizeAr() in src/lib/lawyer-guide-search.ts (that module is
+ * `server-only`, so the seed carries its own copy). Powers the Arabic
+ * contains-search on Location.normalizedName. */
+function normalizeArName(s: string): string {
+  return s
+    .replace(/[\u064B-\u065F\u0670]/g, '') // diacritics
+    .replace(/[\u0622\u0623\u0625\u0627]/g, 'ا') // alef variants
+    .replace(/\u0649/g, 'ي') // alef maqsura
+    .replace(/\u0629/g, 'ه') // ta marbuta
+    .replace(/\u0640/g, '') // tatweel
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 function keywords(seed: CourtSeed & { type?: LocationType }): string[] {
   const en = seed.nameEn.toLowerCase();
   const sub = seed.subType ?? '';
@@ -300,12 +339,24 @@ export async function seedLocations() {
   const existingRows = await prisma.location.findMany({ select: { slug: true } });
   const existingSlugs = new Set(existingRows.map((row) => row.slug));
 
+  // Lawyer-Guide categories must exist before we can link locations to them.
+  const categoryIds = new Set(
+    (await prisma.category.findMany({ select: { id: true } })).map((c) => c.id),
+  );
+  if (categoryIds.size === 0) {
+    throw new Error('No categories found — apply prisma/migrations before seeding locations.');
+  }
+
   let created = 0;
   let updated = 0;
   let i = 0;
   for (const seed of all) {
     i += 1;
     const slug = slugFor(seed.name, seed.nameEn, i);
+    const categoryId = CATEGORY_BY_TYPE[seed.type];
+    if (categoryId && !categoryIds.has(categoryId)) {
+      throw new Error(`Category ${categoryId} (for ${seed.name}) is missing — run the lawyer_guide migration first.`);
+    }
     const data = {
       name: seed.name,
       nameEn: seed.nameEn,
@@ -329,6 +380,11 @@ export async function seedLocations() {
       distanceFromDokki: seed.km,
       distanceBucket: seed.bucket,
       searchKeywords: keywords(seed),
+      // ── Lawyer Guide fields ──
+      categoryId: categoryId ?? null,
+      normalizedName: normalizeArName(`${seed.name} ${seed.city} ${seed.governorate}`),
+      verificationStatus: VerificationStatus.VERIFIED,
+      confidenceLevel: seed.lat ? ConfidenceLevel.HIGH : ConfidenceLevel.MEDIUM,
     };
 
     await prisma.location.upsert({
@@ -341,7 +397,7 @@ export async function seedLocations() {
   }
 
   const total = await prisma.location.count();
-  console.log(`✅ ${all.length} locations synced (${created} جديدة، ${updated} محدّثة) — إجمالي الأماكن في القاعدة: ${total} (${COURTS.length} محكمة رسمية).`);
+  console.log(`✅ ${all.length} locations synced (${created} جديدة، ${updated} محدّثة) — إجمالي الأماكن في القاعدة: ${total} (${COURTS.length} محكمة رسمية + ${PLACES.length} جهة حكومية، مصنّفة وموثّقة لدليل المحامي).`);
 }
 
 /** Standalone run: npx tsx prisma/seed-locations.ts */
