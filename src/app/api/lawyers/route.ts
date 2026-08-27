@@ -15,6 +15,14 @@ export async function GET() {
       specialization: true, profilePhotoUrl: true, isPrincipal: true,
     },
   });
+
+  // Workload and direct contact details are operational data. Only an
+  // authenticated office user receives them; public profile browsing gets the
+  // non-sensitive identity fields.
+  if (!session) {
+    return json({ lawyers: lawyers.map(({ phone, email, ...publicProfile }) => publicProfile) });
+  }
+
   const counts = await db.$queryRaw<{ lawyerId: string; upcoming: number }[]>`
     SELECT "lawyerId", COUNT(*)::int AS "upcoming"
     FROM "task_assignments" ta
@@ -23,7 +31,6 @@ export async function GET() {
       AND (t."scheduledDate" >= CURRENT_DATE OR t."scheduledDate" IS NULL)
     GROUP BY "lawyerId"`;
   const countMap = new Map(counts.map((c) => [c.lawyerId, c.upcoming]));
-  void session;
   return json({ lawyers: lawyers.map((l) => ({ ...l, upcoming: countMap.get(l.id) ?? 0 })) });
 }
 
@@ -41,8 +48,6 @@ const createSchema = z.object({
 export const POST = handle(async (req: Request) => {
   const session = await requirePermission('manageLawyers');
   const data = await readJson(req as never, createSchema);
-
-  // three-part name check (Arabic or Latin)
   const parts = data.fullName.trim().split(/\s+/).filter(Boolean);
   if (parts.length < 3) {
     return json({ error: 'الاسم يجب أن يكون ثلاثياً على الأقل: (أول، وسط، عائلة)' }, { status: 400 });
