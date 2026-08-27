@@ -6,6 +6,7 @@ import { MapPin, CalendarDays, Clock, FileText, UserRound, StickyNote, PlusCircl
 import { prisma } from '@/lib/prisma';
 import { getSidebarData, getTaskVM } from '@/lib/queries';
 import { getCurrentUser } from '@/lib/auth';
+import { can } from '@/lib/rbac';
 import { SessionSidebar } from '@/components/session-sidebar';
 import { PostCard } from '@/components/post-card';
 import { EditTrigger } from '@/components/session-edit-trigger';
@@ -70,7 +71,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
           </div>
           {task.notes && <div className="mx-5 mb-5 flex items-start gap-2 rounded-lg border border-gold-500/25 bg-gold-500/[0.06] px-3 py-2.5"><StickyNote size={14} className="mt-1 shrink-0 text-gold-600" /><div><p className="text-[11px] font-extrabold text-gold-700">ملاحظات</p><p className="mt-0.5 text-[13px] leading-6 text-navy-700">{task.notes}</p></div></div>}
         </Card>
-        <PostCard task={task} comments={commentsVM} sessionRole={role} sessionLawyerId={myLawyerId ?? undefined} initiallyOpen />
+        <PostCard task={task} comments={commentsVM} sessionRole={role} sessionLawyerId={myLawyerId ?? undefined} canWriteTasks={isAdmin && can(session.userRole, 'writeTasks')} initiallyOpen />
         {canEdit && <React.Suspense fallback={null}><EditTrigger task={{ id: task.id, description: task.description, notes: task.notes, locationId: task.location.id, caseName: task.caseName, caseNumber: task.caseNumber, scheduledDate: task.scheduledDate, scheduledTime: task.scheduledTime, status: task.status, lawyerIds: task.lawyerIds }} locations={locations} lawyers={lawyers.map((l) => ({ id: l.id, name: l.fullName }))} /></React.Suspense>}
         <div><h2 className="mb-3 text-[15px] font-extrabold text-navy-900">سجل النشاط على هذه المهمة</h2>{taskActivity.length === 0 ? <EmptyState title="لم يتم تسجيل أي نشاط" hint="تظهر هنا كل الأحداث: إنشاء، تعديل، إسناد، تنفيذ، تعليقات، حذف." /> : <Card className="p-5"><ActivityTimeline items={taskActivity} /></Card>}</div>
       </div>

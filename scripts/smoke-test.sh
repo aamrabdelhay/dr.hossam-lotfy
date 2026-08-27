@@ -120,10 +120,10 @@ fi
 
 request 'sitemap.xml' GET '/sitemap.xml' 200 || true
 location_links="$(grep -o '/locations/' "$last_body" 2>/dev/null | wc -l | tr -d ' ')"
-if [[ "$location_links" =~ ^[0-9]+$ ]] && (( location_links >= 134 )); then
-  pass "sitemap يحتوي على 134 رابط مكان أو أكثر ($location_links)"
+if [[ "$location_links" =~ ^[0-9]+$ ]] && (( location_links >= 149 )); then
+  pass "sitemap يحتوي على 149 رابط مكان أو أكثر ($location_links)"
 else
-  fail "sitemap يحتوي على $location_links روابط مكان؛ المتوقع 134 على الأقل"
+  fail "sitemap يحتوي على $location_links روابط مكان؛ المتوقع 149 على الأقل"
 fi
 
 request 'دليل الأماكن' GET '/locations' 200 || true

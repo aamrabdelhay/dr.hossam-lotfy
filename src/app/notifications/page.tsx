@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Bell, CheckCheck } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
+import { NotificationLink } from '@/components/notification-link';
 import { cn } from '@/lib/cn';;
 import { formatDateTime } from '@/lib/dates';
 
@@ -25,6 +25,7 @@ export default async function NotificationsPage() {
     COMMENT: 'تعليق',
     TASK_COMPLETED: 'تم التنفيذ',
     TASK_DELETED: 'حذف مهمة',
+    POST_CREATED: 'بوست جديد',
     ANNOUNCEMENT: 'إعلان',
   };
 
@@ -44,7 +45,13 @@ export default async function NotificationsPage() {
           </div>
         ) : (
           notifications.map((n) => (
-            <Link key={n.id} href={n.link ?? '#'} className={cn('flex items-start gap-3 px-4 py-3.5 hover:bg-ivory-50', !n.readAt && 'bg-gold-500/[0.05]')}>
+            <NotificationLink
+              key={n.id}
+              id={n.id}
+              href={n.link ?? '#'}
+              read={!!n.readAt}
+              className={cn('flex items-start gap-3 px-4 py-3.5 hover:bg-ivory-50', !n.readAt && 'bg-gold-500/[0.05]')}
+            >
               <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', !n.readAt ? 'bg-gold-500/20 text-gold-700' : 'bg-navy-900/5 text-navy-400')}>
                 {n.type === 'TASK_COMPLETED' ? <CheckCheck size={15} /> : <Bell size={15} />}
               </span>
@@ -57,7 +64,7 @@ export default async function NotificationsPage() {
                 {n.body && <span className="mt-0.5 block text-[12px] font-semibold leading-6 text-navy-500">{n.body}</span>}
                 <span className="mt-0.5 block text-[10.5px] font-semibold text-navy-300">{formatDateTime(n.createdAt)}</span>
               </span>
-            </Link>
+            </NotificationLink>
           ))
         )}
       </Card>

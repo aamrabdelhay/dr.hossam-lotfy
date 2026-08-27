@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, PenLine, X } from 'lucide-react';
 import { Avatar, Button, Card, Field, Input, Textarea } from './ui';
-import { SelectWithAdd } from './select-with-add';
+import { ComboboxWithAdd } from './combobox-with-add';
 import { toastSuccess, toastError } from './toasts';
 import { cn } from '@/lib/cn';
 import type { NavLocation } from '@/lib/constants';
@@ -97,9 +97,9 @@ export function Composer({ lawyerName, lawyerPhoto, locations, defaultLocationId
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <Field label="المكان" required>
-              <SelectWithAdd
+              <ComboboxWithAdd
                 ariaLabel="المكان"
-                placeholder="اختر المكان…"
+                placeholder="ابحث بالاسم أو اختر…"
                 options={locations.map((l) => ({ value: l.id, label: l.name }))}
                 value={locationId}
                 onChange={setLocationId}

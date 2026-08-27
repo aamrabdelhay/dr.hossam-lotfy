@@ -2,7 +2,8 @@
 /**
  * Production-safe seed. Creates:
  *  1. The admin/staff account (from ADMIN_* env, default role SUPER_ADMIN).
- *  2. The legal-locations directory (119 courts + other destinations) —
+ *  2. The legal-locations directory (119 courts + 15 government offices +
+ *     15 justice bodies) —
  *     see ./seed-locations.ts.
  *
  * NO demo lawyers/tasks/comments are created unless DEMO=1 is exported
@@ -39,7 +40,7 @@ async function main() {
     console.log(`👤 staff account exists: ${email}`);
   }
 
-  // ── locations directory (119 courts + others) ──
+  // ── locations directory (119 courts + 15 offices + 15 justice bodies) ──
   await seedLocations();
 
   // ── optional demo data (local development only) ──

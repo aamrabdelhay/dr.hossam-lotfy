@@ -91,7 +91,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     byLawyerId: session?.role === 'lawyer' ? session.lawyerId : null,
     byUserId: session?.role === 'admin' ? session.userId : null,
   });
-  await notifyComment(id, task.location.name, authorName, data.text.slice(0, 80));
+  await notifyComment(id, comment.id, task.location.name, authorName, data.text.slice(0, 80));
 
   return json({ ok: true, commentId: comment.id }, { status: 201 });
 });

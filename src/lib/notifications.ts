@@ -9,6 +9,7 @@ export type NotificationType =
   | 'COMMENT'
   | 'TASK_COMPLETED'
   | 'TASK_DELETED'
+  | 'POST_CREATED'
   | 'ANNOUNCEMENT';
 
 async function notifyLawyer(lawyerId: string, type: NotificationType, title: string, body?: string, link?: string) {
@@ -39,22 +40,32 @@ export async function notifyTaskEdited(lawyerIds: string[], taskTitle: string) {
   }
 }
 
-export async function notifyComment(taskId: string, taskLocationName: string, commentAuthor: string, commentText: string) {
+export async function notifyComment(taskId: string, commentId: string, taskLocationName: string, commentAuthor: string, commentText: string) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: { assignees: true, author: true, createdBy: true },
   });
   if (!task) return;
+  // Deep link يفتح التعليق نفسه: /sessions/<id>#comment-<id>
+  const link = `/sessions/${taskId}#comment-${commentId}`;
   const targets = new Set<string>();
   for (const a of task.assignees) targets.add(a.lawyerId);
   if (task.authorId) targets.add(task.authorId);
   for (const id of targets) {
-    if (id !== commentAuthor) await notifyLawyer(id, 'COMMENT', 'تعليق جديد', `${commentAuthor} علّق على: ${taskLocationName}`, `/sessions/${taskId}`);
+    if (id !== commentAuthor) await notifyLawyer(id, 'COMMENT', 'تعليق جديد', `${commentAuthor} علّق على: ${taskLocationName}`, link);
   }
   // notify admins
   const admins = await prisma.user.findMany();
   for (const admin of admins) {
-    if (admin.id !== commentAuthor) await notifyAdmin(admin.id, 'COMMENT', 'تعليق جديد', `${commentAuthor} على مهمة (${taskLocationName})`, `/sessions/${taskId}`);
+    if (admin.id !== commentAuthor) await notifyAdmin(admin.id, 'COMMENT', 'تعليق جديد', `${commentAuthor} على مهمة (${taskLocationName})`, link);
+  }
+}
+
+/** إشعار للإدارة عند نشر محامٍ بوست جديد في الفيد. */
+export async function notifyPostCreated(taskId: string, lawyerName: string, taskDesc: string, locationName: string) {
+  const admins = await prisma.user.findMany();
+  for (const admin of admins) {
+    await notifyAdmin(admin.id, 'POST_CREATED', 'بوست جديد في الفيد', `${lawyerName} نشر: ${taskDesc} — ${locationName}`, `/sessions/${taskId}`);
   }
 }
 

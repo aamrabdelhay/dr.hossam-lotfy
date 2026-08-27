@@ -1,8 +1,15 @@
 /**
  * Directory of Egyptian legal destinations, outward from the firm's Dokki
  * office. 119 COURTS (محكمة النقض، دار القضاء العالي، مجلس الدولة، الاستئناف،
- * الاقتصادية، الابتدئية والجزئية في كل المحافظات) + الضرائب، الشهر العقاري،
- * السجل التجاري، النقابة، المساحة، الجوازات … إلخ.
+ * الاقتصادية، الابتدئية والجزئية في كل المحافظات) + 15 government offices
+ * (الضرائب، الشهر العقاري، السجل التجاري، النقابة، المساحة، الجوازات …) +
+ * 15 justice bodies (JUSTICE): النيابة العامة، النيابة الإدارية، هيئة قضايا
+ * الدولة، مجلس الدولة، القضاء العسكري، الخبراء، الطب الشرعي، التنفيذ،
+ * السجون، الشرطة — 149 places in total.
+ *
+ * Four supreme courts are re-mapped to their own Lawyer-Guide categories via
+ * `categoryOverride` (مجلس الدولة ×3 → cat-state-council، الدستورية العليا →
+ * cat-supreme-constitutional) without touching the 119 court rows themselves.
  *
  * The script asserts COURTS.length === 119 before writing.
  */
@@ -28,6 +35,8 @@ type CourtSeed = {
   jurisdiction?: string;
   lat?: number;
   lng?: number;
+  /** Explicit Lawyer-Guide category (overrides the type-based default). */
+  categoryOverride?: string;
 };
 
 function c(
@@ -41,8 +50,9 @@ function c(
   bucket: string,
   lat?: number,
   lng?: number,
+  categoryOverride?: string,
 ): CourtSeed {
-  return { name, nameEn, subType, governorate, city, address, km, bucket, jurisdiction: jurisdictionOf(governorate, subType), lat, lng };
+  return { name, nameEn, subType, governorate, city, address, km, bucket, jurisdiction: jurisdictionOf(governorate, subType), lat, lng, categoryOverride };
 }
 
 function jurisdictionOf(gov: string, subType: string): string {
@@ -72,12 +82,12 @@ const COURTS: CourtSeed[] = [
   c('محكمة منشأة القناطر الجزئية', 'Mansheyat El-Qanater District Court', 'جزئية', 'الجيزة', 'منشأة القناطر', 'شارع المحكمة', 22, '20-40كم'),
 
   // ── القاهرة: مجلس الدولة، القضاء العالي، النقض، الاستئناف (5–10كم) ──
-  c('المحكمة الإدارية العليا — مجلس الدولة', 'Supreme Administrative Court — Council of State', 'إدارية عليا', 'القاهرة', 'وسط القاهرة', 'مبنى مجلس الدولة — شارع 26 يوليو، garden city', 6, '5-10كم', 30.0444, 31.2249),
-  c('محكمة القضاء الإداري — مجلس الدولة (القاهرة)', 'Administrative Judicial Court — Cairo', 'قضاء إداري', 'القاهرة', 'وسط القاهرة', 'مبنى مجلس الدولة — ميدان التحرير', 5.5, '5-10كم', 30.0447, 31.2353),
-  c('محكمة القضاء الإداري — مجلس الدولة (الجيزة)', 'Administrative Judicial Court — Giza', 'قضاء إداري', 'الجيزة', 'الجيزة', 'فرع مجلس الدولة — شارع الجيزة', 3.5, '0-5كم'),
+  c('المحكمة الإدارية العليا — مجلس الدولة', 'Supreme Administrative Court — Council of State', 'إدارية عليا', 'القاهرة', 'وسط القاهرة', 'مبنى مجلس الدولة — شارع 26 يوليو، garden city', 6, '5-10كم', 30.0444, 31.2249, 'cat-state-council'),
+  c('محكمة القضاء الإداري — مجلس الدولة (القاهرة)', 'Administrative Judicial Court — Cairo', 'قضاء إداري', 'القاهرة', 'وسط القاهرة', 'مبنى مجلس الدولة — ميدان التحرير', 5.5, '5-10كم', 30.0447, 31.2353, 'cat-state-council'),
+  c('محكمة القضاء الإداري — مجلس الدولة (الجيزة)', 'Administrative Judicial Court — Giza', 'قضاء إداري', 'الجيزة', 'الجيزة', 'فرع مجلس الدولة — شارع الجيزة', 3.5, '0-5كم', undefined, undefined, 'cat-state-council'),
   c('دار القضاء العالي', 'House of the Supreme Judiciary', 'مقر قضائي', 'القاهرة', 'وسط القاهرة', 'شارع 26 يوليو — Garden City', 6, '5-10كم', 30.0416, 31.2244),
   c('محكمة النقض', 'Court of Cassation', 'نقض', 'القاهرة', 'وسط القاهرة', 'مبنى محكمة النقض — 11 شارع رمسيس', 6.5, '5-10كم', 30.0527, 31.2337),
-  c('المحكمة الدستورية العليا', 'Supreme Constitutional Court', 'دستورية عليا', 'القاهرة', 'وسط القاهرة', 'شارع محمد فريد — وسط البلد', 6, '5-10كم'),
+  c('المحكمة الدستورية العليا', 'Supreme Constitutional Court', 'دستورية عليا', 'القاهرة', 'وسط القاهرة', 'شارع محمد فريد — وسط البلد', 6, '5-10كم', undefined, undefined, 'cat-supreme-constitutional'),
   c('محكمة استئناف القاهرة', 'Cairo Court of Appeal', 'استئناف', 'القاهرة', 'وسط القاهرة', 'مبنى المحاكم — شارع رمسيس', 6.5, '5-10كم', 30.0552, 31.2335),
   c('محكمة استئناف الجيزة', 'Giza Court of Appeal', 'استئناف', 'الجيزة', 'الجيزة', 'مبنى استئناف الجيزة — شارع الجيزة', 3, '0-5كم'),
   c('محكمة شمال القاهرة الابتدائية', 'North Cairo Primary Court', 'ابتدائية', 'القاهرة', 'شبرا', 'مجمع محاكم شمال القاهرة — شارع شبرا', 8, '5-10كم', 30.0994, 31.2458),
@@ -229,7 +239,7 @@ const COURTS: CourtSeed[] = [
 ];
 
 /** ─────────────── غير المحاكم: ضرائب، عقاري، سجل تجاري … ─────────────── */
-type PlaceSeed = CourtSeed & { type: LocationType; services: string[]; phone?: string; requiresPersonal?: boolean; hasOnlineService?: boolean };
+type PlaceSeed = CourtSeed & { type: LocationType; services: string[]; phone?: string; requiresPersonal?: boolean; hasOnlineService?: boolean; categoryId?: string };
 
 const p = (name: string, nameEn: string, type: LocationType, subType: string, governorate: string, city: string, address: string, km: number, bucket: string, services: string[], extra: Partial<PlaceSeed> = {}): PlaceSeed =>
   ({ name, nameEn, type, subType, governorate, city, address, km, bucket, services, ...extra });
@@ -250,6 +260,36 @@ const PLACES: PlaceSeed[] = [
   p('السجل المدني — الدقي', 'Dokki Civil Registry', LocationType.CIVIL_REGISTRY, 'سجل مدني', 'الجيزة', 'الدقي', 'مبنى الأحوال المدنية — الدقي', 2, '0-5كم', ['شهادة ميلاد', 'شهادة وفاة', 'قيد عائلي'], { hasOnlineService: true }),
   p('النيابة الكلية — شمال الجيزة', 'North Giza Prosecution', LocationType.PROSECUTION, 'نيابة', 'الجيزة', 'الجيزة', 'مجمع محاكم الجيزة', 2.5, '0-5كم', ['تحقيقات أولية', 'دعاوى جنائية', 'إنابة قضائية'], { requiresPersonal: true }),
   p('محافظة الجيزة — ديوان عام', 'Giza Governorate HQ', LocationType.GOVERNMENT_AGENCY, 'جهة حكومية', 'الجيزة', 'الجيزة', 'ميدان المحافظة — الجيزة', 3, '0-5كم', ['شكاوى المواطنين', 'خدمات الأراضي', 'المشروعات']),
+];
+
+/** ─────────────── 15 جهة عدلية (JUSTICE) ───────────────
+ * مقار عامة وهيئات قضائية وعدلية تكمل دليل المحامي: النيابة العامة،
+ * النيابة الإدارية، هيئة قضايا الدولة، مجلس الدولة، القضاء العسكري،
+ * الخبراء، الطب الشرعي، التنفيذ، السجون، الشرطة.
+ *
+ * عناوين النيابة الإدارية وهيئة قضايا الدولة رسمية 2024/2025:
+ *  • رئاسة هيئة النيابة الإدارية — مدينة 6 أكتوبر، ميدان النجدة (16117)
+ *  • مجمع النيابة الإدارية — التسعين الشمالي، التجمع الخامس
+ *  • هيئة قضايا الدولة — منطقة جنوب القرنفل، التجمع الأول (بجوار مكتب النائب العام)
+ *  • هيئة قضايا الدولة — قطاع الجيزة، شارع أحمد عرابي
+ * الباقي مقار عامة بلا إحداثيات → ثقة MEDIUM و«يحتاج مراجعة ميدانية» مقصود.
+ */
+const JUSTICE: PlaceSeed[] = [
+  p('مكتب النائب العام — دار القضاء العالي', 'Public Prosecutor Office — Supreme Judiciary House', LocationType.PROSECUTION, 'النيابة العامة', 'القاهرة', 'وسط القاهرة', 'دار القضاء العالي — وسط القاهرة', 6, '5-10كم', ['تصاريح وبلاغات', 'طلبات النائب العام', 'متابعة الدعاوى'], { categoryOverride: 'cat-prosecution' }),
+  p('نيابة الأموال العامة العليا — القاهرة', 'Public Funds Prosecution — Cairo', LocationType.PROSECUTION, 'النيابة العامة', 'القاهرة', 'وسط القاهرة', 'مقر نيابة الأموال العامة — القاهرة', 6.5, '5-10كم', ['قضايا الأموال العامة', 'التحقيق في المال العام', 'حظر التصرف'], { categoryOverride: 'cat-prosecution' }),
+  p('رئاسة هيئة النيابة الإدارية — مدينة 6 أكتوبر', 'Administrative Prosecution Authority HQ — 6th of October', LocationType.PROSECUTION, 'النيابة الإدارية', 'الجيزة', 'السادس من أكتوبر', 'ميدان النجدة — الحي الرابع، مدينة 6 أكتوبر (16117)', 38, '20-40كم', ['الدعاوى التأديبية', 'التحقيق الإداري', 'طلبات الإحالة للمحاكمة التأديبية'], { categoryOverride: 'cat-admin-prosecution', lat: 29.9479, lng: 30.9168 }),
+  p('مجمع النيابة الإدارية — التجمع الخامس', 'Administrative Prosecution Complex — Fifth Settlement', LocationType.PROSECUTION, 'النيابة الإدارية', 'القاهرة', 'القاهرة الجديدة', 'التسعين الشمالي — التجمع الخامس', 32, '20-40كم', ['الدعاوى التأديبية', 'التحقيق الإداري', 'المكتب الفني'], { categoryOverride: 'cat-admin-prosecution', lat: 30.0174, lng: 31.4466 }),
+  p('هيئة قضايا الدولة — المقر الرئيسي (جنوب القرنفل)', 'State Lawsuits Authority HQ — South Kornfol', LocationType.GOVERNMENT_AGENCY, 'قضايا الدولة', 'القاهرة', 'القاهرة الجديدة', 'منطقة جنوب القرنفل — التجمع الأول (بجوار مكتب النائب العام)', 30, '20-40كم', ['تمثيل الدولة في الدعاوى', 'منازعات العقود الإدارية', 'الفتاوى القانونية'], { categoryOverride: 'cat-state-lawsuits', lat: 30.0426, lng: 31.4629 }),
+  p('هيئة قضايا الدولة — قطاع الجيزة', 'State Lawsuits Authority — Giza Sector', LocationType.GOVERNMENT_AGENCY, 'قضايا الدولة', 'الجيزة', 'المهندسين', 'شارع أحمد عرابي — المهندسين', 2.5, '0-5كم', ['تمثيل الدولة في الدعاوى', 'منازعات العقود الإدارية', 'طلبات التسويات'], { categoryOverride: 'cat-state-lawsuits', lat: 30.0528, lng: 31.196 }),
+  p('مجلس الدولة — هيئة مفوضي الدولة', 'State Council — Commissioners Authority', LocationType.GOVERNMENT_AGENCY, 'مجلس الدولة', 'القاهرة', 'وسط القاهرة', 'مبنى مجلس الدولة — وسط القاهرة', 6, '5-10كم', ['تقارير هيئة المفوضين', 'الطعون الإدارية', 'الفتاوى'], { categoryOverride: 'cat-state-council' }),
+  p('هيئة القضاء العسكري — القاهرة', 'Military Judiciary Authority — Cairo', LocationType.GOVERNMENT_AGENCY, 'القضاء العسكري', 'القاهرة', 'وسط القاهرة', 'مقر هيئة القضاء العسكري — القاهرة', 6.5, '5-10كم', ['الدعاوى العسكرية', 'الطعون العسكرية', 'الاستشارات'], { categoryOverride: 'cat-military-judiciary' }),
+  p('مصلحة الخبراء — القاهرة', 'Experts Authority — Cairo', LocationType.EXPERTS_OFFICE, 'الخبراء', 'القاهرة', 'وسط القاهرة', 'مقر مصلحة الخبراء — وزارة العدل، لاظوغلي', 6, '5-10كم', ['إحالة الخبرة', 'خبرة هندسية وحسابية', 'تسعير وتقييم'], { categoryOverride: 'cat-experts' }),
+  p('مصلحة الطب الشرعي — القاهرة', 'Forensic Medicine Authority — Cairo', LocationType.GOVERNMENT_AGENCY, 'الطب الشرعي', 'القاهرة', 'السيدة زينب', 'مقر مصلحة الطب الشرعي — زينهم', 5.5, '5-10كم', ['تقارير الطب الشرعي', 'التشريح الطبي القانوني', 'أبحاث التزييف والتزوير'], { categoryOverride: 'cat-forensic' }),
+  p('قطاع التنفيذ — وزارة العدل', 'Execution Sector — Ministry of Justice', LocationType.GOVERNMENT_AGENCY, 'التنفيذ', 'القاهرة', 'وسط القاهرة', 'وزارة العدل — لاظوغلي', 6, '5-10كم', ['إجراءات التنفيذ', 'إشكالات التنفيذ', 'التنفيذ الجبري'], { categoryOverride: 'cat-execution' }),
+  p('قلم التنفيذ — محكمة استئناف القاهرة', 'Execution Office — Cairo Court of Appeal', LocationType.GOVERNMENT_AGENCY, 'التنفيذ', 'القاهرة', 'وسط القاهرة', 'مبنى محكمة استئناف القاهرة — رمسيس', 6.5, '5-10كم', ['تنفيذ الأحكام المدنية', 'إشكالات التنفيذ', 'الحجز والبيع'], { categoryOverride: 'cat-execution' }),
+  p('قطاع مصلحة السجون — وزارة الداخلية', 'Prison Authority Sector — Ministry of Interior', LocationType.GOVERNMENT_AGENCY, 'السجون', 'القاهرة', 'وسط القاهرة', 'مقر وزارة الداخلية — وسط القاهرة', 7, '5-10كم', ['طلبات الزيارة', 'العرائض المقدمة للسجون', 'الإفراج الشرطي'], { categoryOverride: 'cat-prisons' }),
+  p('الإدارة العامة للأدلة الجنائية — وزارة الداخلية', 'General Criminal Evidence Administration — MOI', LocationType.GOVERNMENT_AGENCY, 'الشرطة', 'القاهرة', 'وسط القاهرة', 'مقر وزارة الداخلية — وسط القاهرة', 7, '5-10كم', ['الأدلة الجنائية', 'البصمات والتزييف', 'فحص المستندات'], { categoryOverride: 'cat-police' }),
+  p('الإدارة العامة للمباحث الجنائية — وزارة الداخلية', 'General Criminal Investigation Administration — MOI', LocationType.GOVERNMENT_AGENCY, 'الشرطة', 'القاهرة', 'وسط القاهرة', 'مقر وزارة الداخلية — وسط القاهرة', 7, '5-10كم', ['البلاغات الجنائية', 'التحريات', 'تنفيذ الأحكام'], { categoryOverride: 'cat-police' }),
 ];
 
 function slugFor(name: string, nameEn: string, i: number): string {
@@ -322,11 +362,17 @@ export async function seedLocations() {
   if (COURTS.length !== 119) {
     throw new Error(`Expected exactly 119 courts, got ${COURTS.length}`);
   }
-  console.log(`📍 Seeding ${COURTS.length} courts + ${PLACES.length} legal destinations…`);
+  if (JUSTICE.length !== 15) {
+    throw new Error(`Expected exactly 15 justice bodies, got ${JUSTICE.length}`);
+  }
+  console.log(`📍 Seeding ${COURTS.length} courts + ${PLACES.length} legal destinations + ${JUSTICE.length} justice bodies…`);
 
+  // Justice bodies are appended AFTER the courts and government offices so the
+  // existing 134 slugs stay byte-for-byte stable (slug = nameEn + index).
   const all: Array<PlaceSeed & { type: LocationType }> = [
     ...COURTS.map((cr) => ({ ...cr, type: LocationType.COURT, services: ['جلسات المحاكمات', 'تقديم المذكرات', 'صور رسمية للحكم'] })),
     ...PLACES,
+    ...JUSTICE,
   ];
 
   // Idempotent: upsert on the unique slug. An earlier `count() > 0 → skip`
@@ -353,7 +399,9 @@ export async function seedLocations() {
   for (const seed of all) {
     i += 1;
     const slug = slugFor(seed.name, seed.nameEn, i);
-    const categoryId = CATEGORY_BY_TYPE[seed.type];
+    // الفئة بالأولوية: تصنيف صريح على الصف، ثم categoryOverride (المحاكم
+    // العليا الأربع + الجهات العدلية)، ثم التعيين الافتراضي من نوع المكان.
+    const categoryId = seed.categoryId ?? seed.categoryOverride ?? CATEGORY_BY_TYPE[seed.type];
     if (categoryId && !categoryIds.has(categoryId)) {
       throw new Error(`Category ${categoryId} (for ${seed.name}) is missing — run the lawyer_guide migration first.`);
     }
@@ -397,7 +445,7 @@ export async function seedLocations() {
   }
 
   const total = await prisma.location.count();
-  console.log(`✅ ${all.length} locations synced (${created} جديدة، ${updated} محدّثة) — إجمالي الأماكن في القاعدة: ${total} (${COURTS.length} محكمة رسمية + ${PLACES.length} جهة حكومية، مصنّفة وموثّقة لدليل المحامي).`);
+  console.log(`✅ ${all.length} locations synced (${created} جديدة، ${updated} محدّثة) — إجمالي الأماكن في القاعدة: ${total} (${COURTS.length} محكمة + ${PLACES.length} جهة حكومية + ${JUSTICE.length} جهة عدلية، مصنّفة وموثّقة لدليل المحامي).`);
 }
 
 /** Standalone run: npx tsx prisma/seed-locations.ts */

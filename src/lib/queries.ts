@@ -18,6 +18,7 @@ export type TaskVM = {
   caseName: string | null;
   caseNumber: string | null;
   author: { id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null } | null;
+  createdBy: { name: string } | null;
   lawyerIds: string[];
   lawyers: Array<{ id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null; phone: string | null; completed: boolean }>;
   commentCount: number;
@@ -28,6 +29,7 @@ export const taskInclude = {
   location: true,
   caseRecord: true,
   author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } },
+  createdBy: { select: { name: true } },
   assignees: {
     select: {
       lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true, phone: true } },
@@ -51,6 +53,7 @@ type TaskShape = {
   location: { id: string; slug: string; name: string; type: Location['type']; address: string | null };
   caseRecord: { name: string; number: string } | null;
   author: { id: string; fullName: string; title: Lawyer['title']; slug: string; profilePhotoUrl: string | null } | null;
+  createdBy: { name: string } | null | undefined;
   assignees: Array<{ lawyer: { id: string; fullName: string; title: Lawyer['title']; slug: string; profilePhotoUrl: string | null; phone: string | null }; completedAt: Date | null }>;
   comments: Array<{ createdAt: Date }>;
 };
@@ -74,6 +77,7 @@ export function toTaskVM(t: TaskShape): TaskVM {
     author: t.author
       ? { id: t.author.id, name: t.author.fullName, title: t.author.title, slug: t.author.slug, photo: t.author.profilePhotoUrl }
       : null,
+    createdBy: t.createdBy ? { name: t.createdBy.name } : null,
     lawyerIds: t.assignees.map((a) => a.lawyer.id),
     lawyers: t.assignees.map((a) => ({
       id: a.lawyer.id,
