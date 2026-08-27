@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { handle, json, readJson, requirePermission } from '@/lib/api';
+import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 
-export async function GET() {
+export const GET = handle(async () => {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض ملفات القضايا' }, { status: 401 });
   const cases = await prisma.caseRecord.findMany({ orderBy: { id: 'desc' }, take: 200 });
   return json({ cases });
-}
+});
 
 const createSchema = z.object({
   name: z.string().min(1, 'اسم القضية مطلوب').max(300),
