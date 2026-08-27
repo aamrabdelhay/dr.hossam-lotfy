@@ -3,7 +3,10 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import {Button, Card, EmptyState} from '@/components/ui';
+import { Button, Card, EmptyState } from '@/components/ui';
+import { TaskCreator } from '@/components/admin/task-creator';
+import { CalendarPlus } from 'lucide-react';
+import type { NavLocation } from '@/lib/constants';
 import { cn } from '@/lib/cn';
 import { URGENCY_EDGE } from '@/components/urgency';
 import { formatMonthYear, formatFullDate } from '@/lib/dates';
@@ -13,7 +16,17 @@ type View = 'month' | 'week' | 'day';
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 06:00 → 23:00
 
-export function CalendarClient() {
+export function CalendarClient({
+  isAdmin = false,
+  locations = [],
+  lawyers = [],
+  cases = [],
+}: {
+  isAdmin?: boolean;
+  locations?: NavLocation[];
+  lawyers?: Array<{ id: string; name: string; isPrincipal?: boolean }>;
+  cases?: Array<{ id: string; name: string; number: string }>;
+}) {
   const [cursor, setCursor] = React.useState(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -22,6 +35,9 @@ export function CalendarClient() {
   const [view, setView] = React.useState<View>('month');
   const [tasks, setTasks] = React.useState<TaskVM[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [creatorOpen, setCreatorOpen] = React.useState(false);
+  const [selectedDate, setSelectedDate] = React.useState<string | undefined>(undefined);
+  const [refreshKey, setRefreshKey] = React.useState(0);
 
   // Date range for the current view
   const range = React.useMemo(() => {
@@ -46,6 +62,8 @@ export function CalendarClient() {
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   };
 
+  const refreshTasks = React.useCallback(() => setRefreshKey((k) => k + 1), []);
+
   React.useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -59,7 +77,7 @@ export function CalendarClient() {
     return () => {
       alive = false;
     };
-  }, [range.from, range.to, view]);
+  }, [range.from, range.to, view, refreshKey]);
 
   const shift = (dir: 1 | -1) => {
     const d = new Date(cursor);
@@ -134,6 +152,20 @@ export function CalendarClient() {
           <span className="min-w-32 text-center text-[14px] font-extrabold text-navy-900">
             {view === 'day' ? formatFullDate(cursor) : formatMonthYear(cursor)}
           </span>
+          {isAdmin && (
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={() => {
+                const p = (n: number) => String(n).padStart(2, '0');
+                setSelectedDate(`${cursor.getFullYear()}-${p(cursor.getMonth() + 1)}-${p(cursor.getDate())}`);
+                setCreatorOpen(true);
+              }}
+            >
+              <CalendarPlus size={14} />
+              إضافة موعد
+            </Button>
+          )}
         </div>
       </div>
 
@@ -161,12 +193,23 @@ export function CalendarClient() {
               return (
                 <div key={i} className={cn('min-h-[92px] border-b border-e border-navy-100 p-1.5 [&:nth-child(7n)]:border-e-0', !inMonth && 'bg-ivory-50/70')}>
                   <div className="mb-1 flex items-center justify-between">
-                    <span className={cn(
-                      'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-extrabold',
-                      isToday ? 'bg-gold-500 text-navy-950' : inMonth ? 'text-navy-800' : 'text-navy-200',
-                    )}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!isAdmin) return;
+                        const p = (n: number) => String(n).padStart(2, '0');
+                        setSelectedDate(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`);
+                        setCreatorOpen(true);
+                      }}
+                      title={isAdmin ? 'إضافة موعد في هذا اليوم' : undefined}
+                      className={cn(
+                        'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-extrabold',
+                        isAdmin && 'transition hover:ring-2 hover:ring-gold-500/40',
+                        isToday ? 'bg-gold-500 text-navy-950' : inMonth ? 'text-navy-800' : 'text-navy-200',
+                      )}
+                    >
                       {d.getDate()}
-                    </span>
+                    </button>
                     {dayTasks.length > 0 && <span className="text-[9px] font-bold text-navy-300">{dayTasks.length}</span>}
                   </div>
                   <div className="space-y-1">
@@ -195,6 +238,18 @@ export function CalendarClient() {
 
       {(view === 'week' || view === 'day') && (
         <WeekDayView view={view} cursor={cursor} range={range} tasksOn={tasksOn} loading={loading} />
+      )}
+
+      {isAdmin && (
+        <TaskCreator
+          open={creatorOpen}
+          onClose={() => setCreatorOpen(false)}
+          locations={locations}
+          lawyers={lawyers}
+          cases={cases}
+          defaultDate={selectedDate}
+          onCreated={refreshTasks}
+        />
       )}
     </div>
   );

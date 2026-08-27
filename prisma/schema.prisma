@@ -16,6 +16,17 @@ enum LawyerTitle {
 
 enum LocationType {
   COURT // محكمة
+  TAX_OFFICE // مكتب ضرائب
+  COMMERCIAL_REGISTRY // سجل تجاري
+  CIVIL_REGISTRY // السجل المدني
+  PROSECUTION // نيابة
+  LAWYERS_SYNDICATE // نقابة المحامين
+  SURVEY_AUTHORITY // جهاز المساحة
+  PASSPORTS // جوازات
+  TRAFFIC // مرور
+  SOCIAL_INSURANCE // التأمينات الاجتماعية
+  LABOR_OFFICE // مكتب العمل
+  CUSTOMS // جمارك
   INVESTMENT_AGENCY // هيئة الاستثمار
   EXPERTS_OFFICE // مكتب الخبراء
   REAL_ESTATE_REGISTRATION // الشهر العقاري
@@ -31,7 +42,12 @@ enum TaskStatus {
 }
 
 enum UserRole {
-  ADMIN
+  ADMIN // legacy alias — treated as SUPER_ADMIN
+  SUPER_ADMIN
+  OFFICE_MANAGER
+  LAWYER
+  SECRETARY
+  VIEWER
 }
 
 // ─────────────────────────── Users / Auth ───────────────────────────
@@ -101,19 +117,66 @@ model AccessToken {
 // ─────────────────────────── Locations / Courts ───────────────────────────
 
 model Location {
-  id          String       @id @default(cuid())
-  slug        String       @unique
-  name        String
-  type        LocationType
-  description String?
-  address     String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  slug               String       @unique
+  name               String
+  nameEn             String?
+  type               LocationType
+  subType            String? // محكمة ابتدائية / جزئية / استئناف …
+  governorate        String?
+  city               String?
+  district           String?
+  address            String?
+  phone              String?
+  email              String?
+  website            String?
+  googleMapsUrl      String?
+  lat                Float?
+  lng                Float?
+  workingHours       String?
+  services           String[]     @default([])
+  jurisdiction       String? // دائرة الاختصاص
+  requiresPersonal   Boolean      @default(false)
+  hasOnlineService   Boolean      @default(false)
+  source             String?
+  lastVerified       DateTime?
+  confidence         String? // عالية / متوسطة / تقديرية
+  distanceFromDokki  Float? // كم من مكتب الدقي (outward)
+  distanceBucket     String? // 0-5كم، 5-10كم، 10-20كم …
+  buildingId         String?
+  description        String?
+  searchKeywords     String[]     @default([])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   tasks Task[]
 
   @@index([type])
+  @@index([governorate])
+  @@index([distanceFromDokki])
   @@map("locations")
+}
+
+/// Opaque server-side sessions. The cookie holds a high-entropy random token
+/// (HMAC-signed envelope); only the SHA-256 hash of the token is stored here —
+/// no user/lawyer CUID is ever exposed in the session identifier.
+model AuthSession {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  role      String // 'admin' | 'lawyer'
+  userRole  String? // UserRole name when role = 'admin'
+  userId    String?
+  lawyerId  String?
+  ip        String?
+  userAgent String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([lawyerId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 model CaseRecord {

@@ -3,12 +3,14 @@ import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
+import type { StaffRole } from './constants';
+import { isStaffRole } from './rbac';
 
 const COOKIE = 'hlsession';
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export type SessionUser =
-  | { role: 'admin'; userId: string; name: string }
+  | { role: 'admin'; userId: string; name: string; userRole: StaffRole }
   | { role: 'lawyer'; lawyerId: string; name: string; slug: string };
 
 function secret(): string {
@@ -17,69 +19,50 @@ function secret(): string {
   return s;
 }
 
-function b64url(buf: Buffer | string): string {
-  return Buffer.from(buf).toString('base64url');
+function hmac(payload: string): string {
+  return crypto.createHmac('sha256', secret()).update(payload).digest('base64url');
 }
 
-export function signSession(payload: Record<string, unknown>): string {
-  const body = b64url(JSON.stringify(payload));
-  const sig = crypto.createHmac('sha256', secret()).update(body).digest('base64url');
-  return `${body}.${sig}`;
-}
+/**
+ * The session identifier is a high-entropy random token — never a database
+ * CUID. The cookie carries an HMAC-SHA256 signed envelope; only the SHA-256
+ * hash of the token is persisted, so the stored value is useless to an attacker
+ * even if the database leaks.
+ */
+export async function createSessionCookie(input: {
+  role: 'admin' | 'lawyer';
+  userId?: string;
+  lawyerId?: string;
+  userRole?: string;
+  ip?: string;
+  userAgent?: string;
+}): Promise<{ name: string; value: string; options: Record<string, unknown> }> {
+  const raw = crypto.randomBytes(32).toString('base64url');
+  const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
-export function verifySession(token: string | undefined | null): Record<string, unknown> | null {
-  if (!token) return null;
-  const dot = token.lastIndexOf('.');
-  if (dot <= 0) return null;
-  const body = token.slice(0, dot);
-  const sig = token.slice(dot + 1);
-  const expected = crypto.createHmac('sha256', secret()).update(body).digest('base64url');
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-    if (typeof payload.exp === 'number' && Date.now() > payload.exp) return null;
-    return payload;
-  } catch {
-    return null;
+  await prisma.authSession.create({
+    data: {
+      tokenHash,
+      role: input.role,
+      userRole: input.userRole ?? null,
+      userId: input.userId ?? null,
+      lawyerId: input.lawyerId ?? null,
+      ip: input.ip ?? null,
+      userAgent: input.userAgent?.slice(0, 250) ?? null,
+      expiresAt,
+    },
+  });
+
+  // Opportunistic cleanup of expired sessions (≈1 in 10 logins)
+  if (Math.random() < 0.1) {
+    prisma.authSession
+      .deleteMany({ where: { OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { not: null } }] } })
+      .catch(() => undefined);
   }
-}
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
-  const store = await cookies();
-  const payload = verifySession(store.get(COOKIE)?.value);
-  if (!payload || typeof payload.role !== 'string') return null;
-  if (payload.role === 'admin') {
-    const user = await prisma.user.findUnique({ where: { id: String(payload.id) } });
-    if (!user) return null;
-    return { role: 'admin', userId: user.id, name: user.name };
-  }
-  if (payload.role === 'lawyer') {
-    const lawyer = await prisma.lawyer.findUnique({ where: { id: String(payload.id) } });
-    if (!lawyer || !lawyer.active) return null;
-    return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug };
-  }
-  return null;
-}
-
-export async function isAdmin(): Promise<boolean> {
-  const u = await getCurrentUser();
-  return u?.role === 'admin';
-}
-
-export async function isLawyer(lawyerId: string): Promise<boolean> {
-  const u = await getCurrentUser();
-  return u?.role === 'lawyer' && u.lawyerId === lawyerId;
-}
-
-/** Create (or refresh) the session cookie. Route handlers only. */
-export function buildSessionCookie(payload: Omit<Record<string, unknown>, 'exp'>): {
-  name: string;
-  value: string;
-  options: Record<string, unknown>;
-} {
-  const value = signSession({ ...payload, exp: Date.now() + SESSION_TTL_MS });
+  const body = `v1.${raw}`;
+  const value = `${body}.${hmac(body)}`;
   return {
     name: COOKIE,
     value,
@@ -93,12 +76,68 @@ export function buildSessionCookie(payload: Omit<Record<string, unknown>, 'exp'>
   };
 }
 
+function parseCookieValue(value: string | undefined | null): string | null {
+  if (!value) return null;
+  const dot = value.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const body = value.slice(0, dot);
+  const sig = value.slice(dot + 1);
+  if (!body.startsWith('v1.')) return null;
+  const expected = hmac(body);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  return body.slice(3); // raw random token
+}
+
+export async function getCurrentUser(): Promise<SessionUser | null> {
+  const store = await cookies();
+  const raw = parseCookieValue(store.get(COOKIE)?.value);
+  if (!raw) return null;
+
+  const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
+  const session = await prisma.authSession.findUnique({ where: { tokenHash } });
+  if (!session || session.revokedAt || session.expiresAt < new Date()) return null;
+
+  if (session.role === 'admin' && session.userId) {
+    const user = await prisma.user.findUnique({ where: { id: session.userId } });
+    if (!user) return null;
+    const userRole: StaffRole = isStaffRole(session.userRole) ? (session.userRole as StaffRole) : user.role === 'ADMIN' ? 'SUPER_ADMIN' : (user.role as StaffRole);
+    return { role: 'admin', userId: user.id, name: user.name, userRole };
+  }
+  if (session.role === 'lawyer' && session.lawyerId) {
+    const lawyer = await prisma.lawyer.findUnique({ where: { id: session.lawyerId } });
+    if (!lawyer || !lawyer.active) return null;
+    return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug };
+  }
+  return null;
+}
+
+/** Revoke the current session (logout). Route handlers only. */
+export async function revokeCurrentSession(): Promise<void> {
+  const store = await cookies();
+  const raw = parseCookieValue(store.get(COOKIE)?.value);
+  if (!raw) return;
+  const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
+  await prisma.authSession.updateMany({ where: { tokenHash }, data: { revokedAt: new Date() } });
+}
+
 export function clearSessionCookie() {
   return {
     name: COOKIE,
     value: '',
     options: { httpOnly: true, path: '/', maxAge: 0 } as Record<string, unknown>,
   };
+}
+
+export async function isAdmin(): Promise<boolean> {
+  const u = await getCurrentUser();
+  return u?.role === 'admin';
+}
+
+export async function isLawyer(lawyerId: string): Promise<boolean> {
+  const u = await getCurrentUser();
+  return u?.role === 'lawyer' && u.lawyerId === lawyerId;
 }
 
 export function safeComparePassword(password: string, hash: string): boolean {

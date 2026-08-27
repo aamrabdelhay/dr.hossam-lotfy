@@ -161,3 +161,42 @@ input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* ────────────────────────── RTL / direction ────────────────────────── */
+
+/* Document is Arabic-first: <html dir="rtl"> forces right-to-left everywhere */
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+body {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Tailwind logical utilities already emit text-start/text-end; keep legacy
+   text-left/right from accidentally flipping RTL layouts */
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Phone numbers, emails, URLs and code stay left-to-right inside RTL text */
+.ltr,
+[dir="rtl"] .ltr,
+[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: embed;
+}
+a.ltr,
+span.ltr {
+  display: inline-block;
+}
+
+/* Latin serials / numbers inside Arabic lines */
+.font-latin {
+  font-family: "Inter", "Cormorant Garamond", ui-sans-serif, sans-serif;
+}

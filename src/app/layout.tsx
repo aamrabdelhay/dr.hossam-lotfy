@@ -56,8 +56,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <WarningBar active={sidebar.warning} count={sidebar.warningCount} />
         <main className="flex-1">{children}</main>
-        <Footer />
+        {/* Floating sessions button must sit BEFORE the footer in the DOM */}
         <MobileSessions data={sidebar} isAdmin={session?.role === 'admin'} />
+        <Footer />
         <Toaster />
       </body>
     </html>

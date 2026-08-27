@@ -1,7 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { toTaskVM } from '@/lib/queries';
 import { json } from '@/lib/api';
+import { expandTerms } from '@/lib/search-synonyms';
 
+/**
+ * Smart bilingual search. The raw query is expanded through the Arabic↔English
+ * legal dictionary (محكمة↔court, ضرائب↔tax …) and matched as an OR-group over
+ * names (ar/en), addresses, keywords, descriptions and case numbers.
+ */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = url.searchParams.get('q')?.trim() ?? '';
@@ -9,16 +15,25 @@ export async function GET(req: Request) {
 
   if (!q) return json({ locations: [], lawyers: [], sessions: [] });
 
-  const contains = { contains: q, mode: 'insensitive' as const };
+  const terms = expandTerms(q);
+
+  const orAcross = (fields: string[]) =>
+    terms.flatMap((t) => fields.map((f) => ({ [f]: { contains: t, mode: 'insensitive' as const } })));
+
+  // searchKeywords is a scalar list → uses `has` (English keywords stored lowercase)
+  const keywordVariants = (t: string) => [...new Set([t, t.toLowerCase()])];
+  const keywordOr = terms.flatMap((t) => keywordVariants(t).map((v) => ({ searchKeywords: { has: v } })));
+
+  const locationFilter = [...orAcross(['name', 'nameEn', 'address', 'subType', 'governorate']), ...keywordOr];
 
   const locationWhere =
     type === 'court'
-      ? { type: 'COURT' as const, OR: [{ name: contains }, { address: contains }] }
+      ? { type: 'COURT' as const, OR: locationFilter }
       : type === 'location'
-        ? { type: { not: 'COURT' as const }, OR: [{ name: contains }, { address: contains }] }
+        ? { type: { not: 'COURT' as const }, OR: locationFilter }
         : type === 'lawyer' || type === 'session'
           ? undefined
-          : { OR: [{ name: contains }, { address: contains }] };
+          : { OR: locationFilter };
 
   const [locations, lawyers, sessions] = await Promise.all([
     locationWhere
@@ -36,7 +51,7 @@ export async function GET(req: Request) {
     type === 'location' || type === 'session'
       ? Promise.resolve([] as Array<{ id: string; slug: string; fullName: string; title: 'DOCTOR' | 'ADVOCATE'; profilePhotoUrl: string | null; isPrincipal: boolean; assignments: unknown[] }>)
       : prisma.lawyer.findMany({
-          where: { active: true, OR: [{ fullName: contains }, { specialization: contains }, { position: contains }] },
+          where: { active: true, OR: orAcross(['fullName', 'specialization', 'position']) },
           take: 20,
           orderBy: [{ isPrincipal: 'desc' }, { sortOrder: 'asc' }],
           include: {
@@ -52,9 +67,9 @@ export async function GET(req: Request) {
       : prisma.task.findMany({
           where: {
             OR: [
-              { description: contains },
-              { caseRecord: { OR: [{ name: contains }, { number: contains }] } },
-              { location: { name: contains } },
+              ...orAcross(['description', 'notes']),
+              { caseRecord: { OR: orAcross(['name', 'number']) } },
+              { location: { OR: orAcross(['name', 'nameEn']) } },
             ],
           },
           include: {

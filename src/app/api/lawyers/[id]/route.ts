@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { handle, json, readJson, requireAdmin, user } from '@/lib/api';
+import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 import { logActivity } from '@/lib/activity';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -61,7 +61,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 /** Deactivate (soft) — admin only. Hard delete blocked while tasks exist (FKs). */
 export const DELETE = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const session = await requireAdmin();
+  const session = await requirePermission('manageLawyers');
   const lawyer = await prisma.lawyer.findUnique({ where: { id }, include: { assignments: true } });
   if (!lawyer) return json({ error: 'المحامي غير موجود' }, { status: 404 });
 

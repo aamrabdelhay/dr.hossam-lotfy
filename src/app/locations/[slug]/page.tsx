@@ -99,6 +99,76 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
           </div>
         </Card>
 
+        {/* Directory info — extended location profile */}
+        {(location.phone || location.email || location.workingHours || location.services.length > 0 || location.googleMapsUrl || location.distanceBucket || location.jurisdiction || location.governorate) && (
+          <Card className="mt-4 p-5">
+            <div className="grid gap-4 text-[12.5px] sm:grid-cols-2 lg:grid-cols-3">
+              {location.governorate && (
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">النطاق</p>
+                  <p className="mt-1 font-bold text-navy-800">
+                    {[location.governorate, location.city, location.district].filter(Boolean).join(' — ')}
+                    {location.subType ? ` · ${location.subType}` : ''}
+                  </p>
+                </div>
+              )}
+              {location.workingHours && (
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">مواعيد العمل</p>
+                  <p className="mt-1 font-bold text-navy-800">{location.workingHours}</p>
+                </div>
+              )}
+              {location.jurisdiction && (
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">الاختصاص</p>
+                  <p className="mt-1 font-bold text-navy-800">{location.jurisdiction}</p>
+                </div>
+              )}
+              {location.phone && (
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">الهاتف</p>
+                  <a href={`tel:${location.phone}`} className="ltr mt-1 inline-block font-bold text-navy-800 hover:text-gold-700">{location.phone}</a>
+                </div>
+              )}
+              {location.email && (
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">البريد الإلكتروني</p>
+                  <a href={`mailto:${location.email}`} className="ltr mt-1 inline-block font-bold text-navy-800 hover:text-gold-700">{location.email}</a>
+                </div>
+              )}
+              {location.distanceBucket && (
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">المسافة من مكتب الدقي</p>
+                  <p className="mt-1 font-bold text-navy-800">
+                    {location.distanceBucket}
+                    {location.distanceFromDokki ? ` · ${location.distanceFromDokki} كم` : ''}
+                  </p>
+                </div>
+              )}
+              {location.services.length > 0 && (
+                <div className="sm:col-span-2">
+                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">الخدمات</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {location.services.map((s) => (
+                      <Badge key={s} tone="outline">{s}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1">
+                {location.googleMapsUrl && (
+                  <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 px-3 py-1.5 text-[12px] font-extrabold text-navy-700 transition hover:border-gold-500 hover:text-gold-700">
+                    <MapPin size={13} />
+                    الموقع على الخريطة
+                  </a>
+                )}
+                {location.hasOnlineService && <Badge tone="green">خدمة أونلاين متاحة</Badge>}
+                {location.requiresPersonal && <Badge tone="amber">الحضور الشخصي مطلوب</Badge>}
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Feed */}
         <div className="mt-5">
           <div className="mb-3 flex items-center justify-between">

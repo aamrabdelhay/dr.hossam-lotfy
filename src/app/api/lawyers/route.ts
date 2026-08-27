@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { handle, json, readJson, requireAdmin, user } from '@/lib/api';
+import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 import { logActivity } from '@/lib/activity';
 import { slugify, uniqueSlug } from '@/lib/slug';
 import { prisma as db } from '@/lib/prisma';
@@ -39,7 +39,7 @@ const createSchema = z.object({
 
 /** Only the admin can add lawyers. A profile page is created automatically. */
 export const POST = handle(async (req: Request) => {
-  const session = await requireAdmin();
+  const session = await requirePermission('manageLawyers');
   const data = await readJson(req as never, createSchema);
 
   // three-part name check (Arabic or Latin)
