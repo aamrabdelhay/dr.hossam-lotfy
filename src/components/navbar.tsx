@@ -235,10 +235,10 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
               href="/auth" prefetch={false}
               className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] font-bold tracking-[1.5px] uppercase text-navy-400 transition-colors hover:bg-navy-900/[0.06] hover:text-navy-900"
               style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
-              title="الدخول"
+              title="تسجيل الدخول"
             >
               <KeyRound size={12} />
-              <span className="hidden sm:inline">دخول</span>
+              <span className="hidden sm:inline">تسجيل دخول</span>
             </Link>
           ) : session.role === 'admin' ? (
             <div className="flex items-center gap-2">
@@ -301,7 +301,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
               </Link>
               {!session && (
                 <Link href="/auth" prefetch={false} className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-navy-400 transition-colors hover:bg-ivory-100 hover:text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                  <KeyRound size={15} /> الدخول
+                  <KeyRound size={15} /> تسجيل دخول
                 </Link>
               )}
             </div>

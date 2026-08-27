@@ -37,7 +37,11 @@ export default async function AdminPage() {
       },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     }),
-    prisma.caseRecord.findMany({ orderBy: { id: 'desc' }, take: 100 }),
+    prisma.caseRecord.findMany({
+      orderBy: { id: 'desc' },
+      take: 100,
+      include: { events: { orderBy: { createdAt: 'desc' }, take: 100 } },
+    }),
     getFeed({ limit: 15 }),
     prisma.activityLog.findMany({
       orderBy: { createdAt: 'desc' },
@@ -71,7 +75,19 @@ export default async function AdminPage() {
           upcoming: l.assignments.length,
         }))}
         locations={locations.map((l) => ({ ...l, type: l.type as string }))}
-        cases={cases.map((c) => ({ id: c.id, name: c.name, number: c.number }))}
+        cases={cases.map((c) => ({
+          id: c.id,
+          name: c.name,
+          number: c.number,
+          clientName: c.clientName,
+          events: c.events.map((e) => ({
+            id: e.id,
+            description: e.description,
+            type: e.type,
+            authorName: e.authorName,
+            createdAt: e.createdAt.toISOString(),
+          })),
+        }))}
         feedTasks={feed.items.map((t) => t)}
         activity={activity.map((a) => ({ id: a.id, action: a.action, summary: a.summary, createdAt: a.createdAt.toISOString() }))}
         notifications={notifications.map((n) => ({

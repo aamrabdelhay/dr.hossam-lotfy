@@ -7,7 +7,7 @@ import { Client } from 'pg';
  * while Prisma's own runner records the timestamped directory name. Health
  * checks deliberately accept both formats.
  */
-export const EXPECTED_MIGRATIONS = ['init', 'extend_location', 'lawyer_guide', 'lawyer_access_approval_email_reminders'] as const;
+export const EXPECTED_MIGRATIONS = ['init', 'extend_location', 'lawyer_guide', 'lawyer_access_approval_email_reminders', 'case_events'] as const;
 
 const EXTENDED_LOCATION_COLUMNS = [
   'nameEn',
@@ -57,6 +57,7 @@ export type HealthReport = {
   schema: {
     extendedLocationColumns: boolean;
     authSessionsTable: boolean;
+    caseEventsTable: boolean;
   };
   data: {
     locations: number | null;
@@ -158,7 +159,7 @@ function emptyReport(): HealthReport {
       expected: [...EXPECTED_MIGRATIONS],
       missing: [...EXPECTED_MIGRATIONS],
     },
-    schema: { extendedLocationColumns: false, authSessionsTable: false },
+    schema: { extendedLocationColumns: false, authSessionsTable: false, caseEventsTable: false },
     data: { locations: null, courts: null, users: null, lawyers: null, tasks: null },
     hints: [],
   };
@@ -221,6 +222,7 @@ export async function checkHealth(): Promise<HealthReport> {
       report.schema.extendedLocationColumns = EXTENDED_LOCATION_COLUMNS.every((column) => columns.has(column));
     }
     report.schema.authSessionsTable = await tableExists(client, 'auth_sessions');
+    report.schema.caseEventsTable = await tableExists(client, 'case_events');
 
     // Query counts independently so an unexpected missing table remains visible
     // as a null in its own field instead of hiding all other diagnostics.
@@ -272,6 +274,9 @@ export async function checkHealth(): Promise<HealthReport> {
     if (!report.schema.authSessionsTable) {
       report.hints.push('جدول جلسات الدخول auth_sessions غير موجود؛ طبّق migration extend_location.');
     }
+    if (!report.schema.caseEventsTable) {
+      report.hints.push('جدول سجل القضايا case_events غير موجود؛ طبّق migration case_events.');
+    }
     if (Object.values(report.data).some((count) => count === null)) {
       report.hints.push('تعذّر قراءة كل عدادات البيانات؛ راجع صلاحيات قاعدة البيانات وبنية الجداول.');
     }
@@ -285,6 +290,7 @@ export async function checkHealth(): Promise<HealthReport> {
       report.migrations.missing.length > 0 ||
       !report.schema.extendedLocationColumns ||
       !report.schema.authSessionsTable ||
+      !report.schema.caseEventsTable ||
       Object.values(report.data).some((count) => count === null) ||
       Boolean(inspectionError);
 
