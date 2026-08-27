@@ -1,16 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { toTaskVM } from '@/lib/queries';
-import { json } from '@/lib/api';
+import { json, user } from '@/lib/api';
 import { expandTerms } from '@/lib/search-synonyms';
 
 /**
- * Smart bilingual search. The raw query is expanded through the Arabic↔English
- * legal dictionary (محكمة↔court, ضرائب↔tax …) and matched as an OR-group over
- * names (ar/en), addresses, keywords, descriptions and case numbers.
+ * Smart bilingual search. Operational search is available only to authenticated
+ * staff/lawyers because results can contain case and scheduling information.
  */
 export async function GET(req: Request) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لاستخدام البحث' }, { status: 401 });
+
   const url = new URL(req.url);
-  const q = url.searchParams.get('q')?.trim() ?? '';
+  const q = (url.searchParams.get('q')?.trim() ?? '').slice(0, 120);
   const type = (url.searchParams.get('type') ?? 'all') as string;
 
   if (!q) return json({ locations: [], lawyers: [], sessions: [] });
@@ -20,7 +22,6 @@ export async function GET(req: Request) {
   const orAcross = (fields: string[]) =>
     terms.flatMap((t) => fields.map((f) => ({ [f]: { contains: t, mode: 'insensitive' as const } })));
 
-  // searchKeywords is a scalar list → uses `has` (English keywords stored lowercase)
   const keywordVariants = (t: string) => [...new Set([t, t.toLowerCase()])];
   const keywordOr = terms.flatMap((t) => keywordVariants(t).map((v) => ({ searchKeywords: { has: v } })));
 
