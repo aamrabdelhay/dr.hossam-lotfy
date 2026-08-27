@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getFeed, toTaskVM, type TaskVM } from '@/lib/queries';
-import { handle, json, readJson, requireLawyer, user } from '@/lib/api';
+import { handle, json, readJson, user } from '@/lib/api';
 import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskAssigned } from '@/lib/notifications';
@@ -11,6 +11,9 @@ import { formatDay } from '@/lib/dates';
 // ─────────────────────────── GET ───────────────────────────
 
 export const GET = handle(async (req: Request) => {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض مهام المكتب' }, { status: 401 });
+
   const url = new URL(req.url);
   const { items, total } = await getFeed({
     lawyerId: url.searchParams.get('lawyerId') ?? undefined,
@@ -18,7 +21,7 @@ export const GET = handle(async (req: Request) => {
     status: url.searchParams.get('status') ?? undefined,
     from: url.searchParams.get('from') ?? undefined,
     to: url.searchParams.get('to') ?? undefined,
-    limit: Math.min(500, Math.max(1, parseInt(url.searchParams.get('limit') ?? '30', 10) || 30)),
+    limit: Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') ?? '30', 10) || 30)),
     offset: Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0),
   });
   return json({ items, total });
@@ -29,7 +32,6 @@ export const GET = handle(async (req: Request) => {
 const createSchema = z
   .object({
     locationId: z.string().min(1, 'المكان مطلوب'),
-    // «هيعمل إيه؟» is optional now — an empty description is allowed
     description: z.string().max(2000).optional(),
     notes: z.string().max(4000).optional(),
     caseName: z.string().max(300).optional(),
