@@ -19,8 +19,19 @@ export type {
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
+function normalizeDatabaseUrl(raw: string | undefined): string {
+  if (!raw) throw new Error('DATABASE_URL is required');
+  // pg-connection-string is changing the meaning of `require` in a future
+  // major release. Make the stronger TLS mode explicit for hosted Postgres.
+  return raw.includes('sslmode=')
+    ? raw.replace(/([?&]sslmode=)(?:prefer|require|verify-ca)(?=&|$)/, '$1verify-full')
+    : raw.includes('?')
+      ? `${raw}&sslmode=verify-full`
+      : `${raw}?sslmode=verify-full`;
+}
+
 function createClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg({ connectionString: normalizeDatabaseUrl(process.env.DATABASE_URL) });
   return new PrismaClient({ adapter });
 }
 
