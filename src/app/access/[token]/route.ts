@@ -19,8 +19,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (record.expiresAt && record.expiresAt < new Date()) return err('انتهت صلاحية هذا الرابط');
   if (!record.lawyer.active) return err('هذا الحساب غير مفعّل — تواصل مع إدارة المكتب');
 
-  // one-time use
-  await prisma.accessToken.update({ where: { token }, data: { consumedAt: new Date() } });
+  // Atomically consume the token. This prevents two concurrent requests from
+  // both redeeming the same one-time link between the read and the write.
+  const consumed = await prisma.accessToken.updateMany({
+    where: { id: record.id, consumedAt: null },
+    data: { consumedAt: new Date() },
+  });
+  if (consumed.count !== 1) return err('هذا الرابط منتهي — اطلب رابطاً جديداً من إدارة المكتب');
 
   const res = NextResponse.redirect(new URL(`/lawyers/${record.lawyer.slug}`, req.url), { status: 307 });
   const cookie = await createSessionCookie({
