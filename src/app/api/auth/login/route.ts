@@ -1,27 +1,23 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-import type { UserRole } from '@/generated/prisma/client';
-import { createSessionCookie, safeComparePassword } from '@/lib/auth';
 import { handle, readJson } from '@/lib/api';
-import { isStaffRole } from '@/lib/rbac';
-import { rateLimit, rateLimitReset, loginRateKey } from '@/lib/rate-limit';
+import { createSessionCookie } from '@/lib/auth';
+import { rateLimit, rateLimitReset } from '@/lib/rate-limit';
 
-const schema = z.object({
-  email: z.string().email('بريد إلكتروني غير صالح'),
-  password: z.string().min(1, 'كلمة المرور مطلوبة'),
-});
+const DEMO_ADMIN_CODE = 'hl';
 
-/**
- * Staff login. Password is compared (timing-safe) against the bcrypt hash in
- * the database. Rate-limited to 5 attempts / 15 minutes per IP+email.
- * The session cookie is an opaque random token (HMAC-signed, httpOnly).
- */
+/** Demo-only admin gate. The public site does not require an account. */
 export const POST = handle(async (req: Request) => {
-  const { email, password } = await readJson(req as never, schema);
+  const { code } = await readJson(req as never, {
+    parse: (input: unknown) => {
+      if (!input || typeof input !== 'object' || !('code' in input) || typeof (input as { code?: unknown }).code !== 'string') {
+        throw new Error('كود الدخول مطلوب.');
+      }
+      return { code: (input as { code: string }).code.trim() };
+    },
+  } as never);
 
-  const key = loginRateKey(req, email);
-  const rl = rateLimit(key, 5, 15 * 60 * 1000);
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = rateLimit(`demo-admin:${ip}`, 10, 15 * 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: `محاولات كثيرة — أعد المحاولة بعد ${Math.ceil(rl.retryAfterSec / 60)} دقيقة.` },
@@ -29,25 +25,21 @@ export const POST = handle(async (req: Request) => {
     );
   }
 
-  const staffRoles: UserRole[] = ['ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SECRETARY', 'LAWYER', 'VIEWER'];
-  const admin = await prisma.user.findFirst({
-    where: { email: email.toLowerCase().trim(), role: { in: staffRoles } },
-  });
-
-  if (!admin || !safeComparePassword(password, admin.passwordHash)) {
-    return NextResponse.json({ error: 'بيانات الدخول غير صحيحة.' }, { status: 401 });
+  if (code !== DEMO_ADMIN_CODE) {
+    return NextResponse.json({ error: 'كود الدخول غير صحيح.' }, { status: 401 });
   }
 
-  rateLimitReset(key);
+  rateLimitReset(`demo-admin:${ip}`);
 
   const cookie = await createSessionCookie({
     role: 'admin',
-    userId: admin.id,
-    userRole: isStaffRole(admin.role) ? admin.role : 'SUPER_ADMIN',
-    ip: req.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+    userId: 'demo-admin',
+    userRole: 'SUPER_ADMIN',
+    ip,
     userAgent: req.headers.get('user-agent') ?? undefined,
   });
-  const res = NextResponse.json({ ok: true, name: admin.name, role: admin.role });
+
+  const res = NextResponse.json({ ok: true });
   res.cookies.set(cookie.name, cookie.value, cookie.options as never);
   return res;
 });
