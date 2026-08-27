@@ -14,7 +14,6 @@ import {
   Trash2,
   UserRound,
   StickyNote,
-  Loader2,
   Navigation,
 } from 'lucide-react';
 import {Avatar, Badge, Button, Card, Modal} from './ui';import { cn } from '@/lib/cn';
@@ -22,7 +21,9 @@ import { StatusBadge, UrgencyBadge } from './urgency';
 import { CommentSection, type CommentVM } from './comment-section';
 import { toastSuccess, toastError } from './toasts';
 import { formatDay, formatTimeOfDay, formatDateTime } from '@/lib/dates';
-import { TITLE_LABEL } from '@/lib/constants';
+import { TITLE_LABEL, getOfficeProfileHref } from '@/lib/constants';
+import { canCompleteTask } from '@/lib/tasks';
+import { CompleteTaskButton } from './complete-task-button';
 import type { TaskVM } from '@/lib/queries';
 
 export type PostCardProps = {
@@ -30,11 +31,13 @@ export type PostCardProps = {
   comments?: CommentVM[];
   sessionRole?: 'admin' | 'lawyer';
   sessionLawyerId?: string;
+  /** Admin writeTasks permission — allows closing on behalf of the lawyer. */
+  canWriteTasks?: boolean;
   showComments?: boolean;
   initiallyOpen?: boolean;
 };
 
-export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, showComments = true, initiallyOpen = false }: PostCardProps) {
+export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, canWriteTasks, showComments = true, initiallyOpen = false }: PostCardProps) {
   const router = useRouter();
   const [commentsOpen, setCommentsOpen] = React.useState(initiallyOpen);
   const [busy, setBusy] = React.useState(false);
@@ -70,25 +73,18 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, sh
     }
   };
 
-  const assignedToMe = sessionRole === 'lawyer' && task.lawyerIds.includes(sessionLawyerId ?? '');
   const iAmAuthor = sessionRole === 'lawyer' && task.author?.id === sessionLawyerId;
   const isAdmin = sessionRole === 'admin';
-  const canComplete = assignedToMe && task.status !== 'COMPLETED' && task.status !== 'CANCELLED';
+  // «إنهاء» قبل المعاد مسموح — المحامي المكلّف ينهي مبكراً، والأدمن
+  // بصلاحية writeTasks يقفل نيابةً عن المحامي.
+  const canComplete = canCompleteTask(
+    sessionRole
+      ? { role: sessionRole, lawyerId: sessionLawyerId, canWriteTasks: isAdmin ? canWriteTasks : undefined }
+      : null,
+    task,
+  );
   const canEdit = isAdmin || iAmAuthor;
   const canDelete = isAdmin;
-
-  const complete = async () => {
-    setBusy(true);
-    const res = await fetch(`/api/tasks/${task.id}/complete`, { method: 'POST' });
-    setBusy(false);
-    if (res.ok) {
-      toastSuccess('تم تسجيل تنفيذ المهمة ✓');
-      router.refresh();
-    } else {
-      const d = await res.json().catch(() => ({}));
-      toastError(d.error ?? 'تعذر تسجيل التنفيذ.');
-    }
-  };
 
   const remove = async () => {
     setBusy(true);
@@ -109,26 +105,22 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, sh
 
   return (
     <Card className="animate-fade-in-up overflow-hidden">
-      {/* Header */}
+      {/* Header — الناشر (poster) قابل للضغط دائماً: محامي → صفحته، إدارة → صفحة المكتب */}
       <div className="flex items-start gap-3 px-4 pt-4">
-        {task.author ? (
-          <Link href={`/lawyers/${task.author.slug}`}>
+        <Link href={getOfficeProfileHref(task)} aria-label={task.author ? `صفحة ${task.author.name}` : 'صفحة إدارة المكتب'}>
+          {task.author ? (
             <Avatar name={task.author.name} src={task.author.photo} size={42} ring />
-          </Link>
-        ) : (
-          <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-400 ring-2 ring-gold-500/60 ring-offset-2 ring-offset-white">
-            <FileText size={18} />
-          </span>
-        )}
+          ) : (
+            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-400 ring-2 ring-gold-500/60 ring-offset-2 ring-offset-white">
+              <FileText size={18} />
+            </span>
+          )}
+        </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            {task.author ? (
-              <Link href={`/lawyers/${task.author.slug}`} className="truncate text-[14px] font-extrabold text-navy-950 hover:underline">
-                {task.author.name}
-              </Link>
-            ) : (
-              <span className="text-[14px] font-extrabold text-navy-950">إدارة المكتب</span>
-            )}
+            <Link href={getOfficeProfileHref(task)} className="truncate text-[14px] font-extrabold text-navy-950 hover:underline">
+              {task.author ? task.author.name : 'إدارة المكتب'}
+            </Link>
             {task.author ? (
               <Badge tone="gold">{TITLE_LABEL[task.author.title]}</Badge>
             ) : (
@@ -228,12 +220,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, sh
             {commentsCache.length > 0 || task.commentCount > 0 ? `${task.commentCount} تعليق` : 'تعليق'}
           </button>
         )}
-        {canComplete && (
-          <Button size="sm" variant="gold" onClick={complete} disabled={busy} className="ms-auto">
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCheck size={14} />}
-            تم التنفيذ
-          </Button>
-        )}
+        {canComplete && <CompleteTaskButton taskId={task.id} label={isAdmin ? 'إنهاء نيابةً عن المحامي' : 'تم التنفيذ'} />}
         {canEdit && (
           <Link href={`/sessions/${task.id}?edit=1`}>
             <Button size="sm" variant="ghost" className="ms-auto">

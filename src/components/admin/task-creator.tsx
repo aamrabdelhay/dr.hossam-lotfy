@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Plus, Users } from 'lucide-react';
 import { Button, Field, Input, Modal, Textarea } from '../ui';
-import { SelectWithAdd } from '../select-with-add';
+import { ComboboxWithAdd } from '../combobox-with-add';
 import { MultiLawyerSelector } from './multi-lawyer-selector';
 import { toastSuccess, toastError } from '../toasts';
 import type { NavLocation } from '@/lib/constants';
@@ -170,11 +170,11 @@ export function TaskCreator({
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="المحكمة / المكان" required>
-            <SelectWithAdd
+            <ComboboxWithAdd
               id="task-location"
               name="locationId"
               ariaLabel="المحكمة أو المكان"
-              placeholder="اختر المكان…"
+              placeholder="ابحث بالاسم أو اكتب محكمة جديدة…"
               options={locations.map((l) => ({ value: l.id, label: l.name }))}
               value={locationId}
               onChange={setLocationId}
@@ -182,11 +182,11 @@ export function TaskCreator({
             />
           </Field>
           <Field label="القضية" hint="اختياري">
-            <SelectWithAdd
+            <ComboboxWithAdd
               id="task-case"
               name="caseId"
               ariaLabel="القضية"
-              placeholder="بدون قضية"
+              placeholder="ابحث أو اختر قضية…"
               options={cases.map((c) => ({ value: c.id, label: `${c.name} — ${c.number}` }))}
               value={caseId}
               onChange={setCaseId}

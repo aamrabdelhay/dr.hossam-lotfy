@@ -40,6 +40,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   if (!isAdmin) {
     payload = {
       phone: data.phone !== undefined ? data.phone : undefined,
+      specialization: data.specialization !== undefined ? data.specialization : undefined,
       bio: data.bio !== undefined ? data.bio : undefined,
       profilePhotoUrl: data.profilePhotoUrl !== undefined ? data.profilePhotoUrl : undefined,
       coverPhotoUrl: data.coverPhotoUrl !== undefined ? data.coverPhotoUrl : undefined,

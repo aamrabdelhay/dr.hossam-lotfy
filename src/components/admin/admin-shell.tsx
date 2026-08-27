@@ -265,7 +265,7 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
           {feedTasks.length === 0 ? (
             <EmptyState title="لا توجد مهام بعد" hint="ابدأ بإضافة أول جلسة أو مهمة." action={<Button size="sm" onClick={props.onOpenTask}>إضافة</Button>} />
           ) : (
-            feedTasks.map((t) => <PostCard key={t.id} task={t} sessionRole="admin" />)
+            feedTasks.map((t) => <PostCard key={t.id} task={t} sessionRole="admin" canWriteTasks={props.permissions.writeTasks} />)
           )}
         </div>
         <div>

@@ -2,7 +2,7 @@
  * Vercel build step:
  *  1. Require DATABASE_URL and apply pending SQL migrations.
  *  2. Generate the Prisma client.
- *  3. Sync the Lawyer Guide directory (134 places) on every deploy.
+ *  3. Sync the Lawyer Guide directory (149 places) on every deploy.
  *  4. Optionally run the production-safe seed (never demo data).
  *  5. Build Next.js.
  *
@@ -54,7 +54,8 @@ if (shouldSeed && !process.env.DATABASE_URL) {
 run('generating Prisma client…', 'npx', ['prisma', 'generate']);
 
 // Every deploy re-syncs the official directory (119 courts + 15 government
-// offices) so /lawyer-guide never ships empty again. Idempotent upserts.
+// offices + 15 justice bodies) so /lawyer-guide never ships empty again.
+// Idempotent upserts.
 const skipGuideSync = process.env.SKIP_LAWYER_GUIDE_SYNC === '1';
 
 if (skipGuideSync) {
@@ -65,7 +66,7 @@ if (skipGuideSync) {
   );
   process.exit(1);
 } else {
-  run('syncing lawyer guide locations (134 places)…', 'npx', ['tsx', 'scripts/seed-lawyer-guide.mjs']);
+  run('syncing lawyer guide locations (149 places)…', 'npx', ['tsx', 'scripts/seed-lawyer-guide.mjs']);
 }
 
 if (shouldSeed) {

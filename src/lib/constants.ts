@@ -55,6 +55,15 @@ export const TITLE_LABEL: Record<string, string> = {
   ADVOCATE: 'محامي',
 };
 
+/**
+ * رابط صفحة الناشر (poster) لأي بوست في الفيد: صفحة المحامي إن كان البوست
+ * لمحامٍ، أو الصفحة الرئيسية للمكتب إن كانت الإدارة هي الناشر — فكل بوست
+ * له ناشر قابل للضغط.
+ */
+export function getOfficeProfileHref(task: { author?: { slug: string } | null } | null): string {
+  return task?.author ? `/lawyers/${task.author.slug}` : '/';
+}
+
 export type NavLawyer = {
   id: string;
   slug: string;

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { toTaskVM, type TaskVM } from '@/lib/queries';
 import { TITLE_LABEL } from '@/lib/constants';
+import { LawyerProfileEditor } from '@/components/lawyer-profile-editor';
 
 export const metadata: Metadata = { title: 'صفحة المحامي' };
 
@@ -79,13 +80,6 @@ function actionLabel(action: string): string {
   return map[action] ?? action.replace(/_/g, ' ');
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 function getFeminineTitle(fullName: string, title: string): string {
   const lower = fullName.toLowerCase();
   if (lower.includes('mona') || lower.includes('sara') || fullName.includes('مونا') || fullName.includes('سارا')) {
@@ -96,6 +90,7 @@ function getFeminineTitle(fullName: string, title: string): string {
 
 export default async function LawyerProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const session = await getCurrentUser();
 
   const lawyer = await prisma.lawyer.findUnique({
     where: { slug },
@@ -136,7 +131,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   const specializationClean = cleanDemo(lawyer.specialization) || '—';
   const bioClean = cleanDemo(lawyer.bio);
   const fullNameUpper = lawyer.fullName.toUpperCase();
-  const initials = getInitials(lawyer.fullName);
+  const isSelf = session?.role === 'lawyer' && session.lawyerId === lawyer.id;
 
   // For مجالات العمل — try to derive from specialization or use fallback
   const workFields = specializationClean.includes('التسجيل') || specializationClean.includes('العقاري')
@@ -170,14 +165,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={lawyer.profilePhotoUrl} alt={lawyer.fullName} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[#F7F5F0]">
-                  <span
-                    className="text-[48px] font-light text-[#242424]"
-                    style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 300 }}
-                  >
-                    {initials}
-                  </span>
-                </div>
+                <div className="h-full w-full bg-[#F7F5F0]" aria-label="لا توجد صورة شخصية بعد" />
               )}
             </div>
           </div>
@@ -217,6 +205,19 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
             >
               DR. HOSSAM LOTFY LAW FIRM
             </p>
+
+            {isSelf && (
+              <div className="mt-5">
+                <LawyerProfileEditor
+                  lawyerId={lawyer.id}
+                  fullName={lawyer.fullName}
+                  phone={lawyer.phone}
+                  specialization={lawyer.specialization}
+                  bio={lawyer.bio}
+                  profilePhotoUrl={lawyer.profilePhotoUrl}
+                />
+              </div>
+            )}
 
             {/* Contact minimal */}
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">

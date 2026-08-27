@@ -135,7 +135,18 @@ body {
   animation: slide-in-start 0.25s ease-out both;
 }
 
+/* Deep-linked notification highlight: /sessions/<id>#comment-<id> */
+@keyframes comment-flash {
+  0% { background-color: rgba(234, 179, 8, 0.35); }
+  100% { background-color: rgba(234, 179, 8, 0.12); }
+}
+
+.comment-highlight {
+  animation: comment-flash 1.2s ease-out 2 alternate;
+}
+
 @keyframes shimmer {
+
   0% {
     background-position: 200% 0;
   }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CalendarClock, Landmark, Scale, Search, BriefcaseBusiness, ClipboardList, AlertTriangle, Users, MapPinned } from 'lucide-react';
 import { getSidebarData, getFeed, getAdminStats } from '@/lib/queries';
+import { can } from '@/lib/rbac';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteNav } from '@/lib/site-data';
 import { SessionSidebar } from '@/components/session-sidebar';
@@ -89,7 +90,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         ) : (
           <div className="space-y-4">
             {feed.items.map((t) => (
-              <PostCard key={t.id} task={t} sessionRole={session.role} sessionLawyerId={lawyerSession?.lawyerId} />
+              <PostCard key={t.id} task={t} sessionRole={session.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={session.role === 'admin' && can(session.userRole, 'writeTasks')} />
             ))}
           </div>
         )}
@@ -108,10 +109,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <li><Link href="/search" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-navy-600 hover:bg-ivory-100 hover:text-navy-950"><Search size={14} className="text-gold-600" />البحث المتقدم</Link></li>
               {session.role === 'admin' && <li><Link href="/admin?tab=cases" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] font-bold text-navy-600 hover:bg-ivory-100 hover:text-navy-950"><BriefcaseBusiness size={14} className="text-gold-600" />ملفات القضايا</Link></li>}
             </ul>
-          </Card>
-
-          <Card className="border-gold-500/30 bg-gradient-to-b from-navy-950 to-navy-900 p-4">
-            <p className="text-[11px] font-bold leading-6 text-ivory-300"><span className="text-gold-300">من أين نبدأ؟</span><br />كل جلسة ومهمة تسجّل مرة واحدة، وتظهر تلقائياً في الفيد، والصفحات، والتقويم، والشريط الجانبي.</p>
           </Card>
         </div>
       </aside>
