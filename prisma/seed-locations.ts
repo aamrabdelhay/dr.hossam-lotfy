@@ -285,50 +285,63 @@ export async function seedLocations() {
   }
   console.log(`📍 Seeding ${COURTS.length} courts + ${PLACES.length} legal destinations…`);
 
-  const existing = await prisma.location.count();
-  if (existing > 0) {
-    console.log(`[locations] ${existing} locations already exist — skipping (delete first to reseed).`);
-    return;
-  }
-
   const all: Array<PlaceSeed & { type: LocationType }> = [
     ...COURTS.map((cr) => ({ ...cr, type: LocationType.COURT, services: ['جلسات المحاكمات', 'تقديم المذكرات', 'صور رسمية للحكم'] })),
     ...PLACES,
   ];
 
+  // Idempotent: upsert on the unique slug. An earlier `count() > 0 → skip`
+  // guard silently left the directory empty when demo/partial rows existed
+  // (production shipped with ~12 demo places instead of 134). Upserting means
+  // re-running the seed always converges to the full official directory while
+  // leaving any unrelated rows (and their foreign keys) untouched.
+  // Pre-load existing official slugs so we can report created vs updated
+  // accurately (upsert itself does not say which branch ran).
+  const existingRows = await prisma.location.findMany({ select: { slug: true } });
+  const existingSlugs = new Set(existingRows.map((row) => row.slug));
+
+  let created = 0;
+  let updated = 0;
   let i = 0;
   for (const seed of all) {
     i += 1;
     const slug = slugFor(seed.name, seed.nameEn, i);
-    await prisma.location.create({
-      data: {
-        slug,
-        name: seed.name,
-        nameEn: seed.nameEn,
-        type: seed.type,
-        subType: seed.subType,
-        governorate: seed.governorate,
-        city: seed.city,
-        district: seed.district ?? null,
-        address: seed.address,
-        phone: seed.phone ?? null,
-        workingHours: HOURS,
-        services: seed.services,
-        jurisdiction: seed.jurisdiction ?? null,
-        requiresPersonal: seed.requiresPersonal ?? false,
-        hasOnlineService: seed.hasOnlineService ?? false,
-        source: 'قاعدة معرفة المكتب — تحتاج مراجعة ميدانية',
-        lastVerified: new Date(),
-        confidence: seed.lat ? 'عالية' : 'تقديرية',
-        lat: seed.lat ?? null,
-        lng: seed.lng ?? null,
-        distanceFromDokki: seed.km,
-        distanceBucket: seed.bucket,
-        searchKeywords: keywords(seed),
-      },
+    const data = {
+      name: seed.name,
+      nameEn: seed.nameEn,
+      type: seed.type,
+      subType: seed.subType,
+      governorate: seed.governorate,
+      city: seed.city,
+      district: seed.district ?? null,
+      address: seed.address,
+      phone: seed.phone ?? null,
+      workingHours: HOURS,
+      services: seed.services,
+      jurisdiction: seed.jurisdiction ?? null,
+      requiresPersonal: seed.requiresPersonal ?? false,
+      hasOnlineService: seed.hasOnlineService ?? false,
+      source: 'قاعدة معرفة المكتب — تحتاج مراجعة ميدانية',
+      lastVerified: new Date(),
+      confidence: seed.lat ? 'عالية' : 'تقديرية',
+      lat: seed.lat ?? null,
+      lng: seed.lng ?? null,
+      distanceFromDokki: seed.km,
+      distanceBucket: seed.bucket,
+      searchKeywords: keywords(seed),
+    };
+
+    await prisma.location.upsert({
+      where: { slug },
+      create: { slug, ...data },
+      update: data,
     });
+    if (existingSlugs.has(slug)) updated += 1;
+    else created += 1;
   }
-  console.log(`✅ ${all.length} locations seeded (${COURTS.length} محكمة).`);
+
+  const total = await prisma.location.count();
+  console.log(`✅ ${all.length} locations synced (${created} جديدة، ${updated} محدّثة) — إجمالي الأماكن في القاعدة: ${total} (${COURTS.length} محكمة رسمية).`);
 }
 
 /** Standalone run: npx tsx prisma/seed-locations.ts */

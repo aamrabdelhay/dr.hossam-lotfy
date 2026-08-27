@@ -18,13 +18,18 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migrationsDir = path.join(root, 'prisma', 'migrations');
 
 const rawUrl = process.env.DATABASE_URL || 'postgresql://lhl:lhl@127.0.0.1:5432/lhlawfirm?schema=public';
+// The embedded development Postgres speaks no TLS. Only force the strongest
+// verification for remote (hosted/Neon) databases.
+const isLocal = /@(localhost|127\.0\.0\.1|\[::1\])(?::|\/)/i.test(rawUrl);
 // pg currently aliases `require`/`prefer` to verify-full, but that behavior is
 // changing. Make the intended TLS verification explicit for hosted databases.
-const url = rawUrl.includes('sslmode=')
-  ? rawUrl.replace(/([?&]sslmode=)(?:prefer|require|verify-ca)(?=&|$)/, '$1verify-full')
-  : rawUrl.includes('?')
-    ? `${rawUrl}&sslmode=verify-full`
-    : `${rawUrl}?sslmode=verify-full`;
+const url = isLocal
+  ? rawUrl
+  : rawUrl.includes('sslmode=')
+    ? rawUrl.replace(/([?&]sslmode=)(?:prefer|require|verify-ca)(?=&|$)/, '$1verify-full')
+    : rawUrl.includes('?')
+      ? `${rawUrl}&sslmode=verify-full`
+      : `${rawUrl}?sslmode=verify-full`;
 const client = new pg.Client({ connectionString: url });
 
 async function recordMigration(name, checksum) {
