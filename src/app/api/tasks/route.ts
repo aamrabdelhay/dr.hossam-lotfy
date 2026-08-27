@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getFeed, toTaskVM, type TaskVM } from '@/lib/queries';
-import { handle, json, readJson, requireAdmin, requireLawyer, user } from '@/lib/api';
+import { handle, json, readJson, requireLawyer, user } from '@/lib/api';
+import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskAssigned } from '@/lib/notifications';
 import { formatDay } from '@/lib/dates';
@@ -28,7 +29,8 @@ export const GET = handle(async (req: Request) => {
 const createSchema = z
   .object({
     locationId: z.string().min(1, 'المكان مطلوب'),
-    description: z.string().min(2, 'وصف المهمة مطلوب').max(2000),
+    // «هيعمل إيه؟» is optional now — an empty description is allowed
+    description: z.string().max(2000).optional(),
     notes: z.string().max(4000).optional(),
     caseName: z.string().max(300).optional(),
     caseNumber: z.string().max(200).optional(),
@@ -52,6 +54,9 @@ export const POST = handle(async (req: Request) => {
 
   const isOwnPost = !!data.ownPost && session.role === 'lawyer';
   const isAdminCreate = session.role === 'admin';
+  if (isAdminCreate && !can(session.userRole, 'writeTasks')) {
+    return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
+  }
   if (!isOwnPost && !isAdminCreate) {
     return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
   }
@@ -83,7 +88,7 @@ export const POST = handle(async (req: Request) => {
     data: {
       locationId: location.id,
       caseId,
-      description: data.description.trim(),
+      description: data.description?.trim() ?? '',
       notes: data.notes?.trim() || null,
       scheduledDate: data.scheduledDate ? new Date(`${data.scheduledDate}T00:00:00`) : null,
       scheduledTime: data.scheduledTime || null,
@@ -103,7 +108,7 @@ export const POST = handle(async (req: Request) => {
   const when = task.scheduledDate ? `${formatDay(task.scheduledDate)}${task.scheduledTime ? ` — ${task.scheduledTime}` : ''}` : 'بالتنسيق';
   await logActivity({
     action: 'CREATED',
-    summary: `أنشأ مهمة جديدة: ${task.description.slice(0, 80)}`,
+    summary: `أنشأ مهمة جديدة: ${(task.description || location.name).slice(0, 80)}`,
     taskId: task.id,
     locationId: location.id,
     byUserId: session.role === 'admin' ? session.userId : null,
@@ -111,7 +116,7 @@ export const POST = handle(async (req: Request) => {
   });
   await notifyTaskAssigned(
     lawyerIds,
-    task.description.slice(0, 60),
+    (task.description || location.name).slice(0, 60),
     when,
     `/sessions/${task.id}`,
   );

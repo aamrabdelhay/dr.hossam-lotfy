@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { ZodType } from 'zod';
 import { getCurrentUser, type SessionUser } from './auth';
+import { can, permissionsOf, type Permissions } from './rbac';
 
 export function json(data: unknown, init?: { status?: number; headers?: Record<string, string> }) {
   return NextResponse.json(data, init);
@@ -25,9 +26,33 @@ export async function user(): Promise<SessionUser | null> {
   }
 }
 
-export async function requireAdmin(): Promise<Extract<SessionUser, { role: 'admin' }>> {
+type AdminSession = Extract<SessionUser, { role: 'admin' }>;
+
+/** Any authenticated staff session (admin area users — any role). */
+export async function requireStaff(): Promise<AdminSession> {
   const u = await user();
-  if (!u || u.role !== 'admin') throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية المسؤول');
+  if (!u || u.role !== 'admin') throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية إدارية');
+  return u;
+}
+
+/**
+ * Staff session holding a specific permission — the server-side RBAC gate.
+ * e.g. `await requirePermission('writeTasks')` before creating a task.
+ */
+export async function requirePermission(permission: keyof Permissions): Promise<AdminSession> {
+  const u = await requireStaff();
+  if (!can(u.userRole, permission)) {
+    throw new ApiError(403, 'لا تملك صلاحية تنفيذ هذا الإجراء');
+  }
+  return u;
+}
+
+/** Legacy alias — full admin (SUPER_ADMIN/ADMIN only). */
+export async function requireAdmin(): Promise<AdminSession> {
+  const u = await requireStaff();
+  if (u.userRole !== 'SUPER_ADMIN' && u.userRole !== 'ADMIN') {
+    throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية المدير العام');
+  }
   return u;
 }
 
@@ -35,6 +60,10 @@ export async function requireLawyer(): Promise<Extract<SessionUser, { role: 'law
   const u = await user();
   if (!u || u.role !== 'lawyer') throw new ApiError(401, 'يجب تسجيل الدخول كمحامي لإتمام هذا الإجراء');
   return u;
+}
+
+export function permissionsFor(role: string | null | undefined): Permissions {
+  return permissionsOf(role);
 }
 
 export async function readJson<T>(req: NextRequest, schema: ZodType<T>): Promise<T> {

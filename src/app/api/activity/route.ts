@@ -1,8 +1,8 @@
 import { prisma } from '@/lib/prisma';
-import { handle, json, requireAdmin } from '@/lib/api';
+import { handle, json, requireStaff } from '@/lib/api';
 
 export const GET = handle(async (_req: Request) => {
-  await requireAdmin();
+  await requireStaff();
   const limit = 100;
   const activity = await prisma.activityLog.findMany({
     orderBy: { createdAt: 'desc' },

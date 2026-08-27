@@ -1,8 +1,8 @@
 import { getAdminStats } from '@/lib/queries';
-import { handle, json, requireAdmin } from '@/lib/api';
+import { handle, json, requireStaff } from '@/lib/api';
 
 export const GET = handle(async (_req: Request) => {
-  await requireAdmin();
+  await requireStaff();
   const stats = await getAdminStats();
   return json({ stats });
 });

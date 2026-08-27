@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
-import { handle, json, requireAdmin } from '@/lib/api';
+import { handle, json, requirePermission } from '@/lib/api';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -11,7 +11,7 @@ type Ctx = { params: Promise<{ id: string }> };
  */
 export const POST = handle(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  await requireAdmin();
+  await requirePermission('manageLawyers');
 
   const lawyer = await prisma.lawyer.findUnique({ where: { id } });
   if (!lawyer) return json({ error: 'المحامي غير موجود' }, { status: 404 });

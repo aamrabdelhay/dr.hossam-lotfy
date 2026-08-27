@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getTaskVM } from '@/lib/queries';
-import { handle, json, readJson, requireAdmin, user } from '@/lib/api';
+import { handle, json, readJson, requirePermission, user } from '@/lib/api';
+import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskEdited, notifyTaskDeleted } from '@/lib/notifications';
 
@@ -41,6 +42,9 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 
   const isAdmin = session.role === 'admin';
   const isAuthor = session.role === 'lawyer' && task.authorId === session.lawyerId;
+  if (isAdmin && !can(session.userRole, 'writeTasks')) {
+    return json({ error: 'لا تملك صلاحية تعديل المهمة' }, { status: 403 });
+  }
   if (!isAdmin && !isAuthor) {
     return json({ error: 'يمكنك تعديل بوستاتك فقط' }, { status: 403 });
   }
@@ -128,7 +132,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 
 export const DELETE = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const session = await requireAdmin();
+  const session = await requirePermission('writeTasks');
   const task = await prisma.task.findUnique({ where: { id }, include: { assignees: true } });
   if (!task) return json({ error: 'المهمة غير موجودة' }, { status: 404 });
 
