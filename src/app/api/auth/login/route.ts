@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createSessionCookie } from '@/lib/auth';
 import { handle, readJson } from '@/lib/api';
@@ -6,16 +7,13 @@ import { rateLimit, rateLimitReset } from '@/lib/rate-limit';
 
 const DEMO_ADMIN_CODE = 'hl';
 
+const LoginSchema = z.object({
+  code: z.string({ message: 'كود الدخول مطلوب.' }).trim().min(1, 'كود الدخول مطلوب.'),
+});
+
 /** Demo-office gate: the public site does not require an account. */
-export const POST = handle(async (req: Request) => {
-  const { code } = await readJson(req as never, {
-    parse: (input: unknown) => {
-      if (!input || typeof input !== 'object' || !('code' in input) || typeof (input as { code?: unknown }).code !== 'string') {
-        throw new Error('كود الدخول مطلوب.');
-      }
-      return { code: (input as { code: string }).code.trim() };
-    },
-  } as never);
+export const POST = handle(async (req: NextRequest) => {
+  const { code } = await readJson(req, LoginSchema);
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const rateKey = `demo-admin:${ip}`;
