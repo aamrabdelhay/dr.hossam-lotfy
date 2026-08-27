@@ -33,6 +33,20 @@ export const ROLE_LABEL: Record<string, string> = {
 export const STAFF_ROLES = ['ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SECRETARY', 'LAWYER', 'VIEWER'] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
+/** Roles a SUPER_ADMIN may hand out from the users screen (never SUPER_ADMIN/ADMIN). */
+export const ASSIGNABLE_ROLES = ['OFFICE_MANAGER', 'SECRETARY', 'LAWYER', 'VIEWER'] as const;
+export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+/** Short description of what each role can do — shown in the users screen. */
+export const ROLE_DESCRIPTION: Record<string, string> = {
+  SUPER_ADMIN: 'صلاحية كاملة على كل شيء — بما فيها إدارة الحسابات.',
+  ADMIN: 'صلاحية كاملة (اسم قديم للمدير العام).',
+  OFFICE_MANAGER: 'كل شيء ما عدا إدارة الحسابات.',
+  SECRETARY: 'الجلسات والمهام والأماكن والتعليقات — بدون إدارة المحامين.',
+  LAWYER: 'الجلسات والمهام والتعليقات فقط.',
+  VIEWER: 'قراءة فقط — لا يستطيع الإضافة أو التعديل.',
+};
+
 /** Distance buckets from the Dokki office (outward). */
 export const DISTANCE_BUCKETS = ['0-5كم', '5-10كم', '10-20كم', '20-40كم', '40-75كم', '75-150كم', '150-300كم', '300+كم'] as const;
 

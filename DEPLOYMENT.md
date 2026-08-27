@@ -1,75 +1,157 @@
 # دليل نشر الإنتاج — DR. HOSSAM LOTFY LAW FIRM
 
-تم إعداد المشروع وتهيئته للنشر بنجاح على **Vercel** مع دعم **@vercel/blob** و**Prisma 7** و**PostgreSQL (Neon)**.
+المنصة: **Next.js 15.5 + Prisma 7 + PostgreSQL (Neon) على Vercel**.
+هذا الملف هو المرجع الوحيد لخطوات النشر — نفّذها بالترتيب.
 
 ---
 
-## 1. التعديلات المنجزة في الكود
-- تم تثبيت حزمة `@vercel/blob` في `package.json`.
-- تم تعديل `src/lib/upload.ts` ليعتمد تلقائياً على `@vercel/blob` عند وجود المتغير `BLOB_READ_WRITE_TOKEN` في الإنتاج، مع الإبقاء على التخزين المحلي التلقائي في بيئة التطوير/الساندبوكس عند غيابه.
-- المسار `/uploads/[file]` يعمل بشكل طبيعي للملفات المحلية.
-- جميع اختبارات النظام (10/10) تم التحقق منها بنجاح.
+## 1. قاعدة البيانات (Neon)
+
+1. من لوحة Vercel: **Storage → Create Database → Neon** (أو أنشئ مشروعاً على [neon.tech](https://neon.tech) مباشرة).
+2. انسخ رابط الاتصال **Pooled** (يحتوي على `-pooler` و `?sslmode=require`).
+   مثال:
+   `postgresql://user:pass@ep-xxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require`
+
+> استخدم دائماً الرابط الـ **pooled** مع Vercel (serverless) لتفادي استنفاد الاتصالات.
 
 ---
 
-## 2. إعداد قاعدة البيانات (Neon)
-1. من لوحة تحكم Vercel: توجه إلى **Storage** -> **Create Database** -> اختر **Neon** (أو أنشئ مشروعاً على Neon مباشرة).
-2. انسخ رابط الاتصال المجمّع **Pooled Connection String** (الذي يستخدم البورت `6500` ومعامل `?sslmode=require&pgbouncer=true`).
+## 2. متغيّرات البيئة (Environment Variables)
 
----
+**Vercel Dashboard → Project → Settings → Environment Variables** — أضفها للبيئات الثلاث (Production / Preview / Development):
 
-## 3. متغيرات البيئة في Vercel (Environment Variables)
-أضف المتغيرات التالية في:
-**Vercel Dashboard -> Project Settings -> Environment Variables**:
-
-| المتغير | القيمة | ملاحظات |
+| المتغيّر | القيمة | إلزامي |
 | :--- | :--- | :--- |
-| `DATABASE_URL` | `postgresql://...:6500/...` | رابط Neon المجمّع (pooler) |
-| `SESSION_SECRET` | سلسلة عشوائية قوية (+48 حرف) | لتوقيع كوكيز الجلسات |
-| `ADMIN_PASSWORD` | `Loutfy@Admin2026` | كلمة مرور دخول لوحة الإدارة |
-| `ADMIN_NAME` | `DR. Hossam Lotfy` | اسم المسؤول الرئيسي |
-| `ADMIN_EMAIL` | `admin@loutfilawfirm.net` | بريد المسؤول الرئيسي |
-| `BLOB_READ_WRITE_TOKEN` | من Vercel Blob Store | لرفع الصور إلى Vercel Blob |
-| `NEXT_PUBLIC_BASE_URL` | `https://dr.hossam-lotfy.com` | رابط الدومين الرسمي |
+| `DATABASE_URL` | رابط Neon الـ pooled | ✅ |
+| `SESSION_SECRET` | سلسلة عشوائية طويلة (48 بايت) | ✅ |
+| `NEXT_PUBLIC_SITE_URL` | `https://dr-hossam-lotfy-hw88-aamrabdelhays-projects.vercel.app` أو الدومين النهائي | ✅ |
+| `ADMIN_NAME` | `DR. Hossam Lotfy` | للـ seed فقط |
+| `ADMIN_EMAIL` | `admin@loutfilawfirm.net` | للـ seed فقط |
+| `ADMIN_PASSWORD` | كلمة مرور قوية | للـ seed فقط |
+| `BLOB_READ_WRITE_TOKEN` | من Vercel Blob Store | اختياري (رفع الصور) |
 
-> **ملاحظة بخصوص Vercel Blob**:
-> من لوحة Vercel -> اختر **Storage** -> **Create Database** -> **Blob** -> اربطه بهذا المشروع (`Connect to Project`). سيقوم Vercel بإضافة `BLOB_READ_WRITE_TOKEN` تلقائياً.
-
----
-
-## 4. تطبيق الـ Migrations والبيانات الأولية (Seed)
-شغّل الأمرين التاليين مرة واحدة مع تمرير `DATABASE_URL` لقاعدة بيانات الإنتاج:
+توليد `SESSION_SECRET`:
 
 ```bash
-DATABASE_URL="<NEON_POOLED_CONNECTION_STRING>" node scripts/apply-migrations.mjs
-DATABASE_URL="<NEON_POOLED_CONNECTION_STRING>" npx tsx prisma/seed.ts
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 
-> سكربت `apply-migrations.mjs` آمن ومتطابق (idempotent) ويسجل الترحيل في جدول `_prisma_migrations`.
-> سكربت `seed.ts` يقوم بتهيئة حساب المسؤول والمحامين الـ 8 والأماكن الـ 12 والقضايا والمهام التجريبية.
+> ⚠️ لا تضع `DEMO=1` في الإنتاج — هذا المتغيّر يزرع بيانات تجريبية.
 
 ---
 
-## 5. ربط الدومين (dr.hossam-lotfy.com)
-1. في Vercel Dashboard -> المشروع -> **Settings** -> **Domains**.
-2. أضف `dr.hossam-lotfy.com`.
-3. في لوحة تحكم مسجل الدومين (Domain Registrar / DNS):
-   - أنشئ سجل **CNAME**:
-     - **Name**: `dr` (أو `@` إذا كان Root Domain مع Alias/ANAME)
-     - **Target**: `cname.vercel-dns.com`
-4. انتظر بضع دقائق ليقوم Vercel بإصدار شهادة SSL التلقائية والتحقق من الـ DNS.
+## 3. أمر البناء (Build Command)
+
+**Settings → General → Build & Development Settings → Build Command → Override**:
+
+```
+npm run vercel-build
+```
+
+سكربت `scripts/vercel-build.mjs` يقوم بالتالي بالترتيب:
+1. تطبيق كل الـ SQL migrations على `DATABASE_URL` (يظهر في اللوج كسطور `[migrate] …`).
+2. `prisma generate`.
+3. `next build`.
+
+فشل خطوة الـ migration لا يُسقط الـ deploy (يُسجَّل تحذير فقط) حتى لا يتعطّل الموقع بسبب عطل مؤقت في قاعدة البيانات.
 
 ---
 
-## 6. التحقق النهائي من معايير القبول (10/10)
-تم التحقق بنجاح من كافة الوظائف:
-1. ✅ **الصفحة الرئيسية**: استجابة 200 + اتجاه RTL عربي + الشريط الجانبي بأقسامه الـ 5 + شريط تنبيه الأسبوعين.
-2. ✅ **لوحة الإدارة**: تسجيل الدخول بكلمة المرور عبر `/admin/login` وعرض الإحصائيات الحية `/api/admin/stats`.
-3. ✅ **مهام متعددة المحامين**: إنشاء مهمة وتعيين حتى 7 محامين (أو أكثر حتى 20) مع إنشاء سجل assignment مستقل لكل محامٍ.
-4. ✅ **الروابط السحرية (Magic Links)**: توليد رابط الدخول الفردي `/access/[token]`، وتأكيد عمل الجلسة، ورفض الرابط تلقائياً عند المحاولة الثانية (One-time use).
-5. ✅ **تنفيذ المهام والصلاحيات**: المحامي المعين فقط يستطيع إكمال مهمته وتتحول إلى `COMPLETED`، وأي محامٍ غير مسند إليه يتلقى `403 Forbidden`.
-6. ✅ **تعليقات الزوار والإدارة**: الزائر يستطيع التعليق باسمه، وظهور التعليق فوراً، وإمكانية حذفه بواسطة المسؤول.
-7. ✅ **رفع الصور**: دعم `@vercel/blob` للإنتاج والتخزين المحلي للـ dev، وظهور الصورة في صفحة المحامي والـ Avatar فوراً.
-8. ✅ **البحث المتقدم**: البحث عن كلمة "محكمة" يعيد المحاكم والجلسات المرتبطة بدقة.
-9. ✅ **ترتيب المحامين**: ظهور د. حسام لطفي دائماً في صدارة قائمة المحامين بصفته المحامي الرئيسي.
-10. ✅ **صفحة الخطأ 404**: صفحة 404 عربية مخصصة ومتناسقة مع الهوية القانونية للمكتب.
+## 4. أول نشر
+
+1. **Deployments → Redeploy** مع إلغاء تفعيل خيار **Use existing Build Cache**.
+2. افتح **Build Logs** وتأكد من ظهور:
+   ```
+   [migrate] applying init …
+   [migrate] applying extend_location …
+   [migrate] done
+   ```
+3. إذا ظهر `DATABASE_URL is not set — SKIPPING migrations` فالمتغيّر لم يُضَف للبيئة الصحيحة.
+
+---
+
+## 5. زرع البيانات (مرة واحدة فقط)
+
+من جهازك المحلي بعد نجاح النشر:
+
+```bash
+DATABASE_URL="<NEON_POOLED_URL>" \
+ADMIN_NAME="DR. Hossam Lotfy" \
+ADMIN_EMAIL="admin@loutfilawfirm.net" \
+ADMIN_PASSWORD="<كلمة مرور قوية>" \
+npm run db:seed
+```
+
+النتيجة المتوقعة:
+
+```
+👤 staff account created: admin@loutfilawfirm.net (SUPER_ADMIN)
+📍 Seeding 119 courts + 15 legal destinations…
+✅ 134 locations seeded (119 محكمة).
+✅ Seed complete.
+```
+
+السكربت **idempotent** — تشغيله مرة أخرى لا يكرّر البيانات. **بدون** `DEMO=1` لا تُزرع أي بيانات تجريبية.
+
+---
+
+## 6. الحسابات والصلاحيات
+
+- الدخول من `/admin/login` — البريد الإلكتروني **اختياري**؛ لو تُرك فارغاً يُستخدم أول حساب فريق (المدير العام).
+- محاولات الدخول محدودة: 5 محاولات كل 15 دقيقة لكل (IP + بريد).
+- بعد الدخول: تبويب **«المستخدمون»** (يظهر للمدير العام فقط) لإضافة حسابات الفريق وتحديد أدوارهم:
+
+| الدور | الصلاحية |
+| :--- | :--- |
+| `SUPER_ADMIN` | كل شيء + إدارة الحسابات |
+| `OFFICE_MANAGER` | كل شيء عدا إدارة الحسابات |
+| `SECRETARY` | الجلسات والمهام والأماكن والتعليقات (بدون إدارة المحامين) |
+| `LAWYER` | الجلسات والمهام والتعليقات |
+| `VIEWER` | قراءة فقط |
+
+الصلاحيات مُطبَّقة على السيرفر في `src/lib/rbac.ts` وكل مسار API يستدعي `requirePermission()` / `requireAdmin()`.
+تغيير دور أو كلمة مرور مستخدم يُنهي كل جلساته فوراً.
+
+---
+
+## 7. ربط الدومين
+
+1. **Settings → Domains** → أضف الدومين.
+2. في مسجّل الدومين: سجل **CNAME** باسم النطاق الفرعي إلى `cname.vercel-dns.com` (أو سجلات A للـ root حسب تعليمات Vercel).
+3. بعد نجاح الربط: حدّث `NEXT_PUBLIC_SITE_URL` بالدومين الجديد ثم **Redeploy** (يستخدمه `robots.txt` و `sitemap.xml`).
+
+---
+
+## 8. قائمة التحقق بعد النشر
+
+| # | الاختبار | المتوقع |
+| :--- | :--- | :--- |
+| 1 | `/sessions` | 200 (ليس 404) |
+| 2 | `/robots.txt` | يحتوي `Sitemap:` بالدومين الصحيح |
+| 3 | `/sitemap.xml` | يحتوي 134 رابط مكان |
+| 4 | `/locations` | قسمان + فلاتر (محافظة/نوع/مسافة) |
+| 5 | `/calendar` | زر «إضافة موعد» يظهر بعد الدخول ومخفي للزائر |
+| 6 | `/api/search?q=tax` | يرجع «مكتب ضرائب الدقي» |
+| 7 | `/api/search?q=محكمة` | يرجع محاكم (COURT) |
+| 8 | صور الأشخاص | Avatar مستطيل حروف فقط |
+| 9 | الزر العائم | قبل الفوتر، `z-[75]` |
+| 10 | اللوجو | مرة واحدة في النافبار |
+| 11 | الاتجاه | RTL يمين |
+| 12 | `/admin` بدون جلسة | يحوّل إلى `/admin/login` |
+| 13 | `POST /api/locations` كزائر | 403 |
+| 14 | `GET /api/users` كزائر أو غير مدير عام | 403 |
+| 15 | هيدرز الأمان | CSP, X-Frame-Options: DENY, nosniff, Referrer-Policy, Permissions-Policy, HSTS |
+| 16 | كوكي الجلسة | يبدأ بـ `v1.` ولا يحتوي CUID |
+
+---
+
+## 9. التطوير المحلي
+
+```bash
+npm install
+cp .env.example .env
+npm run db:init      # يشغّل PostgreSQL المدمج على 5432
+npm run db:migrate   # يطبّق الـ migrations
+DEMO=1 npm run db:seed
+npm run dev
+```

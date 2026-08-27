@@ -12,7 +12,10 @@ export type ActivityAction =
   | 'PHOTO_UPDATED'
   | 'PROFILE_UPDATED'
   | 'LOCATION_ADDED'
-  | 'LAWYER_ADDED';
+  | 'LAWYER_ADDED'
+  | 'USER_ADDED'
+  | 'USER_UPDATED'
+  | 'USER_DELETED';
 
 export async function logActivity(input: {
   action: ActivityAction;
@@ -52,4 +55,7 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   PROFILE_UPDATED: 'تحديث الملف',
   LOCATION_ADDED: 'إضافة مكان',
   LAWYER_ADDED: 'إضافة محامي',
+  USER_ADDED: 'إضافة حساب',
+  USER_UPDATED: 'تعديل حساب',
+  USER_DELETED: 'حذف حساب',
 };
