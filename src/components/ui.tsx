@@ -11,17 +11,17 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 
 export function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSize = 'md', extra?: string) {
   const base =
-    'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none select-none whitespace-nowrap active:scale-[0.98]';
+    'btn-bubble inline-flex items-center justify-center gap-2 font-semibold select-none whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none';
   const sizes: Record<ButtonSize, string> = {
-    sm: 'h-8 px-3 text-[13px] rounded-lg',
-    md: 'h-10 px-4 text-sm rounded-xl',
-    lg: 'h-12 px-6 text-base rounded-xl',
+    sm: 'h-8 px-3.5 text-[13px] rounded-full',
+    md: 'h-10 px-5 text-sm rounded-full',
+    lg: 'h-12 px-7 text-base rounded-full',
   };
   const variants: Record<ButtonVariant, string> = {
     primary:
-      'bg-gradient-to-b from-navy-800 to-navy-900 text-ivory-50 shadow-soft hover:from-navy-700 hover:to-navy-800 hover:shadow-card active:bg-navy-950',
+      'bg-gradient-to-b from-navy-800 to-navy-900 text-ivory-50 shadow-soft ring-1 ring-white/10 hover:from-navy-700 hover:to-navy-800 hover:shadow-card',
     gold:
-      'bg-gradient-to-b from-gold-400 to-gold-500 text-navy-950 shadow-[0_2px_8px_-2px_rgba(212,169,63,0.5)] hover:from-gold-300 hover:to-gold-400 hover:shadow-glow-gold active:from-gold-500 active:to-gold-600',
+      'bg-gradient-to-b from-gold-400 to-gold-500 text-navy-950 shadow-[0_2px_8px_-2px_rgba(212,175,81,0.55)] ring-1 ring-gold-600/30 hover:from-gold-300 hover:to-gold-400 hover:shadow-glow-gold',
     outline:
       'border border-navy-200 bg-white text-navy-800 shadow-soft hover:border-gold-500/60 hover:text-navy-950 hover:shadow-card',
     ghost: 'text-navy-700 hover:bg-navy-900/[0.06]',

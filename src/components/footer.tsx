@@ -6,12 +6,16 @@ export function Footer() {
       {/* Gold gradient hairline accent */}
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-gold-500/60 to-transparent"
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-gold-500/70 to-transparent"
       />
-      {/* Soft ambient glow */}
+      {/* Premium wine + gold ambient glow */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(720px_240px_at_50%_-80px,rgba(212,169,63,0.09),transparent_70%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(720px_240px_at_50%_-80px,rgba(212,175,81,0.10),transparent_70%)]"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-10 top-10 h-56 bg-[radial-gradient(560px_220px_at_88%_30%,rgba(36,18,22,0.55),transparent_70%)]"
       />
       <div className="relative mx-auto grid max-w-[1440px] gap-10 px-6 py-14 md:grid-cols-3">
         {/* Col 1: Firm name + description (2 lines max) */}
@@ -99,7 +103,7 @@ export function Footer() {
           <div className="mt-5 space-y-3">
             <a
               href="mailto:hloutfi@loutfilawfirm.net"
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/70 transition-all hover:border-gold-500/40 hover:bg-gold-500/10 hover:text-white"
+              className="btn-bubble inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/70 transition-all hover:border-gold-500/40 hover:bg-gold-500/10 hover:text-white"
               style={{ fontFamily: 'Inter, sans-serif' }}
               dir="ltr"
             >
@@ -108,7 +112,7 @@ export function Footer() {
             <div>
               <a
                 href="tel:+20237606575"
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/70 transition-all hover:border-gold-500/40 hover:bg-gold-500/10 hover:text-white"
+                className="btn-bubble inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/70 transition-all hover:border-gold-500/40 hover:bg-gold-500/10 hover:text-white"
                 style={{ fontFamily: 'Inter, sans-serif' }}
                 dir="ltr"
               >
