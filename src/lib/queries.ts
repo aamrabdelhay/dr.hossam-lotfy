@@ -14,12 +14,12 @@ export type TaskVM = {
   createdAt: string;
   urgency: Urgency;
   daysLeft: number | null;
-  location: { id: string; slug: string; name: string; type: Location['type'] };
+  location: { id: string; slug: string; name: string; type: Location['type']; address: string | null };
   caseName: string | null;
   caseNumber: string | null;
   author: { id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null } | null;
   lawyerIds: string[];
-  lawyers: Array<{ id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null; completed: boolean }>;
+  lawyers: Array<{ id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null; phone: string | null; completed: boolean }>;
   commentCount: number;
   lastCommentAt: string | null;
 };
@@ -30,7 +30,7 @@ export const taskInclude = {
   author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } },
   assignees: {
     select: {
-      lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } },
+      lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true, phone: true } },
       completedAt: true,
     },
     orderBy: { createdAt: 'asc' as const },
@@ -48,10 +48,10 @@ type TaskShape = {
   status: Task['status'];
   completedAt: Date | null;
   createdAt: Date;
-  location: { id: string; slug: string; name: string; type: Location['type'] };
+  location: { id: string; slug: string; name: string; type: Location['type']; address: string | null };
   caseRecord: { name: string; number: string } | null;
   author: { id: string; fullName: string; title: Lawyer['title']; slug: string; profilePhotoUrl: string | null } | null;
-  assignees: Array<{ lawyer: { id: string; fullName: string; title: Lawyer['title']; slug: string; profilePhotoUrl: string | null }; completedAt: Date | null }>;
+  assignees: Array<{ lawyer: { id: string; fullName: string; title: Lawyer['title']; slug: string; profilePhotoUrl: string | null; phone: string | null }; completedAt: Date | null }>;
   comments: Array<{ createdAt: Date }>;
 };
 
@@ -68,7 +68,7 @@ export function toTaskVM(t: TaskShape): TaskVM {
     createdAt: t.createdAt.toISOString(),
     urgency: urgencyOf(date),
     daysLeft: date ? daysUntil(date) : null,
-    location: { id: t.location.id, slug: t.location.slug, name: t.location.name, type: t.location.type },
+    location: { id: t.location.id, slug: t.location.slug, name: t.location.name, type: t.location.type, address: t.location.address },
     caseName: t.caseRecord?.name ?? null,
     caseNumber: t.caseRecord?.number ?? null,
     author: t.author
@@ -81,6 +81,7 @@ export function toTaskVM(t: TaskShape): TaskVM {
       title: a.lawyer.title,
       slug: a.lawyer.slug,
       photo: a.lawyer.profilePhotoUrl,
+      phone: a.lawyer.phone,
       completed: !!a.completedAt,
     })),
     commentCount: t.comments.length,
