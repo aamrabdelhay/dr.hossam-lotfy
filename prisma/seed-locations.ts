@@ -413,8 +413,13 @@ export async function seedLocations() {
       governorate: seed.governorate,
       city: seed.city,
       district: seed.district ?? null,
-      address: seed.address,
-      phone: seed.phone ?? null,
+      // Privacy: never persist court/place contact, street address, or map
+      // links. These stay null even if a source seed contains them.
+      address: null,
+      phone: null,
+      email: null,
+      website: null,
+      googleMapsUrl: null,
       workingHours: HOURS,
       services: seed.services,
       jurisdiction: seed.jurisdiction ?? null,
@@ -446,6 +451,27 @@ export async function seedLocations() {
 
   const total = await prisma.location.count();
   console.log(`✅ ${all.length} locations synced (${created} جديدة، ${updated} محدّثة) — إجمالي الأماكن في القاعدة: ${total} (${COURTS.length} محكمة + ${PLACES.length} جهة حكومية + ${JUSTICE.length} جهة عدلية، مصنّفة وموثّقة لدليل المحامي).`);
+
+  // ── Privacy sanitize (MUST stay) ─────────────────────────────────────────
+  // Running on every deploy guarantees any previously-stored court/place phone,
+  // address, email, website or Google Maps link is scrubbed again. This is an
+  // unavoidable privacy invariant for the public courts/places directory.
+  const sanitized = await prisma.location.updateMany({
+    data: {
+      address: null,
+      phone: null,
+      email: null,
+      website: null,
+      googleMapsUrl: null,
+    },
+  });
+  await prisma.organization.updateMany({
+    data: {
+      phone: null,
+      email: null,
+    },
+  });
+  console.log(`🔒 [privacy] sanitized ${sanitized.count} location rows — contact/address/map data removed.`);
 }
 
 /** Standalone run: npx tsx prisma/seed-locations.ts */

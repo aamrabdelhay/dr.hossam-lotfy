@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Clock, MapPin, MessageSquare, UserRound, CheckCircle2, Navigation, Phone } from 'lucide-react';
+import { Clock, MapPin, MessageSquare, UserRound, CheckCircle2, Phone } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Avatar } from './ui';
 import { URGENCY_BORDER, URGENCY_DOT, UrgencyBadge } from './urgency';
@@ -77,16 +77,6 @@ export function SessionCard({ task, showCase = true }: { task: TaskVM; showCase?
       )}
       </Link>
       <div className="mt-2 flex gap-1.5 border-t border-navy-100 pt-2">
-        {task.location.address && (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.address)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-gold-500/10 px-2 text-[10px] font-bold text-gold-700 hover:bg-gold-500/20"
-          >
-            <Navigation size={13} /> الاتجاهات
-          </a>
-        )}
         {task.lawyers[0]?.phone ? (
           <a href={`tel:${task.lawyers[0].phone}`} className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-navy-900/5 px-2 text-[10px] font-bold text-navy-700 hover:bg-navy-900/10">
             <Phone size={13} /> اتصال بالمحامي

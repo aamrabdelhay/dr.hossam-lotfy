@@ -4,12 +4,12 @@ import * as React from 'react';
 import Link from 'next/link';
 import {
   Search, MapPin, Navigation, Filter, RotateCcw, ShieldCheck,
-  Clock3, Phone, ExternalLink, Building2, Landmark, ChevronDown,
-  LayoutGrid, Map as MapIcon, Globe, Eye, X,
+  Clock3, Building2, Landmark, ChevronDown,
+  LayoutGrid, Map as MapIcon, Eye, X,
 } from 'lucide-react';
 import { Badge, Card, EmptyState, Input, Select } from '@/components/ui';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
-import { haversineKm, googleDirectionsUrl, DOKKI_ORIGIN } from '@/lib/legal-directory';
+import { haversineKm, DOKKI_ORIGIN } from '@/lib/legal-directory';
 
 export type LawyerGuideLocation = {
   id: string;
@@ -21,11 +21,6 @@ export type LawyerGuideLocation = {
   governorate: string | null;
   city: string | null;
   district: string | null;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
-  officialUrl: string | null;
-  googleMapsUrl: string | null;
   lat: number | null;
   lng: number | null;
   workingHours: string | null;
@@ -90,7 +85,7 @@ export function LawyerGuideClient({
       const needle = q.trim().toLowerCase();
       const normalizedNeedle = normalizeAr(q.trim());
       result = result.filter((r) => {
-        const hay = [r.name, r.nameEn, r.address, r.subType, r.governorate, r.city, r.district, r.category?.nameAr, r.category?.nameEn, ...r.services.map((s) => s.nameAr)].filter(Boolean).join(' ').toLowerCase();
+        const hay = [r.name, r.nameEn, r.subType, r.governorate, r.city, r.district, r.category?.nameAr, r.category?.nameEn, ...r.services.map((s) => s.nameAr)].filter(Boolean).join(' ').toLowerCase();
         const hayNorm = normalizeAr(hay);
         return hay.includes(needle) || hayNorm.includes(normalizedNeedle);
       });
@@ -378,7 +373,6 @@ function LocationCard({
   const personalDistance = nearby && row.lat != null && row.lng != null
     ? haversineKm(nearby.lat, nearby.lng, row.lat, row.lng)
     : null;
-  const directions = row.googleMapsUrl || googleDirectionsUrl(row.lat, row.lng);
   const isVerified = row.confidenceLevel === 'VERIFIED' || row.confidence === 'عالية';
 
   if (viewMode === 'grid') {
@@ -412,14 +406,9 @@ function LocationCard({
           {row.requiresPersonal && <Badge tone="outline">حضور شخصي</Badge>}
         </div>
         <div className="mt-3 flex gap-1.5">
-          <Link href={`/lawyer-guide/${row.slug}`} className="flex-1 rounded-md bg-navy-950 px-2 py-1 text-center text-[10px] font-bold text-white hover:bg-navy-800">
+          <Link href={`/lawyer-guide/${row.slug}`} className="btn-bubble flex-1 rounded-full bg-navy-950 px-2 py-1 text-center text-[10px] font-bold text-white">
             التفاصيل
           </Link>
-          {directions && (
-            <a href={directions} target="_blank" rel="noreferrer" className="rounded-md border border-navy-200 px-2 py-1 text-[10px] font-bold text-navy-700 hover:border-gold-500">
-              الاتجاهات
-            </a>
-          )}
         </div>
       </Card>
     );
@@ -443,7 +432,6 @@ function LocationCard({
           {row.subType ? ` — ${row.subType}` : ''}
           {row.governorate ? ` — ${row.governorate}` : ''}
         </p>
-        {row.address && <p className="mt-0.5 truncate text-[11px] text-navy-400">{row.address}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {personalDistance != null ? (
@@ -454,19 +442,9 @@ function LocationCard({
         {row.hasOnlineService && <Badge tone="gray">أونلاين</Badge>}
         {row.requiresPersonal && <Badge tone="outline">حضور شخصي</Badge>}
         <div className="flex gap-1.5">
-          <Link href={`/lawyer-guide/${row.slug}`} className="rounded-md bg-navy-950 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-navy-800">
+          <Link href={`/lawyer-guide/${row.slug}`} className="btn-bubble rounded-full bg-navy-950 px-3 py-1 text-[10px] font-bold text-white">
             <Eye size={11} className="inline" /> عرض
           </Link>
-          {directions && (
-            <a href={directions} target="_blank" rel="noreferrer" className="rounded-md border border-navy-200 px-2.5 py-1 text-[10px] font-bold text-navy-700 hover:border-gold-500">
-              الاتجاهات
-            </a>
-          )}
-          {row.phone && (
-            <a href={`tel:${row.phone}`} className="rounded-md border border-navy-200 px-2 py-1 text-[10px] font-bold text-navy-700 hover:border-gold-500">
-              <Phone size={11} />
-            </a>
-          )}
         </div>
       </div>
     </Card>

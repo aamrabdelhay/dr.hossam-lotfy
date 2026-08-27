@@ -22,11 +22,6 @@ export type AdminLocationRow = NavLocation & {
   nameEn?: string | null;
   city?: string | null;
   district?: string | null;
-  address?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  website?: string | null;
-  googleMapsUrl?: string | null;
   workingHours?: string | null;
   jurisdiction?: string | null;
   distanceBucket?: string | null;
@@ -53,11 +48,7 @@ export function LocationForm({
   const [governorate, setGovernorate] = React.useState('');
   const [city, setCity] = React.useState('');
   const [district, setDistrict] = React.useState('');
-  const [address, setAddress] = React.useState('');
-  const [phone, setPhone] = React.useState('');
-  const [email, setEmail] = React.useState('');
   const [workingHours, setWorkingHours] = React.useState('');
-  const [googleMapsUrl, setGoogleMapsUrl] = React.useState('');
   const [distanceBucket, setDistanceBucket] = React.useState('');
   const [services, setServices] = React.useState<string[]>([]);
   const [serviceDraft, setServiceDraft] = React.useState('');
@@ -73,11 +64,7 @@ export function LocationForm({
     setGovernorate(str(location?.governorate));
     setCity(str(location?.city));
     setDistrict(str(location?.district));
-    setAddress(str(location?.address));
-    setPhone(str(location?.phone));
-    setEmail(str(location?.email));
     setWorkingHours(str(location?.workingHours));
-    setGoogleMapsUrl(str(location?.googleMapsUrl));
     setDistanceBucket(str(location?.distanceBucket));
     setServices(location?.services ?? []);
     setServiceDraft('');
@@ -112,11 +99,7 @@ export function LocationForm({
         governorate: val(governorate),
         city: val(city),
         district: val(district),
-        address: val(address),
-        phone: val(phone),
-        email: val(email),
         workingHours: val(workingHours),
-        googleMapsUrl: val(googleMapsUrl),
         distanceBucket: val(distanceBucket),
         services,
         description: val(description),
@@ -193,23 +176,10 @@ export function LocationForm({
               ))}
             </Select>
           </Field>
-          <Field label="التليفون">
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" className="ltr text-start" placeholder="+20 2 …" />
-          </Field>
-          <Field label="البريد الإلكتروني">
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" className="ltr text-start" placeholder="info@example.gov.eg" />
-          </Field>
           <Field label="مواعيد العمل">
             <Input value={workingHours} onChange={(e) => setWorkingHours(e.target.value)} placeholder="الأحد–الخميس 9ص–2م" />
           </Field>
-          <Field label="رابط خرائط جوجل">
-            <Input value={googleMapsUrl} onChange={(e) => setGoogleMapsUrl(e.target.value)} dir="ltr" className="ltr text-start" placeholder="https://maps.google.com/…" />
-          </Field>
         </div>
-
-        <Field label="العنوان" hint="اختياري">
-          <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="العنوان بالتفصيل" />
-        </Field>
 
         <Field label="الخدمات" hint="اكتب الخدمة واضغط + إضافة">
           <div className="space-y-2">

@@ -48,7 +48,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   if (!location) return json({ error: 'المكان غير موجود' }, { status: 404 });
 
-  return json({ location });
+  // Privacy: never expose contact / address / map fields in API responses.
+  const { address: _a, phone: _p, email: _e, website: _w, googleMapsUrl: _g, officialUrl: _o, ...safe } = location;
+  void _a; void _p; void _e; void _w; void _g; void _o;
+  return json({ location: safe });
 }
 
 const updateSchema = z.object({
@@ -59,12 +62,6 @@ const updateSchema = z.object({
   governorate: z.string().max(80).optional().nullable(),
   city: z.string().max(80).optional().nullable(),
   district: z.string().max(80).optional().nullable(),
-  address: z.string().max(300).optional().nullable(),
-  phone: z.string().max(30).optional().nullable(),
-  email: z.string().email().optional().nullable().or(z.literal('')),
-  website: z.string().max(200).optional().nullable(),
-  officialUrl: z.string().max(500).optional().nullable(),
-  googleMapsUrl: z.string().max(500).optional().nullable(),
   lat: z.number().min(-90).max(90).optional().nullable(),
   lng: z.number().min(-180).max(180).optional().nullable(),
   workingHours: z.string().max(200).optional().nullable(),

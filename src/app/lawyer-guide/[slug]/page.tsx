@@ -2,14 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
-  Landmark, Building2, MapPin, Phone, Mail, Globe, ExternalLink,
-  Navigation, ShieldCheck, Clock3, ArrowRight, Calendar,
-  CheckCircle2, AlertCircle, Clock, FileText, ChevronLeft,
+  Landmark, Building2, ShieldCheck, Clock3, ArrowRight, Calendar,
+  CheckCircle2, AlertCircle, Clock, FileText, ChevronLeft, Globe,
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { Badge, Card } from '@/components/ui';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
-import { googleDirectionsUrl, DOKKI_ORIGIN } from '@/lib/legal-directory';
 import { categoryForType } from '@/lib/legal-directory';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -18,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!location) return { title: 'غير موجود' };
   return {
     title: `${location.name} — دليل المحامي في مصر`,
-    description: location.address || location.description || `${location.name} — ${LOCATION_TYPE_LABEL[location.type] || location.type}`,
+    description: location.description || `${location.name} — ${LOCATION_TYPE_LABEL[location.type] || location.type}`,
   };
 }
 
@@ -53,13 +51,13 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
       relationshipsFrom: {
         where: { verified: true },
         include: {
-          toLocation: { select: { id: true, slug: true, name: true, type: true, governorate: true, district: true, address: true } },
+          toLocation: { select: { id: true, slug: true, name: true, type: true, governorate: true, district: true } },
         },
       },
       relationshipsTo: {
         where: { verified: true },
         include: {
-          fromLocation: { select: { id: true, slug: true, name: true, type: true, governorate: true, district: true, address: true } },
+          fromLocation: { select: { id: true, slug: true, name: true, type: true, governorate: true, district: true } },
         },
       },
       locationSources: {
@@ -83,7 +81,6 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
 
   const isVerified = location.confidenceLevel === 'VERIFIED' || location.confidence === 'عالية';
   const isArchived = location.verificationStatus === 'ARCHIVED';
-  const directions = location.googleMapsUrl || googleDirectionsUrl(location.lat, location.lng);
 
   return (
     <div className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
@@ -112,14 +109,10 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge tone="gold">{location.category?.nameAr || categoryForType(location.type, location.name, location.subType ?? '')}</Badge>
                 {location.subType && <span className="text-[11px] text-ivory-300">{location.subType}</span>}
+                {[location.district, location.city, location.governorate].filter(Boolean).join(' — ') && (
+                  <span className="text-[11px] font-semibold text-ivory-300">{[location.district, location.city, location.governorate].filter(Boolean).join(' — ')}</span>
+                )}
               </div>
-              {location.address && (
-                <p className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-ivory-300">
-                  <MapPin size={12} className="text-gold-400" />
-                  {location.address}
-                  {location.city || location.governorate ? ` — ${[location.city, location.governorate].filter(Boolean).join('، ')}` : ''}
-                </p>
-              )}
             </div>
             <div className="flex gap-3">
               {location.distanceFromDokki != null && (
@@ -264,37 +257,6 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
 
         {/* Right column — 1/3 */}
         <div className="space-y-5">
-          {/* Contact */}
-          <Card className="p-5">
-            <h2 className="mb-3 text-[13px] font-extrabold text-navy-900">بيانات التواصل</h2>
-            <div className="space-y-2.5 text-[12px]">
-              {location.phone && (
-                <a href={`tel:${location.phone}`} className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
-                  <Phone size={13} className="text-gold-600" />
-                  <span className="ltr">{location.phone}</span>
-                </a>
-              )}
-              {location.email && (
-                <a href={`mailto:${location.email}`} className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
-                  <Mail size={13} className="text-gold-600" />
-                  <span className="ltr">{location.email}</span>
-                </a>
-              )}
-              {location.officialUrl && (
-                <a href={location.officialUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
-                  <Globe size={13} className="text-gold-600" />
-                  الموقع الرسمي
-                </a>
-              )}
-              {location.googleMapsUrl && (
-                <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-bold text-navy-700 hover:text-gold-700">
-                  <MapPin size={13} className="text-gold-600" />
-                  خرائط جوجل
-                </a>
-              )}
-            </div>
-          </Card>
-
           {/* Opening Hours */}
           {(location.openingHours.length > 0 || location.workingHours) && (
             <Card className="p-5">
@@ -322,62 +284,23 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
             </Card>
           )}
 
-          {/* Action buttons */}
+          {/* Action buttons (privacy: no directions / maps / calls) */}
           <Card className="p-5">
             <div className="space-y-2">
-              {directions && (
-                <a
-                  href={directions}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-md bg-navy-950 px-4 py-2.5 text-[12px] font-bold text-white hover:bg-navy-800"
-                >
-                  <Navigation size={14} />
-                  الاتجاهات من الدقي
-                </a>
-              )}
-              {location.phone && (
-                <a
-                  href={`tel:${location.phone}`}
-                  className="flex w-full items-center justify-center gap-2 rounded-md border border-navy-200 px-4 py-2.5 text-[12px] font-bold text-navy-700 hover:border-gold-500"
-                >
-                  <Phone size={14} />
-                  اتصال
-                </a>
-              )}
               {location.hasOnlineService && (
-                <div className="flex items-center justify-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-2.5 text-[12px] font-bold text-green-700">
+                <div className="flex items-center justify-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2.5 text-[12px] font-bold text-green-700">
                   <Globe size={14} />
                   خدمة إلكترونية متاحة
                 </div>
               )}
               {location.requiresPersonal && (
-                <div className="flex items-center justify-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-[12px] font-bold text-amber-700">
+                <div className="flex items-center justify-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2.5 text-[12px] font-bold text-amber-700">
                   <AlertCircle size={14} />
                   الحضور الشخصي مطلوب
                 </div>
               )}
             </div>
           </Card>
-
-          {/* Map placeholder */}
-          {location.lat != null && location.lng != null && (
-            <Card className="overflow-hidden p-0">
-              <div className="relative h-48 bg-navy-100">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin size={24} className="mx-auto text-gold-600" />
-                    <p className="mt-2 text-[11px] font-bold text-navy-500">{location.lat.toFixed(4)}, {location.lng.toFixed(4)}</p>
-                    {location.googleMapsUrl && (
-                      <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] font-bold text-gold-700 hover:underline">
-                        فتح في خرائط جوجل →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
     </div>

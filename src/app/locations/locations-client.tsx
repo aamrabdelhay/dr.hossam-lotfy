@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Landmark, Building2, CalendarClock, Filter, RotateCcw, Search, MapPin, Phone, ExternalLink, Navigation, ShieldCheck, Clock3 } from 'lucide-react';
+import { Landmark, Building2, CalendarClock, Filter, RotateCcw, Search, MapPin, Navigation, ShieldCheck, Clock3 } from 'lucide-react';
 import { Badge, Card, EmptyState, Input, Select } from '@/components/ui';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
-import { haversineKm, googleDirectionsUrl } from '@/lib/legal-directory';
+import { haversineKm } from '@/lib/legal-directory';
 
 export type LocationRow = {
   id: string;
@@ -18,10 +18,6 @@ export type LocationRow = {
   governorate: string | null;
   city: string | null;
   district: string | null;
-  address: string | null;
-  phone: string | null;
-  website: string | null;
-  googleMapsUrl: string | null;
   lat: number | null;
   lng: number | null;
   workingHours: string | null;
@@ -99,7 +95,7 @@ export function LocationsClient({
     if (category && r.category !== category) return false;
     if (bucket && r.distanceBucket !== bucket) return false;
     if (needle) {
-      const hay = [r.name, r.nameEn, r.category, r.subType, r.governorate, r.city, r.district, r.address, r.jurisdiction, ...r.services, ...r.searchKeywords].filter(Boolean).join(' ').toLowerCase();
+      const hay = [r.name, r.nameEn, r.category, r.subType, r.governorate, r.city, r.district, r.jurisdiction, ...r.services, ...r.searchKeywords].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(needle)) return false;
     }
     return true;
@@ -180,7 +176,6 @@ export function LocationsClient({
 function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number; lng: number } | null }) {
   const isCourt = row.type === 'COURT';
   const personalDistance = nearby && row.lat != null && row.lng != null ? haversineKm(nearby.lat, nearby.lng, row.lat, row.lng) : null;
-  const directions = row.googleMapsUrl || googleDirectionsUrl(row.lat, row.lng);
   return (
     <Card className="group h-full p-4 transition hover:border-gold-500 hover:shadow-md">
       <div className="flex items-start gap-3">
@@ -189,7 +184,6 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
           <Link href={`/locations/${row.slug}`} className="block"><p className="text-[14px] font-extrabold text-navy-950 group-hover:text-navy-800">{row.name}</p></Link>
           <p className="mt-0.5 text-[11px] font-bold text-navy-300">{row.category} — {row.subType || (LOCATION_TYPE_LABEL[row.type] ?? row.type)}</p>
           {(row.city || row.governorate) && <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-navy-400"><MapPin size={11} />{[row.city, row.governorate].filter(Boolean).join(' — ')}</p>}
-          {row.address && <p className="mt-1 line-clamp-2 text-[11px] font-medium leading-5 text-navy-400">{row.address}</p>}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {personalDistance != null ? <Badge tone="gold">{personalDistance.toFixed(1)} كم منك</Badge> : row.distanceFromDokki != null ? <Badge tone="outline">{row.distanceFromDokki.toFixed(1)} كم من الدقي</Badge> : row.distanceBucket ? <Badge tone="outline">{row.distanceBucket}</Badge> : null}
             {row.nextTaskLabel && <Badge tone="gold"><CalendarClock size={11} />{row.nextTaskLabel}</Badge>}
@@ -200,10 +194,7 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
       </div>
       {row.services.length > 0 && <div className="mt-3 border-t border-navy-100 pt-3"><p className="mb-1 text-[10px] font-extrabold text-navy-400">خدمات بارزة</p><div className="flex flex-wrap gap-1">{row.services.slice(0, 4).map((s) => <span key={s} className="rounded bg-navy-50 px-1.5 py-0.5 text-[10px] font-semibold text-navy-600">{s}</span>)}</div></div>}
       <div className="mt-3 flex flex-wrap gap-1.5">
-        <Link href={`/locations/${row.slug}`} className="inline-flex items-center gap-1 rounded-md bg-navy-950 px-2.5 py-1.5 text-[10px] font-extrabold text-white hover:bg-navy-800">التفاصيل</Link>
-        {directions && <a href={directions} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-navy-700 hover:border-gold-500"><Navigation size={11} />الاتجاهات</a>}
-        {row.googleMapsUrl && <a href={row.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-navy-700 hover:border-gold-500"><ExternalLink size={11} />خرائط</a>}
-        {row.phone && <a href={`tel:${row.phone}`} className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-2.5 py-1.5 text-[10px] font-extrabold text-navy-700 hover:border-gold-500"><Phone size={11} />اتصال</a>}
+        <Link href={`/locations/${row.slug}`} className="btn-bubble inline-flex items-center gap-1 rounded-full bg-navy-950 px-3 py-1.5 text-[10px] font-extrabold text-white">التفاصيل</Link>
       </div>
       {(row.workingHours || row.lastVerified) && <div className="mt-2 flex flex-wrap gap-2 text-[9px] font-semibold text-navy-300">{row.workingHours && <span className="inline-flex items-center gap-1"><Clock3 size={10} />{row.workingHours}</span>}{row.lastVerified && <span>آخر تحقق: {new Date(row.lastVerified).toLocaleDateString('ar-EG')}</span>}</div>}
     </Card>
