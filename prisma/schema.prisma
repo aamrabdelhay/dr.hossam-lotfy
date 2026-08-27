@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "client"
 }
 
 datasource db {
@@ -78,227 +79,189 @@ model Lawyer {
   email           String?
   specialization  String?
   bio             String?
-  position        String?
-  profilePhotoUrl String?
-  coverPhotoUrl   String?
-  sortOrder       Int         @default(100)
-  isPrincipal     Boolean     @default(false)
   active          Boolean     @default(true)
+  sortOrder       Int         @default(0)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  assignments    TaskAssignment[]
-  posts          Task[]            @relation("LawyerPosts")
-  completedTasks TaskAssignment[]  @relation("CompletedBy")
-  comments       Comment[]
-  accessTokens   AccessToken[]
-  notifications  Notification[]
-  activities     ActivityLog[]
+  tasks           TaskAssignment[]
+  comments        Comment[]
+  activities      ActivityLog[]
+  notifications   Notification[]
+  authSessions    AuthSession[]
 
-  @@index([sortOrder, fullName])
+  @@index([active, sortOrder])
   @@map("lawyers")
 }
 
-model AccessToken {
-  id         String    @id @default(cuid())
-  token      String    @unique
-  lawyerId   String
-  label      String?
-  expiresAt  DateTime?
-  consumedAt DateTime?
-  createdAt  DateTime  @default(now())
-
-  lawyer Lawyer @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
-
-  @@index([lawyerId])
-  @@map("access_tokens")
-}
-
-// ─────────────────────────── Locations / Courts ───────────────────────────
-
 model Location {
-  id                 String       @id @default(cuid())
-  slug               String       @unique
-  name               String
-  nameEn             String?
-  type               LocationType
-  subType            String? // محكمة ابتدائية / جزئية / استئناف …
-  governorate        String?
-  city               String?
-  district           String?
-  address            String?
-  phone              String?
-  email              String?
-  website            String?
-  googleMapsUrl      String?
-  lat                Float?
-  lng                Float?
-  workingHours       String?
-  services           String[]     @default([])
-  jurisdiction       String? // دائرة الاختصاص
-  requiresPersonal   Boolean      @default(false)
-  hasOnlineService   Boolean      @default(false)
-  source             String?
-  lastVerified       DateTime?
-  confidence         String? // عالية / متوسطة / تقديرية
-  distanceFromDokki  Float? // كم من مكتب الدقي (outward)
-  distanceBucket     String? // 0-5كم، 5-10كم، 10-20كم …
-  buildingId         String?
-  description        String?
-  searchKeywords     String[]     @default([])
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  name                String
+  nameEn              String?
+  type                LocationType
+  subType             String?
+  governorate         String?
+  city                String?
+  district            String?
+  phone               String?
+  email               String?
+  website             String?
+  googleMapsUrl       String?
+  lat                 Float?
+  lng                 Float?
+  workingHours        String?
+  services            String[]     @default([])
+  jurisdiction        String?
+  requiresPersonal    Boolean      @default(false)
+  hasOnlineService    Boolean      @default(false)
+  source              String?
+  lastVerified        DateTime?
+  confidence          Int?
+  distanceFromDokki   Float?
+  distanceBucket      Int?
+  buildingId          String?
+  searchKeywords     String[]      @default([])
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
-  tasks Task[]
+  tasks              Task[]
 
   @@index([type])
-  @@index([governorate])
-  @@index([distanceFromDokki])
+  @@index([governorate, city, district])
+  @@index([distanceBucket])
   @@map("locations")
 }
 
-/// Opaque server-side sessions. The cookie holds a high-entropy random token
-/// (HMAC-signed envelope); only the SHA-256 hash of the token is stored here —
-/// no user/lawyer CUID is ever exposed in the session identifier.
-model AuthSession {
-  id        String    @id @default(cuid())
-  tokenHash String    @unique
-  role      String // 'admin' | 'lawyer'
-  userRole  String? // UserRole name when role = 'admin'
-  userId    String?
-  lawyerId  String?
-  ip        String?
-  userAgent String?
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
-
-  @@index([userId])
-  @@index([lawyerId])
-  @@index([expiresAt])
-  @@map("auth_sessions")
-}
-
 model CaseRecord {
-  id          String  @id @default(cuid())
-  name        String
-  number      String
-  description String?
+  id          String   @id @default(cuid())
+  caseNumber String
+  title       String
+  court       String?
+  client      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  tasks Task[]
+  tasks       Task[]
 
-  @@map("case_records")
+  @@index([caseNumber])
+  @@map("cases")
 }
 
-// ─────────────────────────── Tasks / Sessions ───────────────────────────
-
-/// A Task represents an operational assignment: a court session, an attendance at a
-/// legal destination, or a reported activity. It is the single source of truth and is
-/// referenced (never duplicated) from the main feed, lawyer profiles, location pages,
-/// the session sidebar, the calendar and the admin area.
 model Task {
-  id            String     @id @default(cuid())
-  locationId    String
-  caseId        String?
-  description   String
-  notes         String?
-  scheduledDate DateTime?  @db.Date
-  scheduledTime String?
-  status        TaskStatus @default(PENDING)
-  completedAt   DateTime?
-  authorId      String? // lawyer who authored the post (null ⇒ created by admin)
-  createdById   String? // admin user
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  taskType    String?
+  status      TaskStatus @default(PENDING)
+  dueDate     DateTime?
+  dueTime     String?
+  notes       String?
+  locationId  String?
+  caseId      String?
+  createdById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  location   Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  caseRecord CaseRecord?      @relation(fields: [caseId], references: [id], onDelete: SetNull)
-  author     Lawyer?          @relation("LawyerPosts", fields: [authorId], references: [id], onDelete: SetNull)
-  createdBy  User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  assignees  TaskAssignment[]
-  comments   Comment[]
-  activity   ActivityLog[]
+  location    Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  caseRecord  CaseRecord?  @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  assignments TaskAssignment[]
+  comments    Comment[]
+  activities  ActivityLog[]
 
-  @@index([scheduledDate, status])
-  @@index([locationId, scheduledDate])
-  @@index([createdAt])
-  @@index([status])
+  @@index([dueDate, status])
+  @@index([locationId])
+  @@index([caseId])
   @@map("tasks")
 }
 
 model TaskAssignment {
-  id            String    @id @default(cuid())
-  taskId        String
-  lawyerId      String
-  completedAt   DateTime?
-  completedById String?
-  createdAt     DateTime  @default(now())
+  id        String   @id @default(cuid())
+  taskId    String
+  lawyerId  String
+  createdAt DateTime @default(now())
 
-  task        Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  lawyer      Lawyer  @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
-  completedBy Lawyer? @relation("CompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  task      Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  lawyer    Lawyer @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, lawyerId])
   @@index([lawyerId])
   @@map("task_assignments")
 }
 
-// ─────────────────────────── Social ───────────────────────────
-
 model Comment {
-  id             String   @id @default(cuid())
-  taskId         String
-  text           String
-  authorLawyerId String?
-  authorUserId   String?
-  authorName     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        String   @id @default(cuid())
+  body      String
+  taskId    String?
+  userId    String?
+  lawyerId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  task         Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  authorLawyer Lawyer? @relation(fields: [authorLawyerId], references: [id], onDelete: SetNull)
-  authorUser   User?   @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  task      Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lawyer    Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: SetNull)
 
   @@index([taskId, createdAt])
   @@map("comments")
 }
 
 model Notification {
-  id             String    @id @default(cuid())
-  lawyerId       String?
-  userId         String?
-  type           String
-  title          String
-  body           String?
-  link           String?
-  readAt         DateTime?
-  createdAt      DateTime  @default(now())
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  userId    String?
+  lawyerId  String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
 
-  lawyer Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lawyer    Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
 
-  @@index([lawyerId, readAt])
   @@index([userId, readAt])
+  @@index([lawyerId, readAt])
   @@map("notifications")
 }
 
 model ActivityLog {
-  id         String   @id @default(cuid())
-  action     String
-  summary    String
-  taskId     String?
-  lawyerId   String?
-  locationId String?
-  byUserId   String?
-  byLawyerId String?
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  action      String
+  summary     String
+  userId      String?
+  lawyerId    String?
+  taskId      String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
 
-  task     Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  lawyer   Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
-  byUser   User?   @relation(fields: [byUserId], references: [id], onDelete: SetNull)
+  user        User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lawyer      Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: SetNull)
+  task        Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
-  @@index([lawyerId])
-  @@index([taskId])
+  @@index([userId, createdAt])
+  @@index([lawyerId, createdAt])
   @@map("activity_logs")
+}
+
+model AuthSession {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  role       String
+  userRole   String?
+  userId     String?
+  lawyerId   String?
+  ip         String?
+  userAgent  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user       User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lawyer     Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([lawyerId])
+  @@map("auth_sessions")
 }
