@@ -82,107 +82,114 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
 
   const navLinkStyle = (active: boolean) =>
     cn(
-      'relative inline-flex items-center gap-1.5 px-3 py-2 text-[11px] tracking-[1.5px] uppercase transition-colors',
+      'relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-all duration-200',
       'font-[\"IBM_Plex_Sans_Arabic\",sans-serif]',
       active
-        ? 'text-white border-b border-[#641F2B]'
-        : 'text-white/50 hover:text-white/80',
+        ? 'bg-white/[0.1] text-white ring-1 ring-inset ring-gold-500/40'
+        : 'text-white/55 hover:bg-white/[0.06] hover:text-white',
     );
 
   const locationList = (
-    <div className="w-72 overflow-hidden rounded-sm border border-[#E0D8CC] bg-[#F7F5F0] shadow-xl">
-      <p className="bg-[#101C2C] px-4 py-2 text-[9px] font-medium tracking-[2px] uppercase text-white/70" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحاكم</p>
-      <ul className="max-h-64 overflow-y-auto overscroll-contain py-1 [scrollbar-gutter:stable]">
+    <div className="w-72 overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-lift ring-1 ring-navy-950/5">
+      <p className="bg-[#0A101D] px-4 py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase text-gold-300" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحاكم</p>
+      <ul className="max-h-64 overflow-y-auto overscroll-contain py-1.5 [scrollbar-gutter:stable]">
         {courts.map((l) => (
           <li key={l.id}>
-            <Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#242424] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-              <Landmark size={14} className="text-[#8A6A3A]" />
+            <Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#1D2433] transition-colors hover:bg-ivory-100" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+              <Landmark size={14} className="text-gold-600" />
               {l.name}
             </Link>
           </li>
         ))}
       </ul>
-      <p className="bg-[#EEEBE4] px-4 py-2 text-[9px] font-medium tracking-[2px] uppercase text-[#6B6B6B]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الأماكن القانونية الأخرى</p>
-      <ul className="max-h-48 overflow-y-auto overscroll-contain py-1 [scrollbar-gutter:stable]">
+      <p className="bg-ivory-100 px-4 py-2 text-[9px] font-bold tracking-[1.5px] uppercase text-[#5B6B84]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الأماكن القانونية الأخرى</p>
+      <ul className="max-h-48 overflow-y-auto overscroll-contain py-1.5 [scrollbar-gutter:stable]">
         {otherLocations.map((l) => (
           <li key={l.id}>
-            <Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#242424] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-              <Scale size={14} className="text-[#6B6B6B]" />
+            <Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#1D2433] transition-colors hover:bg-ivory-100" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+              <Scale size={14} className="text-[#5B6B84]" />
               {l.name}
-              <span className="ms-auto text-[10px] font-medium text-[#6B6B6B]">{LOCATION_TYPE_LABEL[l.type]}</span>
+              <span className="ms-auto rounded-full bg-ivory-100 px-2 py-0.5 text-[10px] font-bold text-[#5B6B84]">{LOCATION_TYPE_LABEL[l.type]}</span>
             </Link>
           </li>
         ))}
       </ul>
-      <Link href="/locations" className="block border-t border-[#E0D8CC] px-4 py-2.5 text-center text-[11px] tracking-[1px] uppercase text-[#8A6A3A] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+      <Link href="/locations" className="block border-t border-navy-100 bg-ivory-50 px-4 py-2.5 text-center text-[11px] font-bold tracking-[0.5px] uppercase text-gold-700 transition-colors hover:bg-gold-500/10" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
         عرض كل المحاكم والأماكن
       </Link>
     </div>
   );
 
   const lawyerList = (
-    <div className="w-72 overflow-hidden rounded-sm border border-[#E0D8CC] bg-[#F7F5F0] shadow-xl">
-      <ul className="max-h-80 overflow-y-auto overscroll-contain py-1 [scrollbar-gutter:stable]">
+    <div className="w-72 overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-lift ring-1 ring-navy-950/5">
+      <ul className="max-h-80 overflow-y-auto overscroll-contain py-1.5 [scrollbar-gutter:stable]">
         {[...lawyers]
           .sort((a, b) => Number(b.isPrincipal) - Number(a.isPrincipal))
           .map((l) => (
-            <li key={l.id} className={cn(l.isPrincipal && 'bg-[#8A6A3A]/[0.06]')}>
-              <Link href={`/lawyers/${l.slug}`} className="flex items-center gap-3 px-4 py-2 hover:bg-white">
+            <li key={l.id} className={cn(l.isPrincipal && 'bg-gold-500/[0.07]')}>
+              <Link href={`/lawyers/${l.slug}`} className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-ivory-100">
                 <Avatar name={l.name} src={l.photo} size={28} />
                 <span className="min-w-0">
-                  <span className={cn('block truncate text-[13px] font-medium text-[#242424]')} style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>{l.name}</span>
-                  <span className="block text-[10px] tracking-[1px] uppercase text-[#6B6B6B]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>{TITLE_LABEL[l.title]}</span>
+                  <span className={cn('block truncate text-[13px] font-medium text-[#1D2433]')} style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>{l.name}</span>
+                  <span className="block text-[10px] font-semibold tracking-[0.5px] uppercase text-[#5B6B84]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>{TITLE_LABEL[l.title]}</span>
                 </span>
               </Link>
             </li>
           ))}
       </ul>
-      <Link href="/lawyers" className="block border-t border-[#E0D8CC] px-4 py-2.5 text-center text-[11px] tracking-[1px] uppercase text-[#8A6A3A] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+      <Link href="/lawyers" className="block border-t border-navy-100 bg-ivory-50 px-4 py-2.5 text-center text-[11px] font-bold tracking-[0.5px] uppercase text-gold-700 transition-colors hover:bg-gold-500/10" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
         عرض كل المحامين
       </Link>
     </div>
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#18263A] bg-[#101C2C] text-white" ref={wrapRef} style={{ backgroundColor: '#101C2C' }}>
-      <div className="mx-auto flex h-[64px] max-w-[1440px] items-center gap-4 px-6">
+    <header className="glass sticky top-0 z-50 border-b border-white/[0.08] text-white shadow-[0_4px_24px_-12px_rgba(5,8,15,0.45)]" ref={wrapRef}>
+      <span aria-hidden className="gold-hairline absolute inset-x-0 bottom-0 opacity-60" />
+      <div className="relative mx-auto flex h-[68px] max-w-[1440px] items-center gap-4 px-5 sm:px-6">
         {/* Mobile menu button */}
         <button
-          className="rounded-sm p-2 text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
+          className="rounded-full p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
           onClick={() => setMobileOpen((v) => !v)}
           aria-label="القائمة"
         >
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
 
-        {/* Logo - DR. HOSSAM LOTFY / LAW FIRM (single instance — the sub-line
+        {/* Logo - monogram + DR. HOSSAM LOTFY / LAW FIRM (single instance — the sub-line
             is hidden on small screens instead of rendering a second copy) */}
-        <Link href="/" className="flex min-w-0 items-center gap-3">
+        <Link href="/" className="group flex min-w-0 items-center gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gold-500/50 bg-gradient-to-br from-gold-500/25 via-gold-600/10 to-transparent text-[15px] text-gold-300 shadow-[inset_0_1px_0_rgba(236,208,138,0.15)] transition-transform duration-300 group-hover:scale-105"
+            style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600 }}
+          >
+            HL
+          </span>
           <span className="block min-w-0">
             <span
               className="block truncate text-[14px] tracking-[2px] text-white md:text-[15px]"
-              style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400, fontVariant: 'small-caps', letterSpacing: '2px' }}
+              style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontVariant: 'small-caps', letterSpacing: '2px' }}
             >
               DR. HOSSAM LOTFY
             </span>
             <span
-              className="hidden text-[9px] tracking-[3px] text-white/60 uppercase md:block"
-              style={{ fontFamily: 'Cormorant Garamond, serif', letterSpacing: '3px' }}
+              className="hidden text-[9px] tracking-[3px] text-gold-400/80 uppercase md:block"
+              style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '3px' }}
             >
               LAW FIRM
             </span>
           </span>
         </Link>
 
-        {/* Desktop search - minimal */}
-        <form onSubmit={doSearch} className="mx-auto hidden w-full max-w-[320px] items-center gap-1.5 lg:flex">
-          <div className="relative flex-1">
-            <Search size={12} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-white/30" />
+        {/* Desktop search - pill */}
+        <form onSubmit={doSearch} className="mx-auto hidden w-full max-w-[340px] items-center gap-1.5 lg:flex">
+          <div className="group relative flex-1">
+            <Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-white/35 transition-colors group-focus-within:text-gold-400" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="بحث..."
-              className="h-8 w-full rounded-none border border-white/10 bg-[#18263A] ps-7 pe-2 text-[11px] tracking-[1px] text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+              placeholder="ابحث عن محكمة، مكان، محامٍ…"
+              className="h-9 w-full rounded-full border border-white/10 bg-white/[0.07] ps-9 pe-3.5 text-[12px] text-white transition-all placeholder:text-white/35 focus:border-gold-500/50 focus:bg-white/[0.1] focus:outline-none focus:ring-2 focus:ring-gold-500/20"
               style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
             />
           </div>
@@ -232,16 +239,16 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
               >
                 <Bell size={16} />
                 {unread > 0 && (
-                  <span className="absolute -top-0.5 -start-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#641F2B] px-1 text-[8px] font-bold text-white">
+                  <span className="absolute -top-0.5 -start-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#7A1F2B] px-1 text-[8px] font-bold text-white">
                     {unread > 9 ? '+9' : unread}
                   </span>
                 )}
               </button>
               {bellOpen && (
                 <div className="absolute end-0 top-full w-64 pt-3">
-                  <div className="overflow-hidden rounded-sm border border-[#E0D8CC] bg-[#F7F5F0] shadow-xl">
-                    <p className="bg-[#101C2C] px-4 py-2 text-[9px] tracking-[2px] uppercase text-white/60" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الإشعارات</p>
-                    <Link href="/notifications" className="block px-4 py-5 text-center text-[11px] text-[#242424] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                  <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-lift ring-1 ring-navy-950/5">
+                    <p className="bg-[#0A101D] px-4 py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase text-gold-300" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الإشعارات</p>
+                    <Link href="/notifications" className="block px-4 py-5 text-center text-[11px] font-semibold text-[#1D2433] transition-colors hover:bg-ivory-100" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                       عرض كل الإشعارات ←
                     </Link>
                   </div>
@@ -286,42 +293,42 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#101C2C] lg:hidden [scrollbar-gutter:stable]">
-          <div className="space-y-4 px-6 py-5">
+        <div className="max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-t border-white/[0.08] bg-[#0D1526]/95 backdrop-blur-xl lg:hidden [scrollbar-gutter:stable]">
+          <div className="space-y-4 px-5 py-5">
             <form onSubmit={doSearch} className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search size={12} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-white/30" />
+                <Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-white/35" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="ابحث..."
-                  className="h-9 w-full rounded-none border border-white/10 bg-[#18263A] ps-7 pe-3 text-[12px] text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
+                  className="h-10 w-full rounded-full border border-white/10 bg-white/[0.07] ps-9 pe-3 text-[12px] text-white transition-all placeholder:text-white/35 focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
                   style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
                 />
               </div>
-              <button type="submit" className="h-9 shrink-0 bg-white px-4 text-[11px] tracking-[1px] uppercase text-[#101C2C]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+              <button type="submit" className="h-10 shrink-0 rounded-full bg-gradient-to-b from-gold-400 to-gold-500 px-4 text-[11px] font-bold text-[#0A101D] transition-opacity hover:opacity-90" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                 بحث
               </button>
             </form>
             <div className="grid grid-cols-1 gap-1">
-              <Link href="/locations" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/60 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                <Landmark size={14} className="text-white/30" /> المحاكم والأماكن
+              <Link href="/locations" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Landmark size={15} className="text-gold-400/70" /> المحاكم والأماكن
               </Link>
-              <Link href="/lawyers" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white border-b border-[#641F2B]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                <Scale size={14} className="text-white/60" /> المحامون
+              <Link href="/lawyers" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Scale size={15} className="text-gold-400/70" /> المحامون
               </Link>
-              <Link href="/calendar" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/60 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                <CalendarClock size={14} className="text-white/30" /> التقويم
+              <Link href="/calendar" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <CalendarClock size={15} className="text-gold-400/70" /> التقويم
               </Link>
-              <Link href="/search" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/60 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                <Search size={14} className="text-white/30" /> البحث
+              <Link href="/search" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Search size={15} className="text-gold-400/70" /> البحث
               </Link>
-              <Link href="/lawyer-guide" className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/60 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                <Landmark size={14} className="text-white/30" /> دليل المحامي
+              <Link href="/lawyer-guide" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-white/60 transition-colors hover:bg-white/5 hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Landmark size={15} className="text-gold-400/70" /> دليل المحامي
               </Link>
               {!session && (
-                <Link href="/api/auth/login" prefetch={false} className="flex items-center gap-3 px-3 py-3 text-[11px] tracking-[1.5px] uppercase text-white/40 hover:text-white hover:bg-white/5" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                  <KeyRound size={14} /> Admin Login
+                <Link href="/api/auth/login" prefetch={false} className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-white/40 transition-colors hover:bg-white/5 hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                  <KeyRound size={15} /> Admin Login
                 </Link>
               )}
             </div>
