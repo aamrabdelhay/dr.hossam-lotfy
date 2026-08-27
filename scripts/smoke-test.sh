@@ -102,7 +102,7 @@ request 'تشخيص الخدمة' GET '/api/health' 200 || true
 body_contains 'health.status = ok' '"status":"ok"'
 header_matches 'health is not cached' '^cache-control:.*no-store'
 
-request 'صفحة الجلسات' GET '/sessions' 200 || true
+request 'صفحة عامة (المحامون)' GET '/lawyers' 200 || true
 header_matches 'Content-Security-Policy' '^content-security-policy:'
 header_matches 'X-Frame-Options: DENY' '^x-frame-options:[[:space:]]*DENY'
 header_matches 'X-Content-Type-Options: nosniff' '^x-content-type-options:[[:space:]]*nosniff'
@@ -130,11 +130,16 @@ request 'دليل الأماكن' GET '/locations' 200 || true
 body_contains 'قسم الأنشطة القادمة' 'أنشطة قادمة'
 body_contains 'فلاتر الأماكن' 'تصفية الأماكن'
 
-request 'البحث الإنجليزي tax' GET '/api/search?q=tax' 200 || true
-body_contains 'نتيجة مكتب ضرائب' 'TAX_OFFICE'
+request 'قائمة الأماكن العامة' GET '/api/locations' 200 || true
+body_contains 'الأماكن العامة تُرجع قائمة' '"locations"'
 
-request 'البحث العربي محكمة' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 200 || true
-body_contains 'نتيجة محكمة' 'COURT'
+request 'الصفحة الداخلية (الرئيسية) تُحوّل للدخول' GET '/' 307 || true
+request 'صفحة الجلسات تُحوّل للدخول' GET '/sessions' 307 || true
+request 'صفحة التقويم تُحوّل للدخول' GET '/calendar' 307 || true
+header_matches 'وجهة تحويل الصفحات الداخلية' '^location:.*\/admin\/login'
+
+request 'البحث محمي خلف تسجيل الدخول (إنجليزي)' GET '/api/search?q=tax' 401 || true
+request 'البحث محمي خلف تسجيل الدخول (عربي)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
 
 request 'إدارة الزائر تُحوّل للدخول' GET '/admin' 307 || true
 header_matches 'وجهة تحويل الإدارة' '^location:.*\/admin\/login'
