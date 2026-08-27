@@ -37,6 +37,7 @@ export function TaskCreator({
   const router = useRouter();
   const [locationId, setLocationId] = React.useState('');
   const [caseId, setCaseId] = React.useState('');
+  const [clientName, setClientName] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [notes, setNotes] = React.useState('');
   const [date, setDate] = React.useState('');
@@ -49,6 +50,7 @@ export function TaskCreator({
     if (open) {
       setLocationId('');
       setCaseId('');
+      setClientName('');
       setDescription('');
       setNotes('');
       setDate(defaultDate ?? '');
@@ -81,6 +83,7 @@ export function TaskCreator({
             locationId,
             caseName: selectedCase?.name || undefined,
             caseNumber: selectedCase?.number || undefined,
+            clientName: clientName.trim() || undefined,
             description: description.trim() || undefined,
             notes: notes.trim() || undefined,
             scheduledDate: date || undefined,
@@ -165,11 +168,11 @@ export function TaskCreator({
       }
     >
       <form id="task-creator-form" onSubmit={submit} className="space-y-4">
-        <Field label="المحامي/المحامون المكلفون" required hint="حتى 20 محامياً">
+        <Field label="المحامي/المحامون المكلفون" required hint="حتى 20 محامياً" status={lawyerIds.length > 0}>
           <MultiLawyerSelector lawyers={lawyers} selected={lawyerIds} onChange={setLawyerIds} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="المحكمة / المكان" required>
+          <Field label="المحكمة / المكان" required status={!!locationId}>
             <ComboboxWithAdd
               id="task-location"
               name="locationId"
@@ -193,10 +196,13 @@ export function TaskCreator({
               onAdd={addCase}
             />
           </Field>
-          <Field label="التاريخ">
+          <Field label="اسم العميل" hint="اختياري — يُسجّل على القضية">
+            <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="اسم العميل" />
+          </Field>
+          <Field label="التاريخ" status={!!date}>
             <Input type="date" name="scheduledDate" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
-          <Field label="الساعة">
+          <Field label="الساعة" status={!!time}>
             <Input type="time" name="scheduledTime" value={time} onChange={(e) => setTime(e.target.value)} />
           </Field>
         </div>

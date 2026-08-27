@@ -137,12 +137,15 @@ request 'الصفحة الرئيسية مفتوحة للزائر' GET '/' 200 ||
 request 'صفحة الجلسات مفتوحة للزائر' GET '/sessions' 200 || true
 request 'صفحة التقويم مفتوحة للزائر' GET '/calendar' 200 || true
 
-request 'بوابة الدخول (٣ خيارات)' GET '/auth' 200 || true
-body_contains 'خيار دخول محامي' 'دخول محامي'
-body_contains 'خيار تسجيل أول مرة' 'تسجيل أول مرة'
-body_contains 'خيار دخول الإدارة' 'تسجيل دخول إدارة'
+request 'بوابة الدخول (بطاقة واحدة بثلاثة أوضاع)' GET '/auth' 200 || true
+body_contains 'تبويب تسجيل دخول محامي' 'تسجيل دخول'
+body_contains 'تبويب تسجيل أول مرة' 'تسجيل أول مرة'
+body_contains 'تبويب دخول الإدارة' 'دخول الإدارة'
+body_contains 'عنوان دخول محامي' 'دخول محامي'
 
 request 'دخول الإدارة بكود خاطئ يُرفض' POST '/api/auth/admin' 401 --header 'Content-Type: application/json' --data '{"code":"wrong"}'
+request 'دخول الإدارة بالكود الصحيح يُقبل' POST '/api/auth/admin' 200 --header 'Content-Type: application/json' --data '{"code":"hl"}'
+request 'دخول محامي ببيانات خاطئة يُرفض' POST '/api/auth/lawyer' 401 --header 'Content-Type: application/json' --data '{"name":"غير موجود","email":"noone@gmail.com"}'
 
 request 'البحث محمي خلف تسجيل الدخول (إنجليزي)' GET '/api/search?q=tax' 401 || true
 request 'البحث محمي خلف تسجيل الدخول (عربي)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true

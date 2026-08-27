@@ -89,17 +89,50 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
 );
 Select.displayName = 'Select';
 
-export function Field({ label, hint, error, required, children }: { label: string; hint?: string; error?: string; required?: boolean; children: React.ReactNode }) {
+export function Field({
+  label,
+  hint,
+  error,
+  required,
+  status,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  error?: string;
+  required?: boolean;
+  /** Validation state: undefined = no indicator, true = complete, false = missing/invalid. */
+  status?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1.5 flex items-baseline gap-1 text-[13px] font-semibold text-navy-800">
-        {label}
-        {required && <span className="text-gold-600">*</span>}
-        {hint && <span className="text-[11px] font-normal text-navy-300">{hint}</span>}
+      <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-navy-800">
+        {typeof status === 'boolean' && <FieldStatusDot ok={status} label={label} />}
+        <span className="flex items-baseline gap-1">
+          {label}
+          {required && <span className="text-gold-600">*</span>}
+          {hint && <span className="text-[11px] font-normal text-navy-300">{hint}</span>}
+        </span>
       </span>
       {children}
       {error && <span className="mt-1 block text-xs font-medium text-red-700">{error}</span>}
     </label>
+  );
+}
+
+/** Accessible red/green status indicator for a validated form field. */
+export function FieldStatusDot({ ok, label }: { ok: boolean; label: string }) {
+  const text = ok ? `مكتمل: ${label}` : `ناقص أو غير صالح: ${label}`;
+  return (
+    <span
+      className="inline-flex items-center"
+      title={text}
+      aria-label={text}
+      role="img"
+    >
+      <span className={cn('h-2 w-2 rounded-full ring-2 transition-colors duration-200', ok ? 'bg-emerald-500 ring-emerald-500/20' : 'bg-red-500 ring-red-500/20')} />
+    </span>
   );
 }
 

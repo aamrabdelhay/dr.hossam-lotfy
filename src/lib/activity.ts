@@ -18,7 +18,8 @@ export type ActivityAction =
   | 'LAWYER_REJECTED'
   | 'USER_ADDED'
   | 'USER_UPDATED'
-  | 'USER_DELETED';
+  | 'USER_DELETED'
+  | 'CASE_EVENT';
 
 export async function logActivity(input: {
   action: ActivityAction;
@@ -64,4 +65,5 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   USER_ADDED: 'إضافة حساب',
   USER_UPDATED: 'تعديل حساب',
   USER_DELETED: 'حذف حساب',
+  CASE_EVENT: 'حدث قضية',
 };

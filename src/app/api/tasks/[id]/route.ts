@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getTaskVM } from '@/lib/queries';
-import { handle, json, readJson, requirePermission, user } from '@/lib/api';
+import { handle, json, readJson, user } from '@/lib/api';
 import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskEdited, notifyTaskDeleted } from '@/lib/notifications';
@@ -132,16 +132,29 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 
 export const DELETE = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const session = await requirePermission('writeTasks');
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لحذف المهمة' }, { status: 401 });
+
   const task = await prisma.task.findUnique({ where: { id }, include: { assignees: true } });
   if (!task) return json({ error: 'المهمة غير موجودة' }, { status: 404 });
+
+  // Admin (writeTasks) or the lawyer who authored the post may delete it.
+  const isAdmin = session.role === 'admin';
+  const isAuthor = session.role === 'lawyer' && task.authorId === session.lawyerId;
+  if (isAdmin && !can(session.userRole, 'writeTasks')) {
+    return json({ error: 'لا تملك صلاحية حذف المهمة' }, { status: 403 });
+  }
+  if (!isAdmin && !isAuthor) {
+    return json({ error: 'يمكنك حذف بوستاتك فقط' }, { status: 403 });
+  }
 
   await prisma.task.delete({ where: { id } });
   await logActivity({
     action: 'DELETED',
     summary: `حذف مهمة: ${task.description.slice(0, 60)}`,
     locationId: task.locationId,
-    byUserId: session.userId,
+    byUserId: isAdmin ? session.userId : null,
+    byLawyerId: isAuthor ? session.lawyerId : null,
   });
   await notifyTaskDeleted(id, task.assignees.map((a) => a.lawyerId), task.description.slice(0, 60));
   return json({ ok: true });

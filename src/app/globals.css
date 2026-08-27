@@ -127,16 +127,17 @@ body {
   height: 1px;
 }
 
-/* Utility: fast premium motion — 144Hz-ready (≈7ms frame) */
+/* Utility: fast premium motion — 144Hz-ready (transform-only, GPU-friendly) */
 .btn-bubble {
-  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.14s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  will-change: transform;
 }
 .btn-bubble:hover {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 .btn-bubble:active {
-  transform: scale(0.96);
+  transform: scale(0.975);
 }
 
 /* Utility: glass surfaces (navbar, dropdowns) */
@@ -298,4 +299,24 @@ span.ltr {
 /* Latin serials / numbers inside Arabic lines */
 .font-latin {
   font-family: "Inter", "Cormorant Garamond", ui-sans-serif, sans-serif;
+}
+
+/* ────────────────────────── Reduced motion ────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .btn-bubble:hover,
+  .btn-bubble:active,
+  .card-hover:hover {
+    transform: none !important;
+  }
 }

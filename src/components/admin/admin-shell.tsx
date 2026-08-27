@@ -74,7 +74,19 @@ type AdminShellProps = {
   };
   lawyers: LawyerRow[];
   locations: AdminLocationRow[];
-  cases: Array<{ id: string; name: string; number: string }>;
+  cases: Array<{
+    id: string;
+    name: string;
+    number: string;
+    clientName: string | null;
+    events: Array<{
+      id: string;
+      description: string;
+      type: string;
+      authorName: string | null;
+      createdAt: string;
+    }>;
+  }>;
   feedTasks: TaskVM[];
   activity: Array<{
     id: string;
@@ -547,6 +559,75 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
     }
   };
 
+  const toggleActive = async (l: LawyerRow) => {
+    setBusy(true);
+    const res = await fetch(`/api/lawyers/${l.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !l.active }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      toastSuccess(l.active ? `تم إخفاء ${l.name}` : `تم تفعيل ${l.name} ✓`);
+      router.refresh();
+    } else {
+      const d = await res.json().catch(() => ({}));
+      toastError(d.error ?? 'تعذر تغيير الحالة.');
+    }
+  };
+
+  const renderRow = (l: LawyerRow) => (
+    <div key={l.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+      <Avatar name={l.name} src={l.photo} size={42} ring={l.isPrincipal} />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/lawyers/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
+          <Badge tone={l.isPrincipal ? 'gold' : 'gray'}>{TITLE_LABEL[l.title]}</Badge>
+          {!l.approved && <Badge tone="amber">بانتظار الاعتماد</Badge>}
+          {!l.active && <Badge tone="red">غير نشط</Badge>}
+        </div>
+        <p className="mt-0.5 text-[11px] font-semibold text-navy-400">
+          {l.phone && <span className="font-latin" dir="ltr">{l.phone}</span>}
+          {l.googleEmail && <span className="font-latin" dir="ltr">{` • ${l.googleEmail}`}</span>}
+          {l.specialization && ` • ${l.specialization}`}
+          {` • ${l.upcoming} مهمة قادمة`}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        {!l.approved && (
+          <>
+            <button onClick={() => approve(l)} disabled={busy} className="flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-600/10 px-2.5 py-1.5 text-[11px] font-extrabold text-emerald-700 hover:bg-emerald-600/20" title="اعتماد المحامي">
+              <ShieldCheck size={12} />
+              اعتماد
+            </button>
+            <button onClick={() => toggleActive(l)} disabled={busy} className="flex items-center gap-1 rounded-md border border-red-600/30 bg-red-600/5 px-2.5 py-1.5 text-[11px] font-extrabold text-red-700 hover:bg-red-600/15" title="رفض الطلب (تعطيل الحساب)">
+              رفض
+            </button>
+          </>
+        )}
+        {l.approved && (
+          <button onClick={() => toggleActive(l)} disabled={busy} className={cn('flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11px] font-extrabold', l.active ? 'border-red-600/30 bg-red-600/5 text-red-700 hover:bg-red-600/15' : 'border-emerald-600/40 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600/20')} title={l.active ? 'تعطيل/إخفاء' : 'تفعيل'}>
+            {l.active ? 'تعطيل' : 'تفعيل'}
+          </button>
+        )}
+        <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
+          <ImagePlus size={15} />
+        </button>
+        <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
+          <Pencil size={14} />
+        </button>
+        <button onClick={() => genLink(l)} className="flex items-center gap-1 rounded-md border border-gold-500/40 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-extrabold text-gold-700 hover:bg-gold-500/20" title="رابط دخول المحامي">
+          <KeyRound size={12} />
+          رابط الدخول
+        </button>
+      </div>
+    </div>
+  );
+
+  const pending = lawyers.filter((l) => !l.approved);
+  const inactive = lawyers.filter((l) => l.approved && !l.active);
+  const approved = lawyers.filter((l) => l.approved && l.active);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -556,45 +637,38 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
           + إضافة محامي
         </Button>
       </div>
-      <Card className="divide-y divide-navy-100">
-        {lawyers.map((l) => (
-          <div key={l.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-            <Avatar name={l.name} src={l.photo} size={42} ring={l.isPrincipal} />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/lawyers/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
-                <Badge tone={l.isPrincipal ? 'gold' : 'gray'}>{TITLE_LABEL[l.title]}</Badge>
-                {!l.approved && <Badge tone="amber">بانتظار الاعتماد</Badge>}
-                {!l.active && <Badge tone="red">مخفي</Badge>}
-              </div>
-              <p className="mt-0.5 text-[11px] font-semibold text-navy-400">
-                {l.phone && <span className="font-latin" dir="ltr">{l.phone}</span>}
-                {l.googleEmail && <span className="font-latin" dir="ltr">{` • ${l.googleEmail}`}</span>}
-                {l.specialization && ` • ${l.specialization}`}
-                {` • ${l.upcoming} مهمة قادمة`}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              {!l.approved && (
-                <button onClick={() => approve(l)} disabled={busy} className="flex items-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-600/10 px-2.5 py-1.5 text-[11px] font-extrabold text-emerald-700 hover:bg-emerald-600/20" title="اعتماد المحامي">
-                  <ShieldCheck size={12} />
-                  اعتماد
-                </button>
-              )}
-              <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
-                <ImagePlus size={15} />
-              </button>
-              <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
-                <Pencil size={14} />
-              </button>
-              <button onClick={() => genLink(l)} className="flex items-center gap-1 rounded-md border border-gold-500/40 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-extrabold text-gold-700 hover:bg-gold-500/20" title="رابط دخول المحامي">
-                <KeyRound size={12} />
-                رابط الدخول
-              </button>
-            </div>
-          </div>
-        ))}
-      </Card>
+
+      {pending.length > 0 && (
+        <section>
+          <h3 className="mb-2 flex items-center gap-2 text-[13px] font-extrabold text-amber-700">
+            <span className="h-2 w-2 rounded-full bg-amber-500" />
+            بانتظار الاعتماد <span className="text-navy-300">({pending.length})</span>
+          </h3>
+          <Card className="divide-y divide-navy-100">{pending.map(renderRow)}</Card>
+        </section>
+      )}
+
+      <section>
+        <h3 className="mb-2 flex items-center gap-2 text-[13px] font-extrabold text-emerald-700">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          معتمد <span className="text-navy-300">({approved.length})</span>
+        </h3>
+        {approved.length === 0 ? (
+          <EmptyState title="لا يوجد محامون معتمدون بعد" hint="اعتمد محامياً من قسم بانتظار الاعتماد أو أضف محامياً جديداً." />
+        ) : (
+          <Card className="divide-y divide-navy-100">{approved.map(renderRow)}</Card>
+        )}
+      </section>
+
+      {inactive.length > 0 && (
+        <section>
+          <h3 className="mb-2 flex items-center gap-2 text-[13px] font-extrabold text-red-700">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            غير نشط <span className="text-navy-300">({inactive.length})</span>
+          </h3>
+          <Card className="divide-y divide-navy-100">{inactive.map(renderRow)}</Card>
+        </section>
+      )}
 
       <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onFile} />
 
@@ -701,26 +775,98 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
 
 /* ─────────────────────────── Activity ─────────────────────────── */
 
-function CasesTab({ cases }: { cases: Array<{ id: string; name: string; number: string }> }) {
+function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
+  const router = useRouter();
+  const [openId, setOpenId] = React.useState<string | null>(null);
+  const [newEvent, setNewEvent] = React.useState<Record<string, string>>({});
+  const [busy, setBusy] = React.useState(false);
+
+  const addEvent = async (caseId: string) => {
+    const text = (newEvent[caseId] ?? '').trim();
+    if (!text || busy) return;
+    setBusy(true);
+    const res = await fetch(`/api/cases/${caseId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: text }),
+    });
+    setBusy(false);
+    if (res.ok) {
+      setNewEvent((s) => ({ ...s, [caseId]: '' }));
+      toastSuccess('تمت إضافة الحدث ✓');
+      router.refresh();
+    } else {
+      const d = await res.json().catch(() => ({}));
+      toastError(d.error ?? 'تعذر إضافة الحدث.');
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 bg-ivory-50 px-5 py-4">
         <div>
           <h2 className="text-base font-extrabold text-navy-950">ملفات القضايا</h2>
-          <p className="mt-1 text-[11px] font-semibold text-navy-400">القضية هي المحور الذي يجمع الجلسات والمهام داخل المكتب.</p>
+          <p className="mt-1 text-[11px] font-semibold text-navy-400">القضية هي المحور الذي يجمع الجلسات والمهام داخل المكتب — مع سجل كامل للأحداث.</p>
         </div>
         <span className="rounded-full bg-gold-500/15 px-3 py-1 text-[11px] font-extrabold text-gold-700">{cases.length} قضية مسجلة</span>
       </div>
-      {cases.length === 0 ? <EmptyState title="لا توجد قضايا بعد" hint="أضف قضية من نموذج الجلسة لتظهر هنا." /> : (
+      {cases.length === 0 ? (
+        <EmptyState title="لا توجد قضايا بعد" hint="أضف قضية من نموذج الجلسة لتظهر هنا." />
+      ) : (
         <div className="divide-y divide-navy-100">
           {cases.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-3 px-5 py-4 hover:bg-ivory-50">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-950 text-xs font-extrabold text-gold-300">{index + 1}</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-extrabold text-navy-900">{item.name}</p>
-                <p className="mt-0.5 truncate font-latin text-[11px] font-semibold text-navy-400" dir="ltr">{item.number}</p>
+            <div key={item.id} className="px-5 py-4 hover:bg-ivory-50">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-950 text-xs font-extrabold text-gold-300">{index + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-extrabold text-navy-900">{item.name}</p>
+                  <p className="mt-0.5 truncate font-latin text-[11px] font-semibold text-navy-400" dir="ltr">{item.number}</p>
+                  {item.clientName && (
+                    <p className="mt-0.5 text-[11px] font-semibold text-navy-500">
+                      <span className="text-navy-300">اسم العميل:</span> {item.clientName}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setOpenId((v) => (v === item.id ? null : item.id))}
+                  className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-gold-700 hover:bg-gold-500/10"
+                >
+                  {openId === item.id ? 'إخفاء السجل' : `السجل (${item.events.length})`}
+                </button>
+                <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">عرض المرتبط</Link>
               </div>
-              <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-gold-700 hover:bg-gold-500/10">عرض المرتبط</Link>
+
+              {openId === item.id && (
+                <div className="mt-3 rounded-xl border border-navy-100 bg-ivory-50/60 p-4">
+                  <p className="mb-3 text-[11px] font-extrabold uppercase tracking-wide text-navy-300">سجل القضية</p>
+                  {item.events.length === 0 ? (
+                    <p className="text-[12px] font-semibold text-navy-400">لا توجد أحداث مسجلة بعد.</p>
+                  ) : (
+                    <ol className="relative space-y-3 border-s-2 border-navy-100 ps-4">
+                      {item.events.map((e) => (
+                        <li key={e.id} className="relative">
+                          <span className="absolute -start-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-gold-500 ring-4 ring-white" />
+                          <p className="text-[13px] font-semibold leading-6 text-navy-800">{e.description}</p>
+                          <p className="mt-0.5 text-[11px] font-semibold text-navy-300">
+                            {new Date(e.createdAt).toLocaleDateString('ar-EG')}
+                            {e.authorName ? ` — ${e.authorName}` : ''}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      value={newEvent[item.id] ?? ''}
+                      onChange={(e) => setNewEvent((s) => ({ ...s, [item.id]: e.target.value }))}
+                      placeholder="أضف حدثاً جديداً… (مثال: تم تحديد الجلسة)"
+                    />
+                    <Button size="sm" onClick={() => addEvent(item.id)} disabled={busy}>
+                      إضافة
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

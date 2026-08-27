@@ -5,7 +5,9 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { toTaskVM, type TaskVM } from '@/lib/queries';
 import { TITLE_LABEL } from '@/lib/constants';
+import { getSiteNav } from '@/lib/site-data';
 import { LawyerProfileEditor } from '@/components/lawyer-profile-editor';
+import { Composer } from '@/components/composer';
 
 export const metadata: Metadata = { title: 'صفحة المحامي' };
 
@@ -126,6 +128,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   const session = await getCurrentUser();
   const isSelf = session?.role === 'lawyer' && session.lawyerId === lawyer.id;
   const isAdminSession = session?.role === 'admin';
+  const nav = await getSiteNav();
 
   // A self-registered lawyer who is still waiting for approval has no public
   // profile — only the office (or the lawyer's own pending session) may see it.
@@ -292,6 +295,19 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
             ))}
           </div>
         </div>
+
+        {/* 03.5 — ADD TASK (self only) */}
+        {isSelf && (
+          <div className="mt-12">
+            <p className="inline-flex w-fit items-center gap-2 rounded-full bg-[#A07E2C]/[0.08] px-3.5 py-1.5 text-[10px] font-bold tracking-[1.5px] uppercase text-[#A07E2C] ring-1 ring-inset ring-[#A07E2C]/20" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif', letterSpacing: '1.5px' }}>
+              NEW TASK
+            </p>
+            <h2 className="mt-2.5 mb-4 text-[1.15rem] font-bold text-[#1D2433]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+              إضافة مهمة جديدة
+            </h2>
+            <Composer lawyerName={lawyer.fullName} lawyerPhoto={lawyer.profilePhotoUrl} locations={nav.locations} />
+          </div>
+        )}
 
         {/* 04 — UPCOMING SESSIONS */}
         <div className="mt-16">

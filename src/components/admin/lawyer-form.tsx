@@ -46,6 +46,11 @@ export function LawyerForm({
     }
   }, [open, lawyer]);
 
+  const nameParts = fullName.trim().split(/\s+/).filter(Boolean).length;
+  const nameOk = nameParts >= 3;
+  const phoneOk = /^[0-9+\-\s()]{6,20}$/.test(phone.trim()) && phone.trim().length >= 6;
+  const emailOk = email.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !phone.trim()) {
@@ -103,15 +108,15 @@ export function LawyerForm({
               <option value="DOCTOR">دكتور</option>
             </Select>
           </Field>
-          <Field label="رقم التليفون" required>
+          <Field label="رقم التليفون" required status={phoneOk}>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="01xxxxxxxxx" dir="ltr" />
           </Field>
         </div>
-        <Field label="الاسم الثلاثي الكامل" required hint="مثال: أحمد محمد السيد">
+        <Field label="الاسم الثلاثي الكامل" required hint="مثال: أحمد محمد السيد" status={nameOk}>
           <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="البريد الإلكتروني" hint="اختياري">
+          <Field label="البريد الإلكتروني" hint="اختياري" status={emailOk}>
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" />
           </Field>
           <Field label="المنصب" hint="اختياري">

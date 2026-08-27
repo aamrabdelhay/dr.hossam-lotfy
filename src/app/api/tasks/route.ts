@@ -7,6 +7,8 @@ import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskAssigned, notifyPostCreated } from '@/lib/notifications';
 import { formatDay } from '@/lib/dates';
+import { isMailConfigured, officeCcRecipients, sendTaskAssignedEmail } from '@/lib/mail';
+import { appOrigin } from '@/lib/google-oauth';
 
 // ─────────────────────────── GET ───────────────────────────
 
@@ -36,6 +38,7 @@ const createSchema = z
     notes: z.string().max(4000).optional(),
     caseName: z.string().max(300).optional(),
     caseNumber: z.string().max(200).optional(),
+    clientName: z.string().max(200).optional(),
     scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'تاريخ غير صالح').optional(),
     scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'ساعة غير صالحة').optional(),
     lawyerIds: z.array(z.string()).min(1, 'اختر محامياً واحداً على الأقل').max(20, 'الحد الأقصى 20 محامياً في العملية الواحدة').optional(),
@@ -48,11 +51,10 @@ const createSchema = z
 
 export const POST = handle(async (req: Request) => {
   const session = await user();
-  const data = await readJson(req as never, createSchema);
-
   if (!session) {
     return json({ error: 'يجب تسجيل الدخول لإضافة مهمة' }, { status: 401 });
   }
+  const data = await readJson(req as never, createSchema);
 
   const isOwnPost = !!data.ownPost && session.role === 'lawyer';
   const isAdminCreate = session.role === 'admin';
@@ -70,13 +72,19 @@ export const POST = handle(async (req: Request) => {
   if (data.caseName || data.caseNumber) {
     const name = data.caseName ?? '';
     const number = data.caseNumber ?? '';
-    let existing = null as { id: string } | null;
-    if (name && number) existing = await prisma.caseRecord.findFirst({ where: { name, number } });
-    if (!existing && number) existing = await prisma.caseRecord.findFirst({ where: { number } });
+    let existing = null as { id: string; clientName: string | null } | null;
+    if (name && number) existing = await prisma.caseRecord.findFirst({ where: { name, number }, select: { id: true, clientName: true } });
+    if (!existing && number) existing = await prisma.caseRecord.findFirst({ where: { number }, select: { id: true, clientName: true } });
     caseId = existing?.id;
-    if (!caseId) {
-      const c = await prisma.caseRecord.create({ data: { name, number } });
+    if (!existing) {
+      const c = await prisma.caseRecord.create({
+        data: { name, number, clientName: data.clientName?.trim() || null },
+      });
       caseId = c.id;
+    } else if (data.clientName?.trim() && !existing.clientName) {
+      await prisma.caseRecord
+        .update({ where: { id: existing.id }, data: { clientName: data.clientName.trim() } })
+        .catch(() => undefined);
     }
   }
 
@@ -124,6 +132,27 @@ export const POST = handle(async (req: Request) => {
   );
   if (isOwnPost) {
     await notifyPostCreated(task.id, session.name, (task.description || location.name).slice(0, 60), location.name);
+  }
+
+  // E-mail notification to each assigned lawyer (and CC the office). Fail-soft:
+  // when SMTP is missing this simply logs and the flow continues.
+  if (isMailConfigured()) {
+    const principal = await prisma.lawyer.findFirst({ where: { isPrincipal: true, active: true } });
+    const cc = officeCcRecipients(principal?.googleEmail ?? principal?.email ?? null);
+    const dateLabel = task.scheduledDate ? formatDay(task.scheduledDate) : '';
+    for (const l of lawyers) {
+      if (!l.googleEmail) continue;
+      await sendTaskAssignedEmail({
+        to: l.googleEmail,
+        cc,
+        lawyerName: l.fullName,
+        taskDesc: (task.description || location.name).slice(0, 120),
+        locationName: location.name,
+        dateLabel,
+        timeLabel: task.scheduledTime ?? '',
+        url: `${appOrigin()}/sessions/${task.id}`,
+      });
+    }
   }
 
   const vm = toTaskVM(task as never) as TaskVM;

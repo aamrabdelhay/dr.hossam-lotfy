@@ -47,6 +47,15 @@ export function adminNotifyEmails(): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Standard CC list for session reminders & task notifications: the office
+ * notify list + the principal (Dr. Hossam Lotfy) + the admin e-mail, all
+ * de-duplicated case-insensitively.
+ */
+export function officeCcRecipients(principalEmail?: string | null): string[] {
+  return dedupeEmails([...adminNotifyEmails(), process.env.ADMIN_EMAIL, principalEmail]);
+}
+
 type SmtpSocket = net.Socket | tls.TLSSocket;
 
 function connectTls(host: string, port: number): Promise<tls.TLSSocket> {
@@ -132,10 +141,11 @@ function encodedWord(s: string): string {
   return `=?UTF-8?B?${b64(s)}?=`;
 }
 
-function buildMessage(cfg: SmtpConfig, recipients: string[], subject: string, text: string): string {
+function buildMessage(cfg: SmtpConfig, toRecipients: string[], ccRecipients: string[], subject: string, text: string): string {
   const headers = [
     `From: DR. HOSSAM LOTFY LAW FIRM <${cfg.from}>`,
-    `To: ${recipients.join(', ')}`,
+    `To: ${toRecipients.join(', ')}`,
+    ...(ccRecipients.length > 0 ? [`Cc: ${ccRecipients.join(', ')}`] : []),
     `Subject: ${encodedWord(subject)}`,
     'MIME-Version: 1.0',
     `Date: ${new Date().toUTCString()}`,
@@ -146,13 +156,30 @@ function buildMessage(cfg: SmtpConfig, recipients: string[], subject: string, te
   return `${headers.join('\r\n')}\r\n\r\n${wrapB64(b64(text))}`;
 }
 
-export async function sendMail(opts: { to: string | string[]; subject: string; text: string }): Promise<void> {
+/** Normalise and de-duplicate a list of e-mail recipients (case-insensitive). */
+export function dedupeEmails(emails: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of emails) {
+    const e = (raw ?? '').trim().toLowerCase();
+    if (!e || seen.has(e)) continue;
+    seen.add(e);
+    out.push(e);
+  }
+  return out;
+}
+
+export async function sendMail(opts: { to: string | string[]; cc?: string | string[]; subject: string; text: string }): Promise<void> {
   const cfg = getSmtpConfig();
   if (!cfg) throw new Error('SMTP is not configured');
 
-  const recipients = (Array.isArray(opts.to) ? opts.to : [opts.to])
+  const toRecipients = (Array.isArray(opts.to) ? opts.to : [opts.to])
     .map((s) => s.trim())
     .filter(Boolean);
+  const ccRecipients = (Array.isArray(opts.cc) ? opts.cc : opts.cc ? [opts.cc] : [])
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const recipients = dedupeEmails([...toRecipients, ...ccRecipients]);
   if (recipients.length === 0) return;
 
   let sock: SmtpSocket;
@@ -191,7 +218,7 @@ export async function sendMail(opts: { to: string | string[]; subject: string; t
 
     await write(sock, 'DATA\r\n');
     await expect(sock, [354]);
-    await write(sock, `${buildMessage(cfg, recipients, opts.subject, opts.text)}\r\n.\r\n`);
+    await write(sock, `${buildMessage(cfg, toRecipients, ccRecipients, opts.subject, opts.text)}\r\n.\r\n`);
     await expect(sock, [250]);
     await write(sock, 'QUIT\r\n').catch(() => undefined);
   } finally {
@@ -200,7 +227,7 @@ export async function sendMail(opts: { to: string | string[]; subject: string; t
 }
 
 /** Fail-soft send: logs and never throws. */
-export async function trySendMail(opts: { to: string | string[]; subject: string; text: string }): Promise<boolean> {
+export async function trySendMail(opts: { to: string | string[]; cc?: string | string[]; subject: string; text: string }): Promise<boolean> {
   try {
     await sendMail(opts);
     return true;
@@ -251,6 +278,45 @@ export async function notifyLawyerApproved(email: string, name: string, siteUrl:
 /** Reminder for an upcoming session. */
 export async function sendSessionReminder(opts: {
   to: string;
+  cc?: string[];
+  lawyerName: string;
+  taskDesc: string;
+  locationName: string;
+  dateLabel: string;
+  timeLabel: string;
+  url: string;
+  /** Human label for the reminder window (e.g. "14 يوماً"). */
+  windowLabel?: string;
+}): Promise<boolean> {
+  return trySendMail({
+    to: opts.to,
+    cc: opts.cc,
+    subject: `تذكير بجلسة${opts.windowLabel ? ` — قبل ${opts.windowLabel}` : ''} — DR. HOSSAM LOTFY LAW FIRM`,
+    text: [
+      `مرحباً ${opts.lawyerName}،`,
+      '',
+      opts.windowLabel
+        ? `تذكير بموعد الجلسة/المهمة التالية (قبل ${opts.windowLabel} من الموعد):`
+        : 'تذكير بموعد الجلسة/المهمة التالية:',
+      '',
+      `المهمة: ${opts.taskDesc}`,
+      `المكان: ${opts.locationName}`,
+      `التاريخ: ${opts.dateLabel}`,
+      opts.timeLabel ? `الساعة: ${opts.timeLabel}` : '',
+      '',
+      `التفاصيل: ${opts.url}`,
+      '',
+      'DR. HOSSAM LOTFY LAW FIRM',
+    ]
+      .filter((l) => l !== '')
+      .join('\n'),
+  });
+}
+
+/** Notify a lawyer that a task was created and assigned to them. */
+export async function sendTaskAssignedEmail(opts: {
+  to: string;
+  cc?: string[];
   lawyerName: string;
   taskDesc: string;
   locationName: string;
@@ -260,15 +326,16 @@ export async function sendSessionReminder(opts: {
 }): Promise<boolean> {
   return trySendMail({
     to: opts.to,
-    subject: 'تذكير بجلسة — DR. HOSSAM LOTFY LAW FIRM',
+    cc: opts.cc,
+    subject: 'مهمة جديدة — DR. HOSSAM LOTFY LAW FIRM',
     text: [
       `مرحباً ${opts.lawyerName}،`,
       '',
-      'تذكير بموعد الجلسة/المهمة التالية:',
+      'تم إسناد مهمة جديدة إليك:',
       '',
       `المهمة: ${opts.taskDesc}`,
       `المكان: ${opts.locationName}`,
-      `التاريخ: ${opts.dateLabel}`,
+      opts.dateLabel ? `التاريخ: ${opts.dateLabel}` : '',
       opts.timeLabel ? `الساعة: ${opts.timeLabel}` : '',
       '',
       `التفاصيل: ${opts.url}`,
