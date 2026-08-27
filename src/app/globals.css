@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 @import "@fontsource-variable/cairo";
 @import "@fontsource/inter/400.css";
@@ -7,207 +7,137 @@
 @import "@fontsource/inter/700.css";
 
 :root {
-  --navy: #101C2C;
-  --navy2: #18263A;
-  --burgundy: #641F2B;
-  --gold: #8A6A3A;
-  --ivory: #F7F5F0;
-  --charcoal: #242424;
-  --gray: #6B6B6B;
-  --line: #EEEBE4;
-  --line2: #E0D8CC;
+  --navy: #171717;
+  --navy2: #242424;
+  --burgundy: #481A20;
+  --gold: #A78B61;
+  --ivory: #F5F2EB;
+  --charcoal: #171717;
+  --gray: #77736B;
+  --line: #E8E2D8;
+  --line2: #D8D0C3;
 }
 
 @theme {
-  --color-navy-950: #07111c;
-  --color-navy-900: #0b1623;
-  --color-navy-850: #0e1a2b;
-  --color-navy-800: #111827;
-  --color-navy-700: #1b2a3b;
-  --color-navy-600: #24354a;
-  --color-navy-500: #33475e;
-  --color-navy-300: #8fa1b5;
-  --color-navy-200: #b8c4d2;
-  --color-navy-100: #e2e8f0;
-
-  --color-gold-200: #ecd9a0;
-  --color-gold-300: #e2c56b;
-  --color-gold-400: #d4af37;
-  --color-gold-500: #c9a227;
-  --color-gold-600: #a9881f;
-  --color-gold-700: #8a6e18;
-
-  --color-ivory-50: #fdfcf9;
-  --color-ivory-100: #f7f4ec;
-  --color-ivory-200: #efeae0;
-  --color-ivory-300: #e3dccc;
-
-  --font-sans: "Cairo Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-navy-950: #171717;
+  --color-navy-900: #1d1b1a;
+  --color-navy-850: #242120;
+  --color-navy-800: #2b2927;
+  --color-navy-700: #403d39;
+  --color-navy-600: #5d5952;
+  --color-navy-500: #77736b;
+  --color-navy-300: #9a958b;
+  --color-navy-200: #c8c1b6;
+  --color-navy-100: #e8e2d8;
+  --color-gold-200: #d9ccb7;
+  --color-gold-300: #c7b697;
+  --color-gold-400: #b49a72;
+  --color-gold-500: #a78b61;
+  --color-gold-600: #8f744d;
+  --color-gold-700: #725b3c;
+  --color-ivory-50: #fffdf9;
+  --color-ivory-100: #f5f2eb;
+  --color-ivory-200: #ebe5da;
+  --color-ivory-300: #ddd5c8;
+  --font-sans: "IBM Plex Sans Arabic", "Cairo Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-latin: "Inter", "Cairo Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif-en: "Cormorant Garamond", serif;
   --font-arabic: "IBM Plex Sans Arabic", sans-serif;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
+html { scroll-behavior: smooth; }
 body {
-  background-color: var(--color-ivory-100);
-  color: var(--color-navy-900);
+  background: #f5f2eb;
+  color: #24211f;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+* { scrollbar-width: thin; scrollbar-color: #b9b0a2 transparent; }
+*::-webkit-scrollbar { width: 7px; height: 7px; }
+*::-webkit-scrollbar-thumb { background: #b9b0a2; border-radius: 0; }
+*::-webkit-scrollbar-track { background: transparent; }
+.font-latin { font-family: var(--font-latin); }
+.gold-hairline { background: #a78b61; height: 1px; }
+.paper { background-image: radial-gradient(circle at 1px 1px, rgba(72,26,32,.035) 1px, transparent 0); background-size: 24px 24px; }
 
-/* Elegant thin scrollbars */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #c9c2b2 transparent;
-}
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-thumb {
-  background: #c9c2b2;
-  border-radius: 8px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in-up { animation: fade-in-up .32s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.animate-fade-in { animation: fade-in .24s ease-out both; }
+@keyframes slide-in-start { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+[dir="rtl"] .animate-slide-in-start { animation: slide-in-start .28s ease-out both; }
+@keyframes comment-flash { 0% { background-color: rgba(167,139,97,.3); } 100% { background-color: rgba(167,139,97,.08); } }
+.comment-highlight { animation: comment-flash 1.2s ease-out 2 alternate; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton { background: linear-gradient(90deg,#ebe6dc 25%,#f7f4ee 50%,#ebe6dc 75%); background-size: 200% 100%; animation: shimmer 1.6s infinite; }
+:focus-visible { outline: 2px solid #a78b61; outline-offset: 3px; }
+input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+html[dir="rtl"] { direction: rtl; }
+body { direction: rtl; text-align: right; }
+[dir="rtl"] .text-left { text-align:right; }
+[dir="rtl"] .text-right { text-align:left; }
+.ltr,[dir="rtl"] .ltr,[dir="ltr"] { direction:ltr; text-align:left; unicode-bidi:embed; }
+a.ltr,span.ltr { display:inline-block; }
 
-/* Utility: Latin text */
-.font-latin {
-  font-family: var(--font-latin);
+/* ───────────── Modern law-firm visual layer ───────────── */
+header.sticky {
+  background: rgba(29,27,26,.96) !important;
+  border-bottom: 1px solid rgba(167,139,97,.28) !important;
+  backdrop-filter: blur(16px);
 }
+header.sticky > div { height: 72px !important; }
+header.sticky input { background: rgba(255,255,255,.055) !important; border-color: rgba(255,255,255,.14) !important; }
+header.sticky a, header.sticky button { transition: color .2s ease, background-color .2s ease, border-color .2s ease, transform .2s ease; }
+header.sticky nav a:hover, header.sticky nav button:hover { color:#fff !important; }
 
-/* Utility: gold hairline */
-.gold-hairline {
-  background-image: linear-gradient(to left, transparent, #c9a227 20%, #c9a227 80%, transparent);
-  height: 1px;
-}
+/* Turn the application's ubiquitous cards into editorial panels. */
+.rounded-2xl, .rounded-xl, .rounded-lg { border-radius: 2px !important; }
+.shadow-2xl { box-shadow: 0 24px 60px rgba(23,23,23,.16) !important; }
 
-/* Subtle paper texture for hero surfaces */
-.paper {
-  background-image: radial-gradient(circle at 1px 1px, rgba(7, 17, 28, 0.045) 1px, transparent 0);
-  background-size: 22px 22px;
-}
+/* Existing dashboard surfaces */
+.bg-white { background-color:#fffdf9 !important; }
+.bg-navy-950 { background-color:#1d1b1a !important; }
+.bg-navy-900 { background-color:#242120 !important; }
+.bg-navy-800 { background-color:#2b2927 !important; }
+.text-navy-950 { color:#171717 !important; }
+.text-navy-900 { color:#24211f !important; }
+.text-navy-800 { color:#302d29 !important; }
+.text-navy-700 { color:#403d39 !important; }
+.text-navy-600 { color:#5d5952 !important; }
+.text-navy-500 { color:#77736b !important; }
+.text-navy-300 { color:#9a958b !important; }
+.border-navy-100 { border-color:#e8e2d8 !important; }
+.border-navy-200 { border-color:#d8d0c3 !important; }
+.bg-ivory-100 { background-color:#f5f2eb !important; }
+.bg-ivory-50 { background-color:#fffdf9 !important; }
+.text-gold-700 { color:#725b3c !important; }
+.text-gold-600 { color:#8f744d !important; }
+.text-gold-500 { color:#a78b61 !important; }
+.bg-gold-500 { background-color:#a78b61 !important; }
+.bg-gold-600 { background-color:#8f744d !important; }
 
-/* Animations: restrained */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.28s ease-out both;
-}
+/* Main content: quieter surfaces and stronger hierarchy. */
+main { position:relative; }
+main > div { letter-spacing: -.005em; }
+main h1, main h2, main h3 { letter-spacing: -.02em; }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.animate-fade-in {
-  animation: fade-in 0.2s ease-out both;
-}
+/* Make large dashboard panels feel like an editorial spread. */
+main section.overflow-hidden { border-color:#ddd5c8 !important; box-shadow: 0 10px 30px rgba(23,23,23,.045) !important; }
+main section.overflow-hidden > div:first-child { border-bottom-color:rgba(167,139,97,.25) !important; }
 
-@keyframes slide-in-start {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-[dir="rtl"] .animate-slide-in-start {
-  animation: slide-in-start 0.25s ease-out both;
-}
+/* Links and controls */
+button, a { -webkit-tap-highlight-color:transparent; }
 
-/* Deep-linked notification highlight: /sessions/<id>#comment-<id> */
-@keyframes comment-flash {
-  0% { background-color: rgba(234, 179, 8, 0.35); }
-  100% { background-color: rgba(234, 179, 8, 0.12); }
+@media (min-width: 1024px) {
+  main > div { padding-top: 32px !important; padding-bottom: 48px !important; }
 }
 
-.comment-highlight {
-  animation: comment-flash 1.2s ease-out 2 alternate;
+@media (max-width: 640px) {
+  header.sticky > div { height:64px !important; }
+  main > div { padding-top:18px !important; }
 }
 
-@keyframes shimmer {
-
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-.skeleton {
-  background: linear-gradient(90deg, #eceadf 25%, #f5f2e9 50%, #eceadf 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.6s infinite;
-}
-
-/* Focus visible */
-:focus-visible {
-  outline: 2px solid #c9a227;
-  outline-offset: 2px;
-}
-
-/* Number inputs: hide spinners */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-/* ────────────────────────── RTL / direction ────────────────────────── */
-
-/* Document is Arabic-first: <html dir="rtl"> forces right-to-left everywhere */
-html[dir="rtl"] {
-  direction: rtl;
-}
-
-body {
-  direction: rtl;
-  text-align: right;
-}
-
-/* Tailwind logical utilities already emit text-start/text-end; keep legacy
-   text-left/right from accidentally flipping RTL layouts */
-[dir="rtl"] .text-left {
-  text-align: right;
-}
-[dir="rtl"] .text-right {
-  text-align: left;
-}
-
-/* Phone numbers, emails, URLs and code stay left-to-right inside RTL text */
-.ltr,
-[dir="rtl"] .ltr,
-[dir="ltr"] {
-  direction: ltr;
-  text-align: left;
-  unicode-bidi: embed;
-}
-a.ltr,
-span.ltr {
-  display: inline-block;
-}
-
-/* Latin serials / numbers inside Arabic lines */
-.font-latin {
-  font-family: "Inter", "Cormorant Garamond", ui-sans-serif, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
