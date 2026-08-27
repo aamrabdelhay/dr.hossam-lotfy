@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#07111C',
+  themeColor: '#05080F',
   width: 'device-width',
   initialScale: 1,
 };
@@ -109,11 +109,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {databaseUnavailable && (
           <div
             role="alert"
-            className="border-b border-[#641F2B] bg-[#641F2B] px-4 py-2.5 text-center text-[12px] text-white"
+            className="border-b border-[#7A1F2B] bg-[#7A1F2B] px-4 py-2.5 text-center text-[12px] text-white"
             style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
           >
             قاعدة البيانات غير متاحة حالياً.{' '}
-            <Link href="/api/health" className="underline decoration-white/60 underline-offset-4 hover:text-[#F7F5F0]">
+            <Link href="/api/health" className="underline decoration-white/60 underline-offset-4 hover:text-[#F4F6F9]">
               عرض تشخيص الخدمة
             </Link>
           </div>

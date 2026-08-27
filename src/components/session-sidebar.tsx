@@ -46,10 +46,12 @@ function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: s
 export function SessionSidebar({ data, isAdmin }: { data: SidebarData; isAdmin: boolean }) {
   return (
     <Card className="flex h-[calc(100vh-104px)] max-h-[calc(100vh-104px)] min-h-0 flex-col overflow-hidden overscroll-contain">
-      <div className="flex shrink-0 items-center gap-2 border-b border-navy-100 bg-navy-950 px-4 py-3">
-        <CalendarClock size={17} className="text-gold-400" />
+      <div className="mesh-gold flex shrink-0 items-center gap-2 border-b border-navy-800 bg-gradient-to-l from-navy-950 via-navy-900 to-navy-850 px-4 py-3.5">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold-500/15 ring-1 ring-gold-500/30">
+          <CalendarClock size={15} className="text-gold-400" />
+        </span>
         <h2 className="text-[14px] font-extrabold text-ivory-50">الجلسات والمواعيد</h2>
-        <span className="ms-auto rounded-full bg-gold-500/20 px-2 py-0.5 text-[10px] font-bold text-gold-300">
+        <span className="ms-auto rounded-full bg-gold-500/20 px-2.5 py-1 text-[10px] font-bold text-gold-300 ring-1 ring-inset ring-gold-500/30">
           {data.sections.all.length} جلسة قادمة
         </span>
       </div>
@@ -108,7 +110,7 @@ export function SessionsDrawerButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="fixed bottom-5 end-5 z-[75] flex items-center gap-2 rounded-full border border-[#101C2C] bg-[#101C2C] px-5 py-3 text-[13px] font-extrabold text-[#F7F5F0] shadow-xl ring-1 ring-[#8A6A3A]/40 hover:bg-[#18263A] lg:hidden"
+      className="fixed bottom-5 end-5 z-[75] flex items-center gap-2 rounded-full border border-gold-500/40 bg-gradient-to-b from-navy-800 to-navy-950 px-5 py-3 text-[13px] font-extrabold text-[#F4F6F9] shadow-lift transition-transform hover:-translate-y-0.5 lg:hidden"
     >
       <CalendarClock size={17} />
       الجلسات القادمة

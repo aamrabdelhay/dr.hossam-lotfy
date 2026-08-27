@@ -59,7 +59,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
       <aside className="hidden w-[330px] shrink-0 lg:block">
-        <div className="sticky top-[84px]">
+        <div className="sticky top-[88px]">
           <SessionSidebar data={sidebar} isAdmin={session?.role === 'admin'} />
         </div>
       </aside>

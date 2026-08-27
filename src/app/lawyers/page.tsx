@@ -36,7 +36,7 @@ export default async function LawyersPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
       <aside className="hidden w-[330px] shrink-0 lg:block">
-        <div className="sticky top-[84px]">
+        <div className="sticky top-[88px]">
           <SessionSidebar data={sidebar} isAdmin={session?.role === 'admin'} />
         </div>
       </aside>
@@ -55,7 +55,7 @@ export default async function LawyersPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sorted.map((l) => (
               <Link key={l.id} href={`/lawyers/${l.slug}`} className="group">
-                <Card className={`h-full p-5 transition hover:shadow-md ${l.isPrincipal ? 'border-gold-500/60 shadow-[0_0_0_1px_rgba(201,162,39,0.25)]' : 'hover:border-gold-500/50'}`}>
+                <Card className={`card-hover h-full p-5 ${l.isPrincipal ? 'border-gold-500/60 shadow-[0_0_0_1px_rgba(212,169,63,0.3)]' : 'hover:border-gold-500/50'}`}>
                   <div className="flex items-start gap-4">
                     <Avatar name={l.fullName} src={l.profilePhotoUrl} size={64} ring={l.isPrincipal} />
                     <div className="min-w-0 flex-1">
