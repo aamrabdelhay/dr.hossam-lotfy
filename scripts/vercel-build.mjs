@@ -1,28 +1,62 @@
 /**
  * Vercel build step:
- *  1. Apply pending SQL migrations with scripts/apply-migrations.mjs
- *     (pure pg client — no native Prisma engine needed; writes the same
- *     `_prisma_migrations` journal, so a later `prisma migrate deploy`
- *     stays consistent).
- *  2. prisma generate
- *  3. next build
+ *  1. Require DATABASE_URL and apply pending SQL migrations.
+ *  2. Generate the Prisma client.
+ *  3. Optionally run the production-safe seed (never demo data).
+ *  4. Build Next.js.
  *
- * Migration failure does NOT fail the deploy (logged loudly instead) so a
- * transient DB hiccup at build time can never take the site down.
+ * A deployment with an old database schema is worse than a failed deployment:
+ * the migration step is deliberately fatal. Set SKIP_DB_MIGRATE=1 only for an
+ * explicit emergency/manual-migration workflow.
  */
 import { spawnSync } from 'node:child_process';
+import 'dotenv/config';
 
-if (!process.env.DATABASE_URL) {
-  console.warn('[vercel-build] DATABASE_URL is not set — SKIPPING migrations. Set it in Vercel → Settings → Environment Variables.');
-} else {
-  const r = spawnSync('node', ['scripts/apply-migrations.mjs'], { stdio: 'inherit' });
-  if (r.status !== 0) {
-    console.warn('[vercel-build] ⚠️  migration step failed — continuing build. Apply migrations manually: npx prisma migrate deploy');
+function run(label, command, args, options = {}) {
+  console.log(`[vercel-build] ${label}`);
+  const result = spawnSync(command, args, {
+    stdio: 'inherit',
+    ...options,
+  });
+
+  if (result.error) {
+    console.error(`[vercel-build] ${label} could not start: ${result.error.message}`);
+    process.exit(1);
+  }
+  if (result.status !== 0) {
+    console.error(`[vercel-build] ${label} failed (exit ${result.status ?? 'unknown'}).`);
+    process.exit(result.status ?? 1);
   }
 }
 
-const gen = spawnSync('npx', ['prisma', 'generate'], { stdio: 'inherit' });
-if (gen.status !== 0) process.exit(gen.status ?? 1);
+const skipMigrations = process.env.SKIP_DB_MIGRATE === '1';
+const shouldSeed = process.env.SEED_ON_BUILD === '1';
 
-const build = spawnSync('npx', ['next', 'build'], { stdio: 'inherit' });
-process.exit(build.status ?? 1);
+if (skipMigrations) {
+  console.warn('[vercel-build] SKIP_DB_MIGRATE=1 — migrations were explicitly skipped.');
+} else {
+  if (!process.env.DATABASE_URL) {
+    console.error(
+      '[vercel-build] DATABASE_URL is required. Add the Neon pooled URL in Vercel before deploying, or set SKIP_DB_MIGRATE=1 only for a deliberate manual migration.',
+    );
+    process.exit(1);
+  }
+  run('applying database migrations…', 'node', ['scripts/apply-migrations.mjs']);
+}
+
+if (shouldSeed && !process.env.DATABASE_URL) {
+  console.error('[vercel-build] SEED_ON_BUILD=1 requires DATABASE_URL.');
+  process.exit(1);
+}
+
+// Generate before seeding because the Prisma client is intentionally gitignored.
+run('generating Prisma client…', 'npx', ['prisma', 'generate']);
+
+if (shouldSeed) {
+  // An inherited DEMO=1 must never create demo lawyers/tasks in production.
+  run('SEED_ON_BUILD=1 — running production-safe seed…', 'npx', ['tsx', 'prisma/seed.ts'], {
+    env: { ...process.env, DEMO: '' },
+  });
+}
+
+run('building Next.js…', 'npx', ['next', 'build']);

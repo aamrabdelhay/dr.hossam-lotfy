@@ -16,7 +16,8 @@
     "db:setup": "node scripts/db-init.mjs && node scripts/apply-migrations.mjs && tsx prisma/seed.ts",
     "prestart": "node scripts/ensure-db.mjs",
     "postinstall": "node scripts/patch-prisma-offline.mjs",
-    "vercel-build": "node scripts/vercel-build.mjs"
+    "vercel-build": "node scripts/vercel-build.mjs",
+    "smoke": "bash scripts/smoke-test.sh"
   },
   "dependencies": {
     "@fontsource-variable/cairo": "^5.2.5",
