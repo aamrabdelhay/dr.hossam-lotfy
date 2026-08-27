@@ -13,7 +13,7 @@ import { ActivityTimeline } from '@/components/activity-timeline';
 import { type CommentVM } from '@/components/comment-section';
 import { Badge, Card, EmptyState } from '@/components/ui';
 import { StatusBadge, UrgencyBadge } from '@/components/urgency';
-import { formatDay, formatFullDate, formatTimeOfDay, formatDateTime } from '@/lib/dates';
+import { formatFullDate, formatTimeOfDay, formatDateTime } from '@/lib/dates';
 import { LOCATION_TYPE_LABEL, TITLE_LABEL } from '@/lib/constants';
 
 export const metadata: Metadata = { title: 'تفاصيل الجلسة' };
@@ -45,20 +45,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     id: c.id,
     text: c.text,
     createdAt: c.createdAt.toISOString(),
-    author: c.authorLawyer
-      ? { name: c.authorLawyer.fullName, photo: c.authorLawyer.profilePhotoUrl }
-      : c.authorUser
-        ? { name: c.authorUser.name, photo: null }
-        : c.authorName
-          ? { name: c.authorName, photo: null }
-          : null,
+    author: c.authorLawyer ? { name: c.authorLawyer.fullName, photo: c.authorLawyer.profilePhotoUrl } : c.authorUser ? { name: c.authorUser.name, photo: null } : c.authorName ? { name: c.authorName, photo: null } : null,
     authorRole: c.authorLawyer ? 'lawyer' : c.authorUser ? 'admin' : 'guest',
     isMine: (role === 'lawyer' && c.authorLawyerId === myLawyerId) || (role === 'admin' && c.authorUserId === myAdminId),
     canDelete: (role === 'lawyer' && c.authorLawyerId === myLawyerId) || (role === 'admin' && c.authorUserId === myAdminId),
   }));
 
   const date = task.scheduledDate ? new Date(`${task.scheduledDate}T12:00:00`) : null;
-  const dayLabel = date ? formatDay(date) : null;
   const time = formatTimeOfDay(task.scheduledTime);
 
   return (
