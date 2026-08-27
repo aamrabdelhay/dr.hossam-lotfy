@@ -22,12 +22,17 @@ export const LEGAL_DIRECTORY_CATEGORY: Record<string, string> = {
   OTHER: 'جهات أخرى مرتبطة بالمحاماة',
 };
 
-export const DIRECTORY_CATEGORIES = Array.from(
-  new Set(Object.values(LEGAL_DIRECTORY_CATEGORY)),
-);
+export const DIRECTORY_CATEGORIES = [
+  'المحاكم', 'النيابات', 'مجلس الدولة', 'الجهات القضائية', 'الشهر العقاري والتوثيق',
+  'السجل التجاري', 'الضرائب', 'الاستثمار والشركات', 'نقابة المحامين', 'الأحوال المدنية',
+  'المساحة والعقارات', 'التأمينات والعمل', 'المرور', 'الجوازات والهجرة', 'الجهات المالية والرقابية',
+  'الخبراء والطب الشرعي', 'الجهات الحكومية المحلية', 'جهات أخرى مرتبطة بالمحاماة',
+] as const;
 
-export function categoryForType(type: string): string {
-  if (type === 'COURT') return 'المحاكم';
+export function categoryForType(type: string, name = '', subType = ''): string {
+  const hay = `${name} ${subType}`;
+  if (hay.includes('مجلس الدولة') || hay.includes('قضاء إداري') || hay.includes('إدارية عليا') || hay.includes('إدارية')) return 'مجلس الدولة';
+  if (hay.includes('دستورية') || hay.includes('قضاء عسكري') || hay.includes('هيئة قضايا الدولة') || hay.includes('نيابة إدارية')) return 'الجهات القضائية';
   return LEGAL_DIRECTORY_CATEGORY[type] ?? LOCATION_TYPE_LABEL[type] ?? 'جهات أخرى مرتبطة بالمحاماة';
 }
 
