@@ -112,19 +112,19 @@ export function CalendarClient({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="flex items-center gap-2 text-xl font-extrabold text-ivory-50">
-          <CalendarDays size={20} className="text-gold-500" />
+        <h1 className="flex items-center gap-2 text-xl font-extrabold text-navy-950">
+          <CalendarDays size={20} className="text-gold-600" />
           التقويم
         </h1>
         <div className="ms-auto flex items-center gap-2">
-          <div className="flex rounded-lg border border-navy-200 bg-navy-850 p-0.5">
+          <div className="flex rounded-lg border border-navy-200 bg-white p-0.5">
             {(['month', 'week', 'day'] as View[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={cn(
                   'rounded-md px-3 py-1.5 text-[12px] font-extrabold transition',
-                  view === v ? 'bg-navy-950 text-gold-300' : 'text-navy-400 hover:text-ivory-200',
+                  view === v ? 'bg-navy-950 text-gold-300' : 'text-navy-400 hover:text-navy-800',
                 )}
               >
                 {v === 'month' ? 'شهر' : v === 'week' ? 'أسبوع' : 'يوم'}
@@ -141,7 +141,7 @@ export function CalendarClient({
                 d.setHours(0, 0, 0, 0);
                 setCursor(d);
               }}
-              className="rounded-md px-2 text-[12px] font-bold text-navy-400 hover:text-ivory-100"
+              className="rounded-md px-2 text-[12px] font-bold text-navy-500 hover:text-navy-900"
             >
               اليوم
             </button>
@@ -149,7 +149,7 @@ export function CalendarClient({
               <ChevronLeft size={14} />
             </Button>
           </div>
-          <span className="min-w-32 text-center text-[14px] font-extrabold text-ivory-100">
+          <span className="min-w-32 text-center text-[14px] font-extrabold text-navy-900">
             {view === 'day' ? formatFullDate(cursor) : formatMonthYear(cursor)}
           </span>
           {isAdmin && (
@@ -180,9 +180,9 @@ export function CalendarClient({
 
       {view === 'month' && (
         <Card className="overflow-hidden">
-          <div className="grid grid-cols-7 border-b border-navy-100 bg-navy-800">
+          <div className="grid grid-cols-7 border-b border-navy-100 bg-ivory-50">
             {['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map((d) => (
-              <div key={d} className="px-2 py-2 text-center text-[11px] font-extrabold text-navy-400">{d}</div>
+              <div key={d} className="px-2 py-2 text-center text-[11px] font-extrabold text-navy-500">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7">
@@ -191,7 +191,7 @@ export function CalendarClient({
               const inMonth = d.getMonth() === cursor.getMonth();
               const isToday = iso(d) === todayIso;
               return (
-                <div key={i} className={cn('min-h-[92px] border-b border-e border-navy-100 p-1.5 [&:nth-child(7n)]:border-e-0', !inMonth && 'bg-navy-800/70')}>
+                <div key={i} className={cn('min-h-[92px] border-b border-e border-navy-100 p-1.5 [&:nth-child(7n)]:border-e-0', !inMonth && 'bg-ivory-50/70')}>
                   <div className="mb-1 flex items-center justify-between">
                     <button
                       type="button"
@@ -205,7 +205,7 @@ export function CalendarClient({
                       className={cn(
                         'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-extrabold',
                         isAdmin && 'transition hover:ring-2 hover:ring-gold-500/40',
-                        isToday ? 'bg-gold-500 text-navy-950' : inMonth ? 'text-ivory-200' : 'text-navy-300',
+                        isToday ? 'bg-gold-500 text-navy-950' : inMonth ? 'text-navy-800' : 'text-navy-200',
                       )}
                     >
                       {d.getDate()}
@@ -217,14 +217,14 @@ export function CalendarClient({
                       <Link
                         key={t.id}
                         href={`/sessions/${t.id}`}
-                        className={cn('block truncate rounded border-s-2 bg-navy-850 px-1.5 py-0.5 text-[10px] font-bold shadow-sm hover:shadow', URGENCY_EDGE[t.urgency])}
+                        className={cn('block truncate rounded border-s-2 bg-white px-1.5 py-0.5 text-[10px] font-bold shadow-sm hover:shadow', URGENCY_EDGE[t.urgency])}
                       >
                         {t.scheduledTime && <span className="font-latin">{t.scheduledTime} </span>}
                         {t.location.name}
                       </Link>
                     ))}
                     {dayTasks.length > 3 && (
-                      <button onClick={() => { setCursor(new Date(d)); setView('day'); }} className="text-[9.5px] font-bold text-gold-500 hover:underline">
+                      <button onClick={() => { setCursor(new Date(d)); setView('day'); }} className="text-[9.5px] font-bold text-gold-700 hover:underline">
                         +{dayTasks.length - 3} أخرى
                       </button>
                     )}
@@ -282,9 +282,9 @@ function WeekDayView({ view, cursor, range, tasksOn, loading }: {
           {/* header row */}
           <div />
           {days.map((d, i) => (
-            <div key={i} className="border-b border-e border-navy-100 bg-navy-800 px-2 py-2 text-center last:border-e-0">
+            <div key={i} className="border-b border-e border-navy-100 bg-ivory-50 px-2 py-2 text-center last:border-e-0">
               <p className="text-[10px] font-bold text-navy-400">{formatFullDate(d).split('،')[0]}</p>
-              <p className="text-[14px] font-extrabold text-ivory-100">{d.getDate()}</p>
+              <p className="text-[14px] font-extrabold text-navy-900">{d.getDate()}</p>
             </div>
           ))}
           {/* hour rows */}
@@ -302,9 +302,9 @@ function WeekDayView({ view, cursor, range, tasksOn, loading }: {
                         <Link
                           key={t.id}
                           href={`/sessions/${t.id}`}
-                          className={cn('block rounded border-s-2 bg-navy-850 px-1.5 py-1 shadow-sm hover:shadow', URGENCY_EDGE[t.urgency])}
+                          className={cn('block rounded border-s-2 bg-white px-1.5 py-1 shadow-sm hover:shadow', URGENCY_EDGE[t.urgency])}
                         >
-                          <p className="truncate text-[10.5px] font-extrabold text-ivory-100">{t.location.name}</p>
+                          <p className="truncate text-[10.5px] font-extrabold text-navy-900">{t.location.name}</p>
                           <p className="truncate text-[9.5px] font-semibold text-navy-400">{t.description}</p>
                         </Link>
                       ))}

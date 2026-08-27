@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'منطقة الإدارة' };
 export default async function AdminPage() {
   const session = await getCurrentUser();
   if (!session || session.role !== 'admin') {
-    redirect('/api/auth/login');
+    redirect('/admin/login');
   }
 
   const [stats, lawyers, locations, cases, feed, activity, notifications] = await Promise.all([

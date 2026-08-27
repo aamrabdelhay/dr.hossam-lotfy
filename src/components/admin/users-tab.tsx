@@ -70,7 +70,7 @@ export function UsersTab({ currentUserId }: { currentUserId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[13px] font-bold text-navy-400">{users.length} حساب — المدير العام وحده يضيف أو يعدّل الحسابات</p>
+          <p className="text-[13px] font-bold text-navy-500">{users.length} حساب — المدير العام وحده يضيف أو يعدّل الحسابات</p>
           <p className="mt-0.5 text-[11px] font-semibold text-navy-300">
             تغيير الدور أو كلمة المرور ينهي كل جلسات المستخدم فوراً.
           </p>
@@ -92,7 +92,7 @@ export function UsersTab({ currentUserId }: { currentUserId: string }) {
               <Avatar name={u.name} size={38} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[13.5px] font-extrabold text-ivory-50">{u.name}</p>
+                  <p className="text-[13.5px] font-extrabold text-navy-950">{u.name}</p>
                   <Badge tone={isSuper(u.role) ? 'gold' : 'outline'}>
                     {isSuper(u.role) && <ShieldCheck size={11} />}
                     {ROLE_LABEL[u.role] ?? u.role}
@@ -108,7 +108,7 @@ export function UsersTab({ currentUserId }: { currentUserId: string }) {
                 <span className="text-[11px] font-bold text-navy-300">حساب محمي</span>
               ) : (
                 <>
-                  <button onClick={() => setEditing(u)} className="rounded-md p-2 text-navy-400 hover:bg-white/5 hover:text-ivory-200" title="تعديل">
+                  <button onClick={() => setEditing(u)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
                     <Pencil size={14} />
                   </button>
                   <button onClick={() => setConfirmDelete(u)} className="rounded-md p-2 text-navy-300 hover:bg-red-600/10 hover:text-red-600" title="حذف">
@@ -147,7 +147,7 @@ export function UsersTab({ currentUserId }: { currentUserId: string }) {
           </div>
         }
       >
-        <p className="text-sm leading-7 text-ivory-300">
+        <p className="text-sm leading-7 text-navy-700">
           سيتم إنهاء جلسات «{confirmDelete?.name}» وحذف حسابه نهائياً. سجل النشاط الخاص به يبقى محفوظاً.
         </p>
       </Modal>
@@ -246,7 +246,7 @@ function UserForm({
             ))}
           </Select>
         </Field>
-        <p className="rounded-lg bg-navy-800 px-3 py-2 text-[11px] font-bold leading-5 text-navy-400">
+        <p className="rounded-lg bg-ivory-100 px-3 py-2 text-[11px] font-bold leading-5 text-navy-400">
           {ROLE_DESCRIPTION[role]}
         </p>
         <Field label="كلمة المرور" required={!isEdit} hint={isEdit ? 'اتركها فارغة للإبقاء على الحالية' : '8 أحرف على الأقل'}>

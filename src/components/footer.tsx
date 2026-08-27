@@ -2,55 +2,105 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="relative mt-16 border-t border-white/[0.06] bg-navy-950">
-      {/* Lime hairline accent */}
-      <span aria-hidden className="gold-hairline absolute inset-x-0 top-0 opacity-50" />
-      <div className="relative mx-auto grid max-w-[1440px] gap-10 px-6 py-12 md:grid-cols-3">
-        {/* Col 1: Firm name */}
+    <footer className="relative mt-16 border-t border-white/[0.08] bg-[#0A101D] text-white">
+      {/* Gold gradient hairline accent */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-gold-500/60 to-transparent"
+      />
+      {/* Soft ambient glow */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(720px_240px_at_50%_-80px,rgba(212,169,63,0.09),transparent_70%)]"
+      />
+      <div className="relative mx-auto grid max-w-[1440px] gap-10 px-6 py-14 md:grid-cols-3">
+        {/* Col 1: Firm name + description (2 lines max) */}
         <div>
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gold-500/40 bg-gold-500/10 font-mono text-[13px] font-bold text-gold-500">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gold-500/50 bg-gradient-to-br from-gold-500/25 via-gold-600/10 to-transparent text-[15px] text-gold-300"
+              style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600 }}
+            >
               HL
             </span>
-            <span className="block min-w-0 leading-none">
-              <p className="font-mono text-[11.5px] font-semibold tracking-[0.18em] text-ivory-50">DR. HOSSAM LOTFY</p>
-              <p className="mt-1 font-mono text-[8.5px] font-semibold tracking-[0.32em] text-gold-500">LAW FIRM</p>
+            <span className="block min-w-0">
+              <p
+                className="text-[14px] tracking-[2px] text-white"
+                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, letterSpacing: '2px' }}
+              >
+                DR. HOSSAM LOTFY
+              </p>
+              <p
+                className="mt-0.5 text-[9px] tracking-[3px] uppercase text-gold-400/80"
+                style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '3px' }}
+              >
+                LAW FIRM
+              </p>
             </span>
           </div>
-          <p className="mt-5 max-w-[280px] text-[12px] leading-[1.9] text-navy-300">
+          <p
+            className="mt-5 max-w-[280px] text-[12px] leading-[1.8] text-white/55"
+            style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+          >
             مكتب محاماة متخصص في القضايا التجارية والدستورية والإدارية والعقارية.
           </p>
         </div>
 
         {/* Col 2: Quick links */}
         <div>
-          <p className="font-mono text-[9.5px] font-semibold tracking-[0.26em] text-navy-400">QUICK LINKS</p>
-          <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
-            {[
-              { href: '/', label: 'نظرة عامة' },
-              { href: '/sessions', label: 'الجلسات' },
-              { href: '/lawyers', label: 'المحامون' },
-              { href: '/locations', label: 'المحاكم والأماكن' },
-              { href: '/calendar', label: 'التقويم' },
-              { href: '/search', label: 'البحث' },
-            ].map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="group inline-flex items-center gap-2 text-[12.5px] font-semibold text-navy-300 transition-colors hover:text-ivory-50">
-                  <span className="h-px w-3 bg-gold-500/50 transition-all duration-300 group-hover:w-5 group-hover:bg-gold-500" />
-                  {l.label}
-                </Link>
-              </li>
-            ))}
+          <p
+            className="text-[10px] font-bold tracking-[2px] uppercase text-gold-400/70"
+            style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '2px' }}
+          >
+            QUICK LINKS
+          </p>
+          <ul className="mt-5 space-y-3">
+            <li>
+              <Link href="/" className="group inline-flex items-center gap-2 text-[12.5px] text-white/60 transition-colors hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <span className="h-px w-3 bg-gold-500/50 transition-all duration-300 group-hover:w-5 group-hover:bg-gold-400" />
+                الرئيسية
+              </Link>
+            </li>
+            <li>
+              <Link href="/locations" className="group inline-flex items-center gap-2 text-[12.5px] text-white/60 transition-colors hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <span className="h-px w-3 bg-gold-500/50 transition-all duration-300 group-hover:w-5 group-hover:bg-gold-400" />
+                المحاكم والأماكن
+              </Link>
+            </li>
+            <li>
+              <Link href="/lawyers" className="group inline-flex items-center gap-2 text-[12.5px] text-white/60 transition-colors hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <span className="h-px w-3 bg-gold-500/50 transition-all duration-300 group-hover:w-5 group-hover:bg-gold-400" />
+                المحامون
+              </Link>
+            </li>
+            <li>
+              <Link href="/calendar" className="group inline-flex items-center gap-2 text-[12.5px] text-white/60 transition-colors hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <span className="h-px w-3 bg-gold-500/50 transition-all duration-300 group-hover:w-5 group-hover:bg-gold-400" />
+                التقويم
+              </Link>
+            </li>
+            <li>
+              <Link href="/search" className="group inline-flex items-center gap-2 text-[12.5px] text-white/60 transition-colors hover:text-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <span className="h-px w-3 bg-gold-500/50 transition-all duration-300 group-hover:w-5 group-hover:bg-gold-400" />
+                البحث
+              </Link>
+            </li>
           </ul>
         </div>
 
-        {/* Col 3: Contact */}
+        {/* Col 3: Contact (one phone, one email) */}
         <div>
-          <p className="font-mono text-[9.5px] font-semibold tracking-[0.26em] text-navy-400">CONTACT</p>
-          <div className="mt-4 space-y-3">
+          <p
+            className="text-[10px] font-bold tracking-[2px] uppercase text-gold-400/70"
+            style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '2px' }}
+          >
+            CONTACT
+          </p>
+          <div className="mt-5 space-y-3">
             <a
               href="mailto:hloutfi@loutfilawfirm.net"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[11.5px] text-navy-300 transition-all hover:border-gold-500/40 hover:text-gold-500"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/70 transition-all hover:border-gold-500/40 hover:bg-gold-500/10 hover:text-white"
+              style={{ fontFamily: 'Inter, sans-serif' }}
               dir="ltr"
             >
               hloutfi@loutfilawfirm.net
@@ -58,32 +108,32 @@ export function Footer() {
             <div>
               <a
                 href="tel:+20237606575"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[11.5px] text-navy-300 transition-all hover:border-gold-500/40 hover:text-gold-500"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/70 transition-all hover:border-gold-500/40 hover:bg-gold-500/10 hover:text-white"
+                style={{ fontFamily: 'Inter, sans-serif' }}
                 dir="ltr"
               >
                 +20 2 3760 6575
               </a>
             </div>
+            <Link
+              href="/api/auth/login" prefetch={false}
+              className="mt-4 inline-block text-[10px] tracking-[1.5px] uppercase text-white/30 transition-colors hover:text-gold-400/80"
+              style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+            >
+              Admin Login
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Bottom bar */}
       <div className="relative border-t border-white/[0.06] py-5">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-center gap-x-6 gap-y-2 px-6">
-          <p className="font-mono text-[9.5px] tracking-[0.2em] text-navy-400">© 2026 DR. HOSSAM LOTFY LAW FIRM</p>
-          <p className="font-mono text-[9.5px] tracking-[0.2em] text-navy-400">LEGAL COMMAND CENTER — VERSION 2.0</p>
-          <p className="flex items-center gap-2 font-mono text-[9.5px] tracking-[0.2em] text-navy-400">
-            SYSTEM
-            <span className="flex items-center gap-1.5 text-gold-500">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-500 opacity-50" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-500" />
-              </span>
-              ONLINE
-            </span>
-          </p>
-        </div>
+        <p
+          className="text-center text-[10px] tracking-[1.5px] uppercase text-white/35"
+          style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '1.5px' }}
+        >
+          © 2026 DR. HOSSAM LOTFY LAW FIRM
+        </p>
       </div>
     </footer>
   );

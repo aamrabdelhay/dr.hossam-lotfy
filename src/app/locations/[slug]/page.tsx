@@ -107,7 +107,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
               {location.governorate && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">النطاق</p>
-                  <p className="mt-1 font-bold text-ivory-200">
+                  <p className="mt-1 font-bold text-navy-800">
                     {[location.governorate, location.city, location.district].filter(Boolean).join(' — ')}
                     {location.subType ? ` · ${location.subType}` : ''}
                   </p>
@@ -116,31 +116,31 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
               {location.workingHours && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">مواعيد العمل</p>
-                  <p className="mt-1 font-bold text-ivory-200">{location.workingHours}</p>
+                  <p className="mt-1 font-bold text-navy-800">{location.workingHours}</p>
                 </div>
               )}
               {location.jurisdiction && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">الاختصاص</p>
-                  <p className="mt-1 font-bold text-ivory-200">{location.jurisdiction}</p>
+                  <p className="mt-1 font-bold text-navy-800">{location.jurisdiction}</p>
                 </div>
               )}
               {location.phone && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">الهاتف</p>
-                  <a href={`tel:${location.phone}`} className="ltr mt-1 inline-block font-bold text-ivory-200 hover:text-gold-500">{location.phone}</a>
+                  <a href={`tel:${location.phone}`} className="ltr mt-1 inline-block font-bold text-navy-800 hover:text-gold-700">{location.phone}</a>
                 </div>
               )}
               {location.email && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">البريد الإلكتروني</p>
-                  <a href={`mailto:${location.email}`} className="ltr mt-1 inline-block font-bold text-ivory-200 hover:text-gold-500">{location.email}</a>
+                  <a href={`mailto:${location.email}`} className="ltr mt-1 inline-block font-bold text-navy-800 hover:text-gold-700">{location.email}</a>
                 </div>
               )}
               {location.distanceBucket && (
                 <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-wide text-navy-300">المسافة من مكتب الدقي</p>
-                  <p className="mt-1 font-bold text-ivory-200">
+                  <p className="mt-1 font-bold text-navy-800">
                     {location.distanceBucket}
                     {location.distanceFromDokki ? ` · ${location.distanceFromDokki} كم` : ''}
                   </p>
@@ -158,7 +158,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
               )}
               <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-1">
                 {location.googleMapsUrl && (
-                  <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 px-3 py-1.5 text-[12px] font-extrabold text-ivory-300 transition hover:border-gold-500 hover:text-gold-500">
+                  <a href={location.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 px-3 py-1.5 text-[12px] font-extrabold text-navy-700 transition hover:border-gold-500 hover:text-gold-700">
                     <MapPin size={13} />
                     الموقع على الخريطة
                   </a>
@@ -173,7 +173,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
         {/* Feed */}
         <div className="mt-5">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[15px] font-extrabold text-ivory-100">سجل النشاط — من نازل هنا وإمتى</h2>
+            <h2 className="text-[15px] font-extrabold text-navy-900">سجل النشاط — من نازل هنا وإمتى</h2>
             <span className="text-[11px] font-semibold text-navy-300">ترتيب زمني</span>
           </div>
           {tasksVM.length === 0 ? (
@@ -185,7 +185,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                   <div className="flex w-20 shrink-0 flex-col items-center pt-2">
                     {t.scheduledDate ? (
                       <>
-                        <span className="text-[11px] font-extrabold text-gold-500">{formatFullDate(new Date(`${t.scheduledDate}T12:00:00`)).split('،')[0]}</span>
+                        <span className="text-[11px] font-extrabold text-gold-700">{formatFullDate(new Date(`${t.scheduledDate}T12:00:00`)).split('،')[0]}</span>
                         {t.scheduledTime && (
                           <span className="flex items-center gap-0.5 text-[10px] font-bold text-navy-300">
                             <Clock size={10} />
@@ -216,7 +216,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
 
         {/* Activity history */}
         <div className="mt-8">
-          <h2 className="mb-3 text-[15px] font-extrabold text-ivory-100">السجل التاريخي</h2>
+          <h2 className="mb-3 text-[15px] font-extrabold text-navy-900">السجل التاريخي</h2>
           {activity.length === 0 ? (
             <EmptyState title="لم يتم تسجيل أي نشاط" hint="ستظهر هنا أحداث إنشاء وتعديل وإنهاء المهام المرتبطة بهذا المكان." />
           ) : (

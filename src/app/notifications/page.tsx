@@ -32,8 +32,8 @@ export default async function NotificationsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
       <div className="mb-5 flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-extrabold text-ivory-50">
-          <Bell size={20} className="text-gold-500" />
+        <h1 className="flex items-center gap-2 text-xl font-extrabold text-navy-950">
+          <Bell size={20} className="text-gold-600" />
           الإشعارات
         </h1>
         <span className="text-[12px] font-bold text-navy-400">{notifications.filter((n) => !n.readAt).length} غير مقروء</span>
@@ -50,18 +50,18 @@ export default async function NotificationsPage() {
               id={n.id}
               href={n.link ?? '#'}
               read={!!n.readAt}
-              className={cn('flex items-start gap-3 px-4 py-3.5 hover:bg-navy-800', !n.readAt && 'bg-gold-500/[0.05]')}
+              className={cn('flex items-start gap-3 px-4 py-3.5 hover:bg-ivory-50', !n.readAt && 'bg-gold-500/[0.05]')}
             >
-              <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', !n.readAt ? 'bg-gold-500/20 text-gold-500' : 'bg-white/5 text-navy-400')}>
+              <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', !n.readAt ? 'bg-gold-500/20 text-gold-700' : 'bg-navy-900/5 text-navy-400')}>
                 {n.type === 'TASK_COMPLETED' ? <CheckCheck size={15} /> : <Bell size={15} />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-2">
-                  <span className={cn('text-[13px] font-extrabold', n.readAt ? 'text-navy-300' : 'text-ivory-50')}>{n.title}</span>
-                  <span className="rounded bg-white/5 px-1.5 py-px text-[10px] font-bold text-navy-400">{TYPE_LABEL[n.type] ?? n.type}</span>
+                  <span className={cn('text-[13px] font-extrabold', n.readAt ? 'text-navy-600' : 'text-navy-950')}>{n.title}</span>
+                  <span className="rounded bg-navy-900/5 px-1.5 py-px text-[10px] font-bold text-navy-400">{TYPE_LABEL[n.type] ?? n.type}</span>
                   {!n.readAt && <span className="h-2 w-2 rounded-full bg-gold-500" />}
                 </span>
-                {n.body && <span className="mt-0.5 block text-[12px] font-semibold leading-6 text-navy-400">{n.body}</span>}
+                {n.body && <span className="mt-0.5 block text-[12px] font-semibold leading-6 text-navy-500">{n.body}</span>}
                 <span className="mt-0.5 block text-[10.5px] font-semibold text-navy-300">{formatDateTime(n.createdAt)}</span>
               </span>
             </NotificationLink>

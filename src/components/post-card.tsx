@@ -111,14 +111,14 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
           {task.author ? (
             <Avatar name={task.author.name} src={task.author.photo} size={42} ring />
           ) : (
-            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-400 ring-2 ring-gold-500/60 ring-offset-2 ring-offset-navy-900">
+            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-400 ring-2 ring-gold-500/60 ring-offset-2 ring-offset-white">
               <FileText size={18} />
             </span>
           )}
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <Link href={getOfficeProfileHref(task)} className="truncate text-[14px] font-extrabold text-ivory-50 hover:underline">
+            <Link href={getOfficeProfileHref(task)} className="truncate text-[14px] font-extrabold text-navy-950 hover:underline">
               {task.author ? task.author.name : 'إدارة المكتب'}
             </Link>
             {task.author ? (
@@ -141,7 +141,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
                 )}
               </span>
             )}
-            <Link href={`/locations/${task.location.slug}`} className="flex items-center gap-1 text-gold-500 hover:underline">
+            <Link href={`/locations/${task.location.slug}`} className="flex items-center gap-1 text-gold-700 hover:underline">
               <MapPin size={11} />
               {task.location.name}
             </Link>
@@ -158,12 +158,12 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
       {/* Body */}
       <div className="px-4 pb-3 pt-3">
         <Link href={`/sessions/${task.id}`} className="block">
-          <p className="text-[14px] font-semibold leading-7 text-ivory-200 hover:text-ivory-50">{task.description}</p>
+          <p className="text-[14px] font-semibold leading-7 text-navy-800 hover:text-navy-950">{task.description}</p>
         </Link>
         {task.notes && (
           <div className="mt-2 flex items-start gap-2 rounded-lg border border-gold-500/25 bg-gold-500/[0.06] px-3 py-2">
-            <StickyNote size={13} className="mt-1 shrink-0 text-gold-500" />
-            <p className="text-[12.5px] leading-6 text-ivory-300">{task.notes}</p>
+            <StickyNote size={13} className="mt-1 shrink-0 text-gold-600" />
+            <p className="text-[12.5px] leading-6 text-navy-700">{task.notes}</p>
           </div>
         )}
         {(task.caseName || task.caseNumber) && (
@@ -187,7 +187,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
                   'flex items-center gap-1.5 rounded-full border py-0.5 pe-2.5 ps-1 text-[11px] font-bold transition',
                   l.completed
                     ? 'border-emerald-600/30 bg-emerald-600/5 text-emerald-700'
-                    : 'border-navy-200 bg-navy-800 text-ivory-300 hover:border-gold-500',
+                    : 'border-navy-200 bg-ivory-50 text-navy-700 hover:border-gold-500',
                 )}
               >
                 <Avatar name={l.name} src={l.photo} size={18} />
@@ -206,7 +206,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.address)}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 rounded-md bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-bold text-gold-500 hover:bg-gold-500/20"
+            className="flex items-center gap-1 rounded-md bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-bold text-gold-700 hover:bg-gold-500/20"
           >
             <Navigation size={13} /> الاتجاهات
           </a>
@@ -214,7 +214,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
         {showComments && (
           <button
             onClick={toggleComments}
-            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold text-navy-400 hover:bg-white/5"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold text-navy-500 hover:bg-navy-900/5"
           >
             <MessageSquare size={14} />
             {commentsCache.length > 0 || task.commentCount > 0 ? `${task.commentCount} تعليق` : 'تعليق'}
@@ -255,7 +255,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
           </div>
         }
       >
-        <p className="text-sm leading-7 text-ivory-300">
+        <p className="text-sm leading-7 text-navy-700">
           سيتم حذف المهمة وجميع تعليقاتها نهائياً من الفيد وصفحات المحامين والمواقع. لا يمكن التراجع عن هذا الإجراء.
         </p>
       </Modal>

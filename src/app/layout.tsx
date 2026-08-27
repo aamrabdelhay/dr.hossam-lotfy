@@ -5,29 +5,32 @@ import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { WarningBar } from '@/components/warning-bar';
 import { MobileSessions } from '@/components/mobile-sessions';
-import { SideNav } from '@/components/side-nav';
-import { BottomNav } from '@/components/bottom-nav';
-import { CommandPalette } from '@/components/command-palette';
-import { SessionsUIProvider } from '@/components/sessions-ui';
 import { Toaster } from '@/components/toasts';
+import { getSiteNav } from '@/lib/site-data';
 import { getSidebarData, type SidebarData } from '@/lib/queries';
 import { getCurrentUser, type SessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import type { NavLawyer, NavLocation } from '@/lib/constants';
 import { isFrameworkError, redact } from '@/lib/health';
 
 export const metadata: Metadata = {
   title: {
-    default: 'LEGAL COMMAND CENTER — DR. HOSSAM LOTFY LAW FIRM',
-    template: '%s — LEGAL COMMAND CENTER',
+    default: 'DR. HOSSAM LOTFY LAW FIRM — نظام إدارة الجلسات والمهام',
+    template: '%s — DR. HOSSAM LOTFY LAW FIRM',
   },
   description:
     'منصة مكتب د. حسام لطفي للمحاماة: إدارة الجلسات والمحاكم والمهام والمتابعة اليومية للمحامين — من مين نازل فين، وإمتى، وهيعمل إيه.',
 };
 
 export const viewport: Viewport = {
-  themeColor: '#090A0A',
+  themeColor: '#05080F',
   width: 'device-width',
   initialScale: 1,
+};
+
+const EMPTY_NAV = {
+  lawyers: [] as NavLawyer[],
+  locations: [] as NavLocation[],
 };
 
 const EMPTY_SIDEBAR: SidebarData = {
@@ -60,14 +63,16 @@ async function loadFailSoft<T>(label: string, operation: () => Promise<T>, fallb
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarResult, sessionResult] = await Promise.all([
+  const [navResult, sidebarResult, sessionResult] = await Promise.all([
+    loadFailSoft('site navigation', getSiteNav, EMPTY_NAV),
     loadFailSoft('sidebar data', getSidebarData, EMPTY_SIDEBAR),
     loadFailSoft<SessionUser | null>('current session', getCurrentUser, null),
   ]);
 
+  const nav = navResult.value;
   const sidebar = sidebarResult.value;
   const session = sessionResult.value;
-  let databaseUnavailable = sidebarResult.unavailable || sessionResult.unavailable;
+  let databaseUnavailable = navResult.unavailable || sidebarResult.unavailable || sessionResult.unavailable;
   let unread = 0;
 
   if (session) {
@@ -86,9 +91,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html dir="rtl" lang="ar">
       <body className="flex min-h-screen flex-col">
-        <CommandPalette />
-        <SideNav role={session?.role ?? null} />
         <Navbar
+          lawyers={nav.lawyers}
+          locations={nav.locations}
           session={
             session
               ? {
@@ -104,23 +109,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {databaseUnavailable && (
           <div
             role="alert"
-            className="border-b border-crit-700 bg-crit-700 px-4 py-2.5 text-center text-[12px] text-white"
-            style={{ fontFamily: 'var(--font-arabic)' }}
+            className="border-b border-[#7A1F2B] bg-[#7A1F2B] px-4 py-2.5 text-center text-[12px] text-white"
+            style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
           >
             قاعدة البيانات غير متاحة حالياً.{' '}
-            <Link href="/api/health" className="underline decoration-white/60 underline-offset-4 hover:text-white/80">
+            <Link href="/api/health" className="underline decoration-white/60 underline-offset-4 hover:text-[#F4F6F9]">
               عرض تشخيص الخدمة
             </Link>
           </div>
         )}
         <WarningBar active={sidebar.warning} count={sidebar.warningCount} />
-        {/* xl: side rail offset — 200px for the numbered SideNav; pb-24 clears the mobile BottomNav */}
-        <main className="flex-1 pb-24 xl:pb-0 xl:ps-[200px]">{children}</main>
-        <SessionsUIProvider>
-          {/* Floating sessions drawer (mobile) — opened from the BottomNav */}
-          <MobileSessions data={sidebar} isAdmin={session?.role === 'admin'} />
-          <BottomNav />
-        </SessionsUIProvider>
+        <main className="flex-1">{children}</main>
+        {/* Floating sessions button must sit BEFORE the footer in the DOM */}
+        <MobileSessions data={sidebar} isAdmin={session?.role === 'admin'} />
         <Footer />
         <Toaster />
       </body>

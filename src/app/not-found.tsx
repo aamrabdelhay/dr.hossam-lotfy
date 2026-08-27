@@ -8,7 +8,7 @@ export default function NotFound() {
       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-navy-950 text-gold-400">
         <Gavel size={28} />
       </span>
-      <h1 className="text-lg font-extrabold text-ivory-50">الصفحة غير موجودة</h1>
+      <h1 className="text-lg font-extrabold text-navy-950">الصفحة غير موجودة</h1>
       <p className="text-[13px] leading-7 text-navy-400">
         ربما تم نقل الصفحة أو حذفها. يمكنك العودة للرئيسية أو استخدام البحث.
       </p>

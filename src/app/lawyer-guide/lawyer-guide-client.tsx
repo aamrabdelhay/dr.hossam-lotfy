@@ -172,7 +172,7 @@ export function LawyerGuideClient({
     <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-extrabold text-ivory-50" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+        <h1 className="text-2xl font-extrabold text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
           دليل المحامي في مصر
         </h1>
         <p className="mt-2 text-[13px] font-medium text-navy-400">
@@ -196,7 +196,7 @@ export function LawyerGuideClient({
           <button
             type="button"
             onClick={locateMe}
-            className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 bg-navy-850 px-3 py-2 text-[12px] font-bold text-ivory-300 hover:border-gold-500 hover:text-gold-500"
+            className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 bg-white px-3 py-2 text-[12px] font-bold text-navy-700 hover:border-gold-500 hover:text-gold-700"
           >
             <Navigation size={14} />
             الأقرب إليّ
@@ -204,7 +204,7 @@ export function LawyerGuideClient({
           <button
             type="button"
             onClick={goToOffice}
-            className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 bg-navy-850 px-3 py-2 text-[12px] font-bold text-ivory-300 hover:border-gold-500 hover:text-gold-500"
+            className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 bg-white px-3 py-2 text-[12px] font-bold text-navy-700 hover:border-gold-500 hover:text-gold-700"
           >
             <MapPin size={14} />
             بالقرب من المكتب
@@ -213,7 +213,7 @@ export function LawyerGuideClient({
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 ${viewMode === 'list' ? 'bg-navy-950 text-white' : 'bg-navy-850 text-navy-400'}`}
+              className={`px-3 py-2 ${viewMode === 'list' ? 'bg-navy-950 text-white' : 'bg-white text-navy-500'}`}
               aria-label="عرض القائمة"
             >
               <LayoutGrid size={14} />
@@ -221,7 +221,7 @@ export function LawyerGuideClient({
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-navy-950 text-white' : 'bg-navy-850 text-navy-400'}`}
+              className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-navy-950 text-white' : 'bg-white text-navy-500'}`}
               aria-label="عرض الشبكة"
             >
               <MapIcon size={14} />
@@ -230,7 +230,7 @@ export function LawyerGuideClient({
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gold-500 bg-gold-500/10 px-3 py-2 text-[12px] font-bold text-gold-500 hover:bg-gold-500/20 lg:hidden"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gold-500 bg-gold-500/10 px-3 py-2 text-[12px] font-bold text-gold-700 hover:bg-gold-500/20 lg:hidden"
           >
             <Filter size={14} />
             فلاتر
@@ -242,13 +242,13 @@ export function LawyerGuideClient({
       <div className={`mb-4 ${showFilters ? 'block' : 'hidden lg:block'}`}>
         <Card className="p-4">
           <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[12px] font-extrabold text-ivory-300">
-              <Filter size={14} className="text-gold-500" />
+            <div className="flex items-center gap-2 text-[12px] font-extrabold text-navy-700">
+              <Filter size={14} className="text-gold-600" />
               فلاتر البحث
               <span className="text-[11px] font-bold text-navy-300">({filtered.length} من {totalCount})</span>
             </div>
             {hasFilters && (
-              <button onClick={reset} className="inline-flex items-center gap-1 text-[11px] font-bold text-gold-500 hover:text-gold-500">
+              <button onClick={reset} className="inline-flex items-center gap-1 text-[11px] font-bold text-gold-700 hover:text-gold-600">
                 <RotateCcw size={12} />
                 مسح الفلاتر
               </button>
@@ -279,22 +279,22 @@ export function LawyerGuideClient({
               ))}
             </Select>
             <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-navy-300">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-navy-600">
                 <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} className="rounded" />
                 موثق فقط
               </label>
-              <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-navy-300">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-navy-600">
                 <input type="checkbox" checked={onlineOnly} onChange={(e) => setOnlineOnly(e.target.checked)} className="rounded" />
                 خدمة أونلاين
               </label>
-              <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-navy-300">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-bold text-navy-600">
                 <input type="checkbox" checked={physicalOnly} onChange={(e) => setPhysicalOnly(e.target.checked)} className="rounded" />
                 حضور شخصي
               </label>
             </div>
           </div>
           {nearby && (
-            <div className="mt-3 rounded-md border border-gold-500/20 bg-gold-500/5 px-3 py-2 text-[11px] font-bold text-navy-300">
+            <div className="mt-3 rounded-md border border-gold-500/20 bg-gold-500/5 px-3 py-2 text-[11px] font-bold text-navy-600">
               <MapPin size={12} className="inline" /> النتائج مرتبة حسب المسافة من {nearby.lat === DOKKI_ORIGIN.lat ? 'المكتب' : 'موقعك'}
             </div>
           )}
@@ -311,7 +311,7 @@ export function LawyerGuideClient({
             className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
               category === c.id
                 ? 'bg-navy-950 text-white'
-                : 'border border-navy-200 bg-navy-850 text-navy-300 hover:border-gold-500'
+                : 'border border-navy-200 bg-white text-navy-600 hover:border-gold-500'
             }`}
           >
             {c.nameAr}
@@ -345,17 +345,17 @@ export function LawyerGuideClient({
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="rounded-md border border-navy-200 px-3 py-1.5 text-[11px] font-bold text-navy-300 hover:border-gold-500 disabled:opacity-40"
+            className="rounded-md border border-navy-200 px-3 py-1.5 text-[11px] font-bold text-navy-600 hover:border-gold-500 disabled:opacity-40"
           >
             السابق
           </button>
-          <span className="text-[12px] font-bold text-navy-400">
+          <span className="text-[12px] font-bold text-navy-500">
             صفحة {currentPage} من {totalPages}
           </span>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="rounded-md border border-navy-200 px-3 py-1.5 text-[11px] font-bold text-navy-300 hover:border-gold-500 disabled:opacity-40"
+            className="rounded-md border border-navy-200 px-3 py-1.5 text-[11px] font-bold text-navy-600 hover:border-gold-500 disabled:opacity-40"
           >
             التالي
           </button>
@@ -390,7 +390,7 @@ function LocationCard({
           </span>
           <div className="min-w-0 flex-1">
             <Link href={`/lawyer-guide/${row.slug}`} className="block">
-              <p className="truncate text-[13px] font-extrabold text-ivory-50 group-hover:text-ivory-200">{row.name}</p>
+              <p className="truncate text-[13px] font-extrabold text-navy-950 group-hover:text-navy-800">{row.name}</p>
             </Link>
             <p className="mt-0.5 text-[10px] font-bold text-navy-300">
               {row.category?.nameAr || LOCATION_TYPE_LABEL[row.type] || row.type}
@@ -416,7 +416,7 @@ function LocationCard({
             التفاصيل
           </Link>
           {directions && (
-            <a href={directions} target="_blank" rel="noreferrer" className="rounded-md border border-navy-200 px-2 py-1 text-[10px] font-bold text-ivory-300 hover:border-gold-500">
+            <a href={directions} target="_blank" rel="noreferrer" className="rounded-md border border-navy-200 px-2 py-1 text-[10px] font-bold text-navy-700 hover:border-gold-500">
               الاتجاهات
             </a>
           )}
@@ -434,7 +434,7 @@ function LocationCard({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <Link href={`/lawyer-guide/${row.slug}`}>
-            <p className="text-[13px] font-extrabold text-ivory-50 group-hover:text-ivory-200">{row.name}</p>
+            <p className="text-[13px] font-extrabold text-navy-950 group-hover:text-navy-800">{row.name}</p>
           </Link>
           {isVerified && <Badge tone="gold"><ShieldCheck size={10} /> موثق</Badge>}
         </div>
@@ -447,7 +447,7 @@ function LocationCard({
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {personalDistance != null ? (
-          <span className="text-[11px] font-bold text-gold-500">{personalDistance.toFixed(1)} كم</span>
+          <span className="text-[11px] font-bold text-gold-700">{personalDistance.toFixed(1)} كم</span>
         ) : row.distanceFromDokki != null ? (
           <span className="text-[11px] font-semibold text-navy-400">{row.distanceFromDokki.toFixed(1)} كم</span>
         ) : null}
@@ -458,12 +458,12 @@ function LocationCard({
             <Eye size={11} className="inline" /> عرض
           </Link>
           {directions && (
-            <a href={directions} target="_blank" rel="noreferrer" className="rounded-md border border-navy-200 px-2.5 py-1 text-[10px] font-bold text-ivory-300 hover:border-gold-500">
+            <a href={directions} target="_blank" rel="noreferrer" className="rounded-md border border-navy-200 px-2.5 py-1 text-[10px] font-bold text-navy-700 hover:border-gold-500">
               الاتجاهات
             </a>
           )}
           {row.phone && (
-            <a href={`tel:${row.phone}`} className="rounded-md border border-navy-200 px-2 py-1 text-[10px] font-bold text-ivory-300 hover:border-gold-500">
+            <a href={`tel:${row.phone}`} className="rounded-md border border-navy-200 px-2 py-1 text-[10px] font-bold text-navy-700 hover:border-gold-500">
               <Phone size={11} />
             </a>
           )}
