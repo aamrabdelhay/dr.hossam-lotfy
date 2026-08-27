@@ -2,8 +2,9 @@
  * Vercel build step:
  *  1. Require DATABASE_URL and apply pending SQL migrations.
  *  2. Generate the Prisma client.
- *  3. Optionally run the production-safe seed (never demo data).
- *  4. Build Next.js.
+ *  3. Sync the Lawyer Guide directory (134 places) on every deploy.
+ *  4. Optionally run the production-safe seed (never demo data).
+ *  5. Build Next.js.
  *
  * A deployment with an old database schema is worse than a failed deployment:
  * the migration step is deliberately fatal. Set SKIP_DB_MIGRATE=1 only for an
@@ -51,6 +52,21 @@ if (shouldSeed && !process.env.DATABASE_URL) {
 
 // Generate before seeding because the Prisma client is intentionally gitignored.
 run('generating Prisma client…', 'npx', ['prisma', 'generate']);
+
+// Every deploy re-syncs the official directory (119 courts + 15 government
+// offices) so /lawyer-guide never ships empty again. Idempotent upserts.
+const skipGuideSync = process.env.SKIP_LAWYER_GUIDE_SYNC === '1';
+
+if (skipGuideSync) {
+  console.warn('[vercel-build] SKIP_LAWYER_GUIDE_SYNC=1 — lawyer guide sync was explicitly skipped.');
+} else if (!process.env.DATABASE_URL) {
+  console.error(
+    '[vercel-build] Lawyer guide sync requires DATABASE_URL (set SKIP_LAWYER_GUIDE_SYNC=1 only for a deliberate skip).',
+  );
+  process.exit(1);
+} else {
+  run('syncing lawyer guide locations (134 places)…', 'npx', ['tsx', 'scripts/seed-lawyer-guide.mjs']);
+}
 
 if (shouldSeed) {
   // An inherited DEMO=1 must never create demo lawyers/tasks in production.
