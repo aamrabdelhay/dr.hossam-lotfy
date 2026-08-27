@@ -56,7 +56,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
-      <aside className="hidden w-[330px] shrink-0 lg:block"><div className="sticky top-[84px]"><SessionSidebar data={sidebar} isAdmin={isAdmin} /></div></aside>
+      <aside className="hidden w-[330px] shrink-0 lg:block"><div className="sticky top-[88px]"><SessionSidebar data={sidebar} isAdmin={isAdmin} /></div></aside>
       <div className="min-w-0 flex-1 space-y-5">
         <Card className="overflow-hidden">
           <div className="bg-navy-950 px-5 py-4"><div className="flex flex-wrap items-center gap-3"><div className="min-w-0 flex-1"><p className="text-[11px] font-bold text-gold-400">تفاصيل الجلسة / المهمة</p><h1 className="mt-1 text-lg font-extrabold leading-7 text-ivory-50 sm:text-xl">{task.description}</h1></div><div className="flex flex-wrap items-center gap-2"><StatusBadge status={task.status} />{task.scheduledDate && task.status !== 'COMPLETED' && <UrgencyBadge urgency={task.urgency} />}</div></div></div>
