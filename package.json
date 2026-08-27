@@ -2,6 +2,7 @@
   "name": "hl-lawfirm-platform",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "DR. HOSSAM LOTFY LAW FIRM - Law Firm Operations, Court Sessions & Lawyers Social Management Platform",
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
