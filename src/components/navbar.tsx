@@ -92,7 +92,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
   const locationList = (
     <div className="w-72 overflow-hidden rounded-sm border border-[#E0D8CC] bg-[#F7F5F0] shadow-xl">
       <p className="bg-[#101C2C] px-4 py-2 text-[9px] font-medium tracking-[2px] uppercase text-white/70" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحاكم</p>
-      <ul className="max-h-64 overflow-y-auto py-1">
+      <ul className="max-h-64 overflow-y-auto overscroll-contain py-1 [scrollbar-gutter:stable]">
         {courts.map((l) => (
           <li key={l.id}>
             <Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#242424] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
@@ -103,7 +103,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
         ))}
       </ul>
       <p className="bg-[#EEEBE4] px-4 py-2 text-[9px] font-medium tracking-[2px] uppercase text-[#6B6B6B]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الأماكن القانونية الأخرى</p>
-      <ul className="max-h-48 overflow-y-auto py-1">
+      <ul className="max-h-48 overflow-y-auto overscroll-contain py-1 [scrollbar-gutter:stable]">
         {otherLocations.map((l) => (
           <li key={l.id}>
             <Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#242424] hover:bg-white" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
@@ -122,7 +122,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
 
   const lawyerList = (
     <div className="w-72 overflow-hidden rounded-sm border border-[#E0D8CC] bg-[#F7F5F0] shadow-xl">
-      <ul className="max-h-80 overflow-y-auto py-1">
+      <ul className="max-h-80 overflow-y-auto overscroll-contain py-1 [scrollbar-gutter:stable]">
         {[...lawyers]
           .sort((a, b) => Number(b.isPrincipal) - Number(a.isPrincipal))
           .map((l) => (
@@ -283,7 +283,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="border-t border-white/10 bg-[#101C2C] lg:hidden">
+        <div className="max-h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain border-t border-white/10 bg-[#101C2C] lg:hidden [scrollbar-gutter:stable]">
           <div className="space-y-4 px-6 py-5">
             <form onSubmit={doSearch} className="flex items-center gap-2">
               <div className="relative flex-1">
