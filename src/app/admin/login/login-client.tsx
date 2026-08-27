@@ -14,14 +14,13 @@ export function AdminLoginForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) return;
-    setBusy(true);
     const trimmed = email.trim();
+    if (!trimmed || !password) return;
+    setBusy(true);
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // email is optional — when omitted the API falls back to the first staff account
-      body: JSON.stringify(trimmed ? { email: trimmed, password } : { password }),
+      body: JSON.stringify({ email: trimmed, password }),
     });
     setBusy(false);
     if (res.ok) {
@@ -36,16 +35,17 @@ export function AdminLoginForm() {
   return (
     <Card className="p-6">
       <form onSubmit={submit} className="space-y-4">
-        <Field label="البريد الإلكتروني" hint="اختياري — اتركه فارغاً لدخول الحساب الرئيسي">
+        <Field label="البريد الإلكتروني" required hint="استخدم البريد المرتبط بحساب المكتب">
           <div className="relative">
             <Mail size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-navy-300" />
             <Input
               type="email"
               name="email"
+              required
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@loutfilawfirm.net"
+              placeholder="admin@example.com"
               className="ps-9 ltr text-start"
               dir="ltr"
             />
@@ -66,7 +66,7 @@ export function AdminLoginForm() {
             />
           </div>
         </Field>
-        <Button type="submit" className="w-full" disabled={busy || !password}>
+        <Button type="submit" className="w-full" disabled={busy || !email.trim() || !password}>
           {busy ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
           دخول
         </Button>
