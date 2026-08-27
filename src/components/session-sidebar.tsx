@@ -38,8 +38,8 @@ function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: s
 
 export function SessionSidebar({ data, isAdmin }: { data: SidebarData; isAdmin: boolean }) {
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-navy-100 bg-navy-950 px-4 py-3">
+    <Card className="flex max-h-[calc(100vh-96px)] flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center gap-2 border-b border-navy-100 bg-navy-950 px-4 py-3">
         <CalendarClock size={17} className="text-gold-400" />
         <h2 className="text-[14px] font-extrabold text-ivory-50">الجلسات والمواعيد</h2>
         <span className="ms-auto rounded-full bg-gold-500/20 px-2 py-0.5 text-[10px] font-bold text-gold-300">
@@ -47,17 +47,19 @@ export function SessionSidebar({ data, isAdmin }: { data: SidebarData; isAdmin: 
         </span>
       </div>
 
-      <Section id="tomorrow" title={`غداً — ${TomorrowDate()}`} tone="bg-red-600" tasks={data.sections.tomorrow} defaultOpen admin={isAdmin} />
-      <Section id="d3" title="خلال 3 أيام" tone="bg-orange-500" tasks={data.sections.within3} defaultOpen admin={isAdmin} />
-      <Section id="d14" title="خلال أسبوعين" tone="bg-amber-500" tasks={data.sections.within14} admin={isAdmin} />
-      <Section id="d30" title="خلال شهر" tone="bg-gold-500" tasks={data.sections.within30} admin={isAdmin} />
-      <Section id="all" title="كل الجلسات" tone="bg-emerald-600" tasks={data.sections.all} admin={isAdmin} />
+      <div className="flex-1 overflow-y-auto overscroll-contain p-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#c9c2b2] hover:scrollbar-thumb-[#a99e8a]">
+        <Section id="tomorrow" title={`غداً — ${TomorrowDate()}`} tone="bg-red-600" tasks={data.sections.tomorrow} defaultOpen admin={isAdmin} />
+        <Section id="d3" title="خلال 3 أيام" tone="bg-orange-500" tasks={data.sections.within3} defaultOpen admin={isAdmin} />
+        <Section id="d14" title="خلال أسبوعين" tone="bg-amber-500" tasks={data.sections.within14} admin={isAdmin} />
+        <Section id="d30" title="خلال شهر" tone="bg-gold-500" tasks={data.sections.within30} admin={isAdmin} />
+        <Section id="all" title="كل الجلسات" tone="bg-emerald-600" tasks={data.sections.all} admin={isAdmin} />
 
-      {data.sections.all.length === 0 && (
-        <div className="p-4">
-          <EmptyState title="لا توجد جلسات قادمة" hint="سيظهر هنا جدول الجلسات المرتبة زمنياً بمجرد إضافتها." />
-        </div>
-      )}
+        {data.sections.all.length === 0 && (
+          <div className="p-4">
+            <EmptyState title="لا توجد جلسات قادمة" hint="سيظهر هنا جدول الجلسات المرتبة زمنياً بمجرد إضافتها." />
+          </div>
+        )}
+      </div>
     </Card>
   );
 }
@@ -79,14 +81,16 @@ export function SessionsDrawer({ open, onClose, data, isAdmin }: { open: boolean
   return (
     <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
-      <div className="absolute inset-y-0 start-0 w-full max-w-md overflow-y-auto bg-ivory-100 p-3 shadow-2xl animate-slide-in-start">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="absolute inset-y-0 start-0 flex w-full max-w-md flex-col overflow-hidden bg-ivory-100 shadow-2xl animate-slide-in-start">
+        <div className="flex shrink-0 items-center justify-between border-b border-navy-100 bg-white px-3 py-2">
           <h2 className="text-[15px] font-extrabold text-navy-900">الجلسات القادمة</h2>
           <button onClick={onClose} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5" aria-label="إغلاق">
             <X size={18} />
           </button>
         </div>
-        <SessionSidebar data={data} isAdmin={isAdmin} />
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3">
+          <SessionSidebar data={data} isAdmin={isAdmin} />
+        </div>
       </div>
     </div>
   );
