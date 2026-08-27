@@ -31,6 +31,40 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editText, setEditText] = React.useState('');
   const [expanded, setExpanded] = React.useState(false);
+  const [highlightId, setHighlightId] = React.useState<string | null>(null);
+
+  // إشعار التعليق يفتح الرابط العميق /sessions/<id>#comment-<id> —
+  // أبرِز التعليق المستهدف ومرّر إليه (يتعامل أيضاً مع تغيّر الهاش
+  // بعد التنقل أو بعد تحميل التعليقات).
+  React.useEffect(() => {
+    const match = /^#comment-(.+)$/.exec(window.location.hash);
+    if (!match) return;
+    const id = decodeURIComponent(match[1]);
+    setHighlightId(id);
+    const target = document.getElementById(`comment-${id}`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!highlightId) return;
+    const target = document.getElementById(`comment-${highlightId}`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightId, comments, expanded]);
+
+  React.useEffect(() => {
+    const onHash = () => {
+      const match = /^#comment-(.+)$/.exec(window.location.hash);
+      if (match) {
+        setHighlightId(decodeURIComponent(match[1]));
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
   const refetch = async () => {
     try {
@@ -113,7 +147,14 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
       {comments.length > 0 && (
         <div className="mb-3 space-y-3">
           {comments.map((c) => (
-            <div key={c.id} className="flex gap-2.5">
+            <div
+              key={c.id}
+              id={`comment-${c.id}`}
+              className={cn(
+                'flex scroll-mt-28 gap-2.5 rounded-lg px-2 py-1.5 -mx-2 transition-colors',
+                highlightId === c.id && 'comment-highlight bg-gold-500/15 ring-1 ring-gold-500/40',
+              )}
+            >
               <Avatar name={c.author?.name ?? 'زائر'} src={c.author?.photo} size={30} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">

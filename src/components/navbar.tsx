@@ -7,7 +7,6 @@ import {
   Search,
   Landmark,
   Scale,
-  Bell,
   KeyRound,
   LogOut,
   Menu,
@@ -17,6 +16,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Avatar } from './ui';
+import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/cn';
 import type { NavLawyer, NavLocation } from '@/lib/constants';
 import { LOCATION_TYPE_LABEL, TITLE_LABEL } from '@/lib/constants';
@@ -33,7 +33,6 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [dropdown, setDropdown] = React.useState<'locations' | 'lawyers' | null>(null);
-  const [bellOpen, setBellOpen] = React.useState(false);
   const [q, setQ] = React.useState('');
   const [type, setType] = React.useState<'court' | 'location' | 'lawyer'>('court');
   const wrapRef = React.useRef<HTMLDivElement>(null);
@@ -42,7 +41,6 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
     const onClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         setDropdown(null);
-        setBellOpen(false);
       }
     };
     document.addEventListener('mousedown', onClick);
@@ -230,32 +228,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
 
         {/* Right actions */}
         <div className="ms-auto flex items-center gap-2 lg:ms-4">
-          {session && (
-            <div className="relative">
-              <button
-                onClick={() => setBellOpen((v) => !v)}
-                className="relative rounded-full p-2 text-navy-400 transition-colors hover:bg-navy-900/[0.06] hover:text-navy-900"
-                aria-label="الإشعارات"
-              >
-                <Bell size={16} />
-                {unread > 0 && (
-                  <span className="absolute -top-0.5 -start-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#7A1F2B] px-1 text-[8px] font-bold text-white">
-                    {unread > 9 ? '+9' : unread}
-                  </span>
-                )}
-              </button>
-              {bellOpen && (
-                <div className="absolute end-0 top-full w-64 pt-3">
-                  <div className="overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-lift ring-1 ring-navy-950/5">
-                    <p className="bg-[#0A101D] px-4 py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase text-gold-300" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الإشعارات</p>
-                    <Link href="/notifications" className="block px-4 py-5 text-center text-[11px] font-semibold text-[#1D2433] transition-colors hover:bg-ivory-100" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                      عرض كل الإشعارات ←
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {session && <NotificationBell unread={unread} />}
 
           {!session ? (
             <Link

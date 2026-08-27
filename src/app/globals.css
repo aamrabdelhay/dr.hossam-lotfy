@@ -197,6 +197,16 @@ body {
   animation: slide-in-start 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Deep-linked notification highlight: /sessions/<id>#comment-<id> */
+@keyframes comment-flash {
+  0% { background-color: rgba(234, 179, 8, 0.35); }
+  100% { background-color: rgba(234, 179, 8, 0.12); }
+}
+
+.comment-highlight {
+  animation: comment-flash 1.2s ease-out 2 alternate;
+}
+
 @keyframes shimmer {
   0% {
     background-position: 200% 0;

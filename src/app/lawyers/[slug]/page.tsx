@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { toTaskVM, type TaskVM } from '@/lib/queries';
 import { TITLE_LABEL } from '@/lib/constants';
+import { LawyerProfileEditor } from '@/components/lawyer-profile-editor';
 
 export const metadata: Metadata = { title: 'صفحة المحامي' };
 
@@ -122,6 +123,8 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   });
 
   if (!lawyer) notFound();
+  const session = await getCurrentUser();
+  const isSelf = session?.role === 'lawyer' && session.lawyerId === lawyer.id;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -218,6 +221,19 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
             >
               DR. HOSSAM LOTFY LAW FIRM
             </p>
+
+            {isSelf && (
+              <div className="mt-5">
+                <LawyerProfileEditor
+                  lawyerId={lawyer.id}
+                  fullName={lawyer.fullName}
+                  phone={lawyer.phone}
+                  specialization={lawyer.specialization}
+                  bio={lawyer.bio}
+                  profilePhotoUrl={lawyer.profilePhotoUrl}
+                />
+              </div>
+            )}
 
             {/* Contact minimal */}
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2">

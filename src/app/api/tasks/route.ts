@@ -5,7 +5,7 @@ import { getFeed, toTaskVM, type TaskVM } from '@/lib/queries';
 import { handle, json, readJson, user } from '@/lib/api';
 import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
-import { notifyTaskAssigned } from '@/lib/notifications';
+import { notifyTaskAssigned, notifyPostCreated } from '@/lib/notifications';
 import { formatDay } from '@/lib/dates';
 
 // ─────────────────────────── GET ───────────────────────────
@@ -122,6 +122,9 @@ export const POST = handle(async (req: Request) => {
     when,
     `/sessions/${task.id}`,
   );
+  if (isOwnPost) {
+    await notifyPostCreated(task.id, session.name, (task.description || location.name).slice(0, 60), location.name);
+  }
 
   const vm = toTaskVM(task as never) as TaskVM;
   return json({ ok: true, task: vm, createdCount: lawyerIds.length }, { status: 201 });

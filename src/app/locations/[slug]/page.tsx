@@ -5,6 +5,7 @@ import { Landmark, Building2, MapPin, Clock, FileText } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { getSidebarData, toTaskVM } from '@/lib/queries';
 import { getCurrentUser } from '@/lib/auth';
+import { can } from '@/lib/rbac';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
 import { SessionSidebar } from '@/components/session-sidebar';
 import { PostCard } from '@/components/post-card';
@@ -204,6 +205,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                       task={t}
                       sessionRole={session?.role}
                       sessionLawyerId={session?.role === 'lawyer' ? session.lawyerId : undefined}
+                      canWriteTasks={session?.role === 'admin' && can(session.userRole, 'writeTasks')}
                     />
                   </div>
                 </div>

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button, Field, Input, Modal, Select, Textarea } from './ui';
-import { SelectWithAdd } from './select-with-add';
+import { ComboboxWithAdd } from './combobox-with-add';
 import { toastSuccess, toastError } from './toasts';
 import type { NavLocation } from '@/lib/constants';
 import { TASK_STATUS, TASK_STATUS_LABEL } from './task-constants';
@@ -126,8 +126,9 @@ export function SessionEditForm({
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="المحكمة / المكان" required>
-            <SelectWithAdd
+            <ComboboxWithAdd
               ariaLabel="المحكمة أو المكان"
+              placeholder="ابحث بالاسم أو اختر…"
               options={locations.map((l) => ({ value: l.id, label: l.name }))}
               value={locationId}
               onChange={setLocationId}

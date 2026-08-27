@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CalendarClock, Landmark, Scale, Search, BriefcaseBusiness, ClipboardList, AlertTriangle, Users, MapPinned } from 'lucide-react';
 import { getSidebarData, getFeed, getAdminStats } from '@/lib/queries';
+import { can } from '@/lib/rbac';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteNav } from '@/lib/site-data';
 import { SessionSidebar } from '@/components/session-sidebar';
@@ -99,7 +100,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         ) : (
           <div className="space-y-4">
             {feed.items.map((t) => (
-              <PostCard key={t.id} task={t} sessionRole={session.role} sessionLawyerId={lawyerSession?.lawyerId} />
+              <PostCard key={t.id} task={t} sessionRole={session.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={session.role === 'admin' && can(session.userRole, 'writeTasks')} />
             ))}
           </div>
         )}
@@ -120,9 +121,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </ul>
           </Card>
 
-          <Card className="mesh-gold border-gold-500/25 bg-gradient-to-b from-navy-950 to-navy-900 p-4">
-            <p className="text-[11px] font-bold leading-6 text-ivory-300"><span className="text-gold-300">من أين نبدأ؟</span><br />كل جلسة ومهمة تسجّل مرة واحدة، وتظهر تلقائياً في الفيد، والصفحات، والتقويم، والشريط الجانبي.</p>
-          </Card>
         </div>
       </aside>
     </div>
