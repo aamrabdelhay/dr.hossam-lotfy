@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { KeyRound } from 'lucide-react';
+
 import { AdminLoginForm } from './login-client';
 
 export const metadata: Metadata = { title: 'دخول المسؤول' };
@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
         </div>
         <h1 className="text-center text-lg font-extrabold text-navy-950">بوابة المسؤول</h1>
         <p className="mb-6 mt-1 text-center text-[12.5px] font-semibold text-navy-400">
-          هذه المنطقة مخصصة لإدارة المكتب فقط. أدخل كلمة المرور للمتابعة.
+          هذه المنطقة مخصصة لفريق المكتب فقط. أدخل بريدك وكلمة المرور للمتابعة.
         </p>
         <AdminLoginForm />
       </div>

@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getAdminStats, getFeed, toTaskVM } from '@/lib/queries';
 import { AdminShell } from '@/components/admin/admin-shell';
+import { permissionsOf } from '@/lib/rbac';
 
 export const metadata: Metadata = { title: 'منطقة الإدارة' };
 
@@ -27,7 +28,15 @@ export default async function AdminPage() {
         },
       },
     }),
-    prisma.location.findMany({ select: { id: true, slug: true, name: true, type: true, address: true, description: true }, orderBy: [{ type: 'asc' }, { name: 'asc' }] }),
+    prisma.location.findMany({
+      select: {
+        id: true, slug: true, name: true, nameEn: true, type: true, subType: true,
+        governorate: true, city: true, district: true, address: true, phone: true, email: true,
+        website: true, googleMapsUrl: true, workingHours: true, jurisdiction: true,
+        distanceBucket: true, services: true, description: true,
+      },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }],
+    }),
     prisma.caseRecord.findMany({ orderBy: { id: 'desc' }, take: 100 }),
     getFeed({ limit: 15 }),
     prisma.activityLog.findMany({
@@ -41,6 +50,8 @@ export default async function AdminPage() {
   return (
     <Suspense fallback={null}>
       <AdminShell
+        session={{ userId: session.userId, name: session.name, role: session.userRole }}
+        permissions={permissionsOf(session.userRole)}
         stats={stats}
         lawyers={lawyers.map((l) => ({
           id: l.id,
@@ -57,7 +68,7 @@ export default async function AdminPage() {
           active: l.active,
           upcoming: l.assignments.length,
         }))}
-        locations={locations.map((l) => ({ id: l.id, slug: l.slug, name: l.name, type: l.type }))}
+        locations={locations.map((l) => ({ ...l, type: l.type as string }))}
         cases={cases.map((c) => ({ id: c.id, name: c.name, number: c.number }))}
         feedTasks={feed.items.map((t) => t)}
         activity={activity.map((a) => ({ id: a.id, action: a.action, summary: a.summary, createdAt: a.createdAt.toISOString() }))}

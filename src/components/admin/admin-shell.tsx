@@ -27,7 +27,8 @@ import { cn } from '@/lib/cn';
 import { PostCard } from '../post-card';
 import { TaskCreator } from './task-creator';
 import { LawyerForm } from './lawyer-form';
-import { LocationForm } from './location-form';
+import { LocationForm, type AdminLocationRow } from './location-form';
+import { UsersTab } from './users-tab';
 import { SessionEditForm } from '../session-edit-form';
 import { ActivityTimeline } from '../activity-timeline';
 import { StatusBadge, UrgencyBadge } from '../urgency';
@@ -54,6 +55,8 @@ type LawyerRow = {
 };
 
 type AdminShellProps = {
+  session: { userId: string; name: string; role: string };
+  permissions: { manageUsers: boolean; manageLawyers: boolean; manageLocations: boolean; writeTasks: boolean };
   stats: {
     today: number;
     tomorrow: number;
@@ -67,7 +70,7 @@ type AdminShellProps = {
     cases: number;
   };
   lawyers: LawyerRow[];
-  locations: NavLocation[];
+  locations: AdminLocationRow[];
   cases: Array<{ id: string; name: string; number: string }>;
   feedTasks: TaskVM[];
   activity: Array<{
@@ -139,6 +142,7 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
           { id: 'locations', label: 'الأماكن', count: props.stats.locations },
           { id: 'cases', label: 'القضايا', count: props.stats.cases },
+          ...(props.permissions.manageUsers ? [{ id: 'users', label: 'المستخدمون' }] : []),
           { id: 'activity', label: 'النشاط' },
           { id: 'notifications', label: 'الإشعارات' },
         ]}
@@ -150,6 +154,7 @@ export function AdminShell(props: AdminShellProps) {
       {tab === 'lawyers' && <LawyersTab lawyers={props.lawyers} onAdd={() => setModal({ kind: 'lawyer' })} onEdit={(l) => setModal({ kind: 'lawyer', data: l })} />}
       {tab === 'locations' && <LocationsTab locations={props.locations} onAdd={() => setModal({ kind: 'location' })} onEdit={(l) => setModal({ kind: 'location', data: l })} />}
       {tab === 'cases' && <CasesTab cases={props.cases} />}
+      {tab === 'users' && props.permissions.manageUsers && <UsersTab currentUserId={props.session.userId} />}
       {tab === 'activity' && <ActivityTab initial={props.activity} />}
       {tab === 'notifications' && <NotificationsTab notifications={props.notifications} />}
 
@@ -185,11 +190,7 @@ export function AdminShell(props: AdminShellProps) {
       <LocationForm
         open={modal?.kind === 'location'}
         onClose={() => setModal(null)}
-        location={
-          modal?.kind === 'location'
-            ? ((modal.data as { id: string; name: string; type: string; address: string | null; description: string | null }) ?? null)
-            : null
-        }
+        location={modal?.kind === 'location' ? ((modal.data as AdminLocationRow) ?? null) : null}
       />
       {modal?.kind === 'editTask' && (
         <SessionEditForm
@@ -604,7 +605,7 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
 
 /* ─────────────────────────── Locations management ─────────────────────────── */
 
-function LocationsTab({ locations, onAdd, onEdit }: { locations: NavLocation[]; onAdd: () => void; onEdit: (l: NavLocation) => void }) {
+function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRow[]; onAdd: () => void; onEdit: (l: AdminLocationRow) => void }) {
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = React.useState<NavLocation | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -642,7 +643,11 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: NavLocation[]; 
             </span>
             <div className="min-w-0 flex-1">
               <Link href={`/locations/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
-              <p className="text-[11px] font-semibold text-navy-400">{LOCATION_TYPE_LABEL[l.type] ?? l.type}</p>
+              <p className="text-[11px] font-semibold text-navy-400">
+                {LOCATION_TYPE_LABEL[l.type] ?? l.type}
+                {l.governorate ? ` — ${l.governorate}` : ''}
+                {l.city ? ` / ${l.city}` : ''}
+              </p>
             </div>
             <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
               <Pencil size={14} />
