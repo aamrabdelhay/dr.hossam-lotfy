@@ -152,9 +152,32 @@ model Location {
 
   tasks Task[]
 
+  // Lawyer Guide relations
+  organization    Organization?          @relation(fields: [organizationId], references: [id])
+  organizationId  String?
+  category        Category?              @relation(fields: [categoryId], references: [id])
+  categoryId      String?
+  verificationStatus VerificationStatus  @default(VERIFIED)
+  confidenceLevel ConfidenceLevel        @default(HIGH)
+  officialUrl     String?
+  normalizedName  String?
+
+  locationServices      LocationService[]
+  locationJurisdictions LocationJurisdiction[]
+  relationshipsFrom     LocationRelationship[] @relation("FromRelationship")
+  relationshipsTo       LocationRelationship[] @relation("ToRelationship")
+  locationSources       LocationSource[]
+  verificationRecords   VerificationRecord[]
+  openingHours          OpeningHour[]
+  changeHistory         DataChangeHistory[]
+
   @@index([type])
   @@index([governorate])
   @@index([distanceFromDokki])
+  @@index([organizationId])
+  @@index([categoryId])
+  @@index([normalizedName])
+  @@index([verificationStatus])
   @@map("locations")
 }
 
@@ -302,4 +325,271 @@ model ActivityLog {
   @@index([lawyerId])
   @@index([taskId])
   @@map("activity_logs")
+}
+
+// ─────────────────────────── Lawyer Guide: Enums ───────────────────────────
+
+enum VerificationStatus {
+  DRAFT
+  PENDING
+  VERIFIED
+  NEEDS_REVIEW
+  ARCHIVED
+}
+
+enum ConfidenceLevel {
+  VERIFIED
+  HIGH
+  MEDIUM
+  LOW
+  NEEDS_VERIFICATION
+}
+
+enum RelationshipType {
+  LOCATED_IN
+  PART_OF
+  SUBORDINATE_TO
+  JURISDICTION_OF
+  SERVES
+  REFERS_TO
+  ASSOCIATED_WITH
+  SAME_BUILDING
+  MOVED_FROM
+  MOVED_TO
+}
+
+// ─────────────────────────── Lawyer Guide: Organizations ───────────────────────────
+
+model Organization {
+  id          String   @id @default(cuid())
+  nameAr      String
+  nameEn      String?
+  slug        String   @unique
+  type        String   @default("government")
+  description String?
+  officialUrl String?
+  phone       String?
+  email       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  locations Location[]
+
+  @@map("organizations")
+}
+
+// ─────────────────────────── Lawyer Guide: Categories ───────────────────────────
+
+model Category {
+  id        String   @id @default(cuid())
+  nameAr    String
+  nameEn    String
+  slug      String   @unique
+  icon      String?
+  parentId  String?
+  sortOrder Int      @default(100)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  services Service[]
+  locations Location[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+// ─────────────────────────── Lawyer Guide: Services ───────────────────────────
+
+model Service {
+  id             String  @id @default(cuid())
+  nameAr         String
+  nameEn         String
+  slug           String  @unique
+  categoryId     String?
+  description    String?
+  onlineAvailable Boolean @default(false)
+  active         Boolean @default(true)
+  createdAt      DateTime @default(now())
+
+  category  Category?          @relation(fields: [categoryId], references: [id])
+  locations LocationService[]
+
+  @@index([categoryId])
+  @@map("services")
+}
+
+// ─────────────────────────── Lawyer Guide: Jurisdictions ───────────────────────────
+
+model Jurisdiction {
+  id            String    @id @default(cuid())
+  nameAr        String
+  nameEn        String?
+  type          String    @default("geographic")
+  governorate   String?
+  city          String?
+  district      String?
+  description   String?
+  source        String?
+  effectiveFrom DateTime? @db.Date
+  effectiveTo   DateTime? @db.Date
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  locations LocationJurisdiction[]
+
+  @@index([governorate])
+  @@map("jurisdictions")
+}
+
+// ─────────────────────────── Lawyer Guide: Location Services (M2M) ───────────────────────────
+
+model LocationService {
+  id         String   @id @default(cuid())
+  locationId String
+  serviceId  String
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, serviceId])
+  @@index([locationId])
+  @@index([serviceId])
+  @@map("location_services")
+}
+
+// ─────────────────────────── Lawyer Guide: Location Jurisdictions (M2M) ───────────────────────────
+
+model LocationJurisdiction {
+  id             String   @id @default(cuid())
+  locationId     String
+  jurisdictionId String
+  createdAt      DateTime @default(now())
+
+  location     Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  jurisdiction Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, jurisdictionId])
+  @@index([locationId])
+  @@map("location_jurisdictions")
+}
+
+// ─────────────────────────── Lawyer Guide: Location Relationships ───────────────────────────
+
+model LocationRelationship {
+  id             String           @id @default(cuid())
+  fromLocationId String
+  toLocationId   String
+  type           RelationshipType
+  verified       Boolean          @default(false)
+  notes          String?
+  createdAt      DateTime         @default(now())
+
+  fromLocation Location @relation("FromRelationship", fields: [fromLocationId], references: [id], onDelete: Cascade)
+  toLocation   Location @relation("ToRelationship", fields: [toLocationId], references: [id], onDelete: Cascade)
+
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@map("location_relationships")
+}
+
+// ─────────────────────────── Lawyer Guide: Sources ───────────────────────────
+
+model Source {
+  id        String   @id @default(cuid())
+  name      String
+  url       String?
+  type      String   @default("official")
+  authority String?
+  createdAt DateTime @default(now())
+
+  locationLinks LocationSource[]
+
+  @@map("sources")
+}
+
+// ─────────────────────────── Lawyer Guide: Location Sources ───────────────────────────
+
+model LocationSource {
+  id         String    @id @default(cuid())
+  locationId String
+  sourceId   String
+  sourceUrl  String?
+  checkedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  source   Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@map("location_sources")
+}
+
+// ─────────────────────────── Lawyer Guide: Verification Records ───────────────────────────
+
+model VerificationRecord {
+  id            String              @id @default(cuid())
+  locationId    String
+  verifiedById  String?
+  status        VerificationStatus
+  notes         String?
+  sourceId      String?
+  verifiedAt    DateTime            @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@map("verification_records")
+}
+
+// ─────────────────────────── Lawyer Guide: Opening Hours ───────────────────────────
+
+model OpeningHour {
+  id         String   @id @default(cuid())
+  locationId String
+  dayOfWeek  Int      // 0=Sunday, 6=Saturday
+  opens      String?
+  closes     String?
+  closed     Boolean  @default(false)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@map("opening_hours")
+}
+
+// ─────────────────────────── Lawyer Guide: Data Change History ───────────────────────────
+
+model DataChangeHistory {
+  id            String    @id @default(cuid())
+  locationId    String
+  field         String
+  previousValue String?
+  newValue      String?
+  reason        String?
+  changedById   String?
+  effectiveFrom DateTime? @db.Date
+  effectiveTo   DateTime? @db.Date
+  createdAt     DateTime  @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([field])
+  @@map("data_change_history")
+}
+
+// ─────────────────────────── Lawyer Guide: Admin Settings ───────────────────────────
+
+model AdminSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @default(now())
+
+  @@map("admin_settings")
 }
