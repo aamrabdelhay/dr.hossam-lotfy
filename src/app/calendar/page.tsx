@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function CalendarPage() {
   const session = await getCurrentUser();
-  if (!session) redirect('/admin/login');
+  if (!session) redirect('/api/auth/login');
 
   const [locations, lawyers, cases] = await Promise.all([
     prisma.location.findMany({ select: { id: true, slug: true, name: true, type: true }, orderBy: [{ type: 'asc' }, { name: 'asc' }] }),

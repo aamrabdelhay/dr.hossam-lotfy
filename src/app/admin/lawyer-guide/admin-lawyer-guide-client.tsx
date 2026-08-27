@@ -69,14 +69,14 @@ export function AdminLawyerGuideClient({
     <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-navy-950">إدارة دليل المحامي</h1>
+          <h1 className="text-xl font-extrabold text-ivory-50">إدارة دليل المحامي</h1>
           <p className="mt-1 text-[12px] text-navy-400">
             {locations.length} مكان · {verificationPending} بحاجة للمراجعة
           </p>
         </div>
         <Link
           href="/admin"
-          className="rounded-md border border-navy-200 px-3 py-1.5 text-[11px] font-bold text-navy-600 hover:border-gold-500"
+          className="rounded-md border border-navy-200 px-3 py-1.5 text-[11px] font-bold text-navy-300 hover:border-gold-500"
         >
           ← العودة للإدارة
         </Link>
@@ -111,7 +111,7 @@ export function AdminLawyerGuideClient({
           {(q || statusFilter || categoryFilter) && (
             <button
               onClick={() => { setQ(''); setStatusFilter(''); setCategoryFilter(''); }}
-              className="text-[11px] font-bold text-gold-700 hover:text-gold-600"
+              className="text-[11px] font-bold text-gold-500 hover:text-gold-500"
             >
               <RotateCcw size={12} className="inline" /> مسح
             </button>
@@ -124,14 +124,14 @@ export function AdminLawyerGuideClient({
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="border-b border-navy-100 bg-navy-50">
-                <th className="px-3 py-2.5 text-start font-bold text-navy-600">الاسم</th>
-                <th className="px-3 py-2.5 text-start font-bold text-navy-600">التصنيف</th>
-                <th className="px-3 py-2.5 text-start font-bold text-navy-600">المحافظة</th>
-                <th className="px-3 py-2.5 text-start font-bold text-navy-600">الحالة</th>
-                <th className="px-3 py-2.5 text-start font-bold text-navy-600">الثقة</th>
-                <th className="px-3 py-2.5 text-start font-bold text-navy-600">آخر تحقق</th>
-                <th className="px-3 py-2.5 text-end font-bold text-navy-600">إجراءات</th>
+              <tr className="border-b border-navy-100 bg-white/[0.04]">
+                <th className="px-3 py-2.5 text-start font-bold text-navy-300">الاسم</th>
+                <th className="px-3 py-2.5 text-start font-bold text-navy-300">التصنيف</th>
+                <th className="px-3 py-2.5 text-start font-bold text-navy-300">المحافظة</th>
+                <th className="px-3 py-2.5 text-start font-bold text-navy-300">الحالة</th>
+                <th className="px-3 py-2.5 text-start font-bold text-navy-300">الثقة</th>
+                <th className="px-3 py-2.5 text-start font-bold text-navy-300">آخر تحقق</th>
+                <th className="px-3 py-2.5 text-end font-bold text-navy-300">إجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -145,20 +145,20 @@ export function AdminLawyerGuideClient({
                 filtered.map((l) => {
                   const statusInfo = STATUS_LABELS[l.verificationStatus] || { label: l.verificationStatus, tone: 'gray' as const };
                   return (
-                    <tr key={l.id} className="border-b border-navy-50 hover:bg-ivory-50">
+                    <tr key={l.id} className="border-b border-white/10 hover:bg-navy-800">
                       <td className="px-3 py-2">
-                        <Link href={`/lawyer-guide/${l.slug}`} className="font-bold text-navy-800 hover:text-gold-700">
+                        <Link href={`/lawyer-guide/${l.slug}`} className="font-bold text-ivory-200 hover:text-gold-500">
                           {l.name}
                         </Link>
                         {l.subType && <p className="text-[10px] text-navy-400">{l.subType}</p>}
                       </td>
-                      <td className="px-3 py-2 font-semibold text-navy-600">{l.categoryName || '—'}</td>
-                      <td className="px-3 py-2 text-navy-500">{l.governorate || '—'}</td>
+                      <td className="px-3 py-2 font-semibold text-navy-300">{l.categoryName || '—'}</td>
+                      <td className="px-3 py-2 text-navy-400">{l.governorate || '—'}</td>
                       <td className="px-3 py-2">
                         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
                       </td>
                       <td className="px-3 py-2">
-                        <span className="text-[11px] font-semibold text-navy-500">{l.confidenceLevel}</span>
+                        <span className="text-[11px] font-semibold text-navy-400">{l.confidenceLevel}</span>
                       </td>
                       <td className="px-3 py-2 text-[11px] text-navy-400">
                         {l.lastVerified ? new Date(l.lastVerified).toLocaleDateString('ar-EG') : '—'}
@@ -167,7 +167,7 @@ export function AdminLawyerGuideClient({
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/lawyer-guide/${l.slug}`}
-                            className="rounded p-1.5 text-navy-400 hover:bg-navy-50 hover:text-gold-700"
+                            className="rounded p-1.5 text-navy-400 hover:bg-white/[0.04] hover:text-gold-500"
                             title="عرض"
                           >
                             <Eye size={13} />

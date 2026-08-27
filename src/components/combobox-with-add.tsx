@@ -190,7 +190,7 @@ export function ComboboxWithAdd({
             dir="auto"
             placeholder={adding ? 'اكتب الاسم الجديد…' : placeholder}
             aria-label={ariaLabel}
-            className="h-10 w-full rounded-lg border border-navy-200 bg-white pe-9 ps-8 text-sm text-navy-900 placeholder:text-navy-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none disabled:opacity-60"
+            className="h-10 w-full rounded-lg border border-navy-200 bg-navy-850 pe-9 ps-8 text-sm text-ivory-100 placeholder:text-navy-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none disabled:opacity-60"
           />
           {query && !adding && (
             <button
@@ -202,7 +202,7 @@ export function ComboboxWithAdd({
                 setOpen(true);
                 inputRef.current?.focus();
               }}
-              className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-navy-300 hover:text-navy-600"
+              className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-navy-300 hover:text-navy-300"
               title="مسح"
               aria-label="مسح الاختيار"
             >
@@ -224,7 +224,7 @@ export function ComboboxWithAdd({
             <button
               type="button"
               onClick={cancelAdd}
-              className="inline-flex h-10 shrink-0 items-center rounded-lg border border-navy-200 px-2.5 text-navy-400 hover:text-navy-700"
+              className="inline-flex h-10 shrink-0 items-center rounded-lg border border-navy-200 px-2.5 text-navy-400 hover:text-ivory-300"
               title="إلغاء"
             >
               <X size={14} />
@@ -237,7 +237,7 @@ export function ComboboxWithAdd({
             disabled={disabled}
             title={addLabel}
             aria-label={addLabel}
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-gold-500/60 bg-gold-500/10 px-2.5 text-[12px] font-extrabold text-gold-700 transition hover:bg-gold-500/20 disabled:opacity-40"
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-gold-500/60 bg-gold-500/10 px-2.5 text-[12px] font-extrabold text-gold-500 transition hover:bg-gold-500/20 disabled:opacity-40"
           >
             <Plus size={14} />
             <span className="hidden sm:inline">{addLabel}</span>
@@ -246,7 +246,7 @@ export function ComboboxWithAdd({
       </div>
       {name && <input type="hidden" name={name} value={value} />}
       {open && !adding && (
-        <div className="absolute z-30 mt-1.5 max-h-56 w-full overflow-y-auto overscroll-contain rounded-lg border border-navy-200 bg-white shadow-xl">
+        <div className="absolute z-30 mt-1.5 max-h-56 w-full overflow-y-auto overscroll-contain rounded-lg border border-navy-200 bg-navy-850 shadow-xl">
           {filtered.length === 0 ? (
             <div className="px-3 py-3">
               <p className="text-[12px] font-bold text-navy-400">لا توجد نتائج مطابقة</p>
@@ -254,7 +254,7 @@ export function ComboboxWithAdd({
                 <button
                   type="button"
                   onClick={startAdd}
-                  className="mt-1.5 flex items-center gap-1 text-[12px] font-extrabold text-gold-700 hover:underline"
+                  className="mt-1.5 flex items-center gap-1 text-[12px] font-extrabold text-gold-500 hover:underline"
                 >
                   <Plus size={13} />
                   إضافة «{query.trim()}»
@@ -270,12 +270,12 @@ export function ComboboxWithAdd({
                 onMouseEnter={() => setHighlight(i)}
                 className={cn(
                   'flex w-full items-center gap-2 px-3 py-2 text-start text-[13px] font-semibold',
-                  o.value === value ? 'text-gold-700' : 'text-navy-800',
-                  i === highlight && 'bg-ivory-100',
+                  o.value === value ? 'text-gold-500' : 'text-ivory-200',
+                  i === highlight && 'bg-navy-800',
                 )}
               >
                 <span className="min-w-0 flex-1 truncate">{o.label}</span>
-                {o.value === value && <Check size={13} className="shrink-0 text-gold-600" />}
+                {o.value === value && <Check size={13} className="shrink-0 text-gold-500" />}
               </button>
             ))
           )}

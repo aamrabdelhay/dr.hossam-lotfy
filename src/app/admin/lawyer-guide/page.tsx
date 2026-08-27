@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'إدارة دليل المحامي' 
 export default async function AdminLawyerGuidePage() {
   const session = await getCurrentUser();
   if (!session || session.role !== 'admin') {
-    redirect('/admin/login');
+    redirect('/api/auth/login');
   }
 
   const [categories, locations, verificationPending] = await Promise.all([

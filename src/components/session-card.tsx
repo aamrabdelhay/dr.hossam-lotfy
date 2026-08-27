@@ -19,14 +19,14 @@ export function SessionCard({ task, showCase = true }: { task: TaskVM; showCase?
   return (
     <div
       className={cn(
-        'group rounded-xl border border-navy-100/90 border-s-[3px] bg-white px-3 py-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-card',
+        'group rounded-xl border border-navy-100/90 border-s-[3px] bg-navy-850 px-3 py-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-navy-200 hover:shadow-card',
         URGENCY_BORDER[task.urgency],
         done && 'opacity-70',
       )}
     >
       <Link href={`/sessions/${task.id}`} className="block">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[12px] font-extrabold text-navy-800">
+        <span className="flex items-center gap-1.5 text-[12px] font-extrabold text-ivory-200">
           <span className={cn('h-1.5 w-1.5 rounded-full', URGENCY_DOT[task.urgency])} />
           {dateLabel}
           {time && (
@@ -43,13 +43,13 @@ export function SessionCard({ task, showCase = true }: { task: TaskVM; showCase?
           </span>
         )}
       </div>
-      <p className="mt-1 line-clamp-1 text-[13px] font-semibold text-navy-700 group-hover:text-navy-950">
-        <MapPin size={12} className="me-1 inline text-gold-600" />
+      <p className="mt-1 line-clamp-1 text-[13px] font-semibold text-ivory-300 group-hover:text-ivory-50">
+        <MapPin size={12} className="me-1 inline text-gold-500" />
         {task.location.name}
       </p>
       <div className="mt-1.5 flex items-center gap-1.5">
         {task.lawyers.slice(0, 3).map((l) => (
-          <span key={l.id} className="flex items-center gap-1 rounded-full bg-ivory-100 py-0.5 pe-2 ps-0.5 text-[10px] font-bold text-navy-600">
+          <span key={l.id} className="flex items-center gap-1 rounded-full bg-navy-800 py-0.5 pe-2 ps-0.5 text-[10px] font-bold text-navy-300">
             <Avatar name={l.name} src={l.photo} size={16} />
             {l.name.split(' ').slice(0, 2).join(' ')}
           </span>
@@ -82,17 +82,17 @@ export function SessionCard({ task, showCase = true }: { task: TaskVM; showCase?
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location.address)}`}
             target="_blank"
             rel="noreferrer"
-            className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-gold-500/10 px-2 text-[10px] font-bold text-gold-700 hover:bg-gold-500/20"
+            className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-gold-500/10 px-2 text-[10px] font-bold text-gold-500 hover:bg-gold-500/20"
           >
             <Navigation size={13} /> الاتجاهات
           </a>
         )}
         {task.lawyers[0]?.phone ? (
-          <a href={`tel:${task.lawyers[0].phone}`} className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-navy-900/5 px-2 text-[10px] font-bold text-navy-700 hover:bg-navy-900/10">
+          <a href={`tel:${task.lawyers[0].phone}`} className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-white/5 px-2 text-[10px] font-bold text-ivory-300 hover:bg-white/10">
             <Phone size={13} /> اتصال بالمحامي
           </a>
         ) : (
-          <Link href={`/sessions/${task.id}`} className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-navy-900/5 px-2 text-[10px] font-bold text-navy-700 hover:bg-navy-900/10">
+          <Link href={`/sessions/${task.id}`} className="flex min-h-8 flex-1 items-center justify-center gap-1 rounded-md bg-white/5 px-2 text-[10px] font-bold text-ivory-300 hover:bg-white/10">
             <Phone size={13} /> التفاصيل
           </Link>
         )}

@@ -33,7 +33,7 @@ function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: s
           </div>
         )}
         {admin && (
-          <a href="/admin?tab=tasks" className="mt-2 flex items-center justify-center gap-1 rounded-md border border-dashed border-navy-200 px-2 py-1.5 text-[11px] font-bold text-navy-400 hover:border-gold-500 hover:text-gold-700">
+          <a href="/admin?tab=tasks" className="mt-2 flex items-center justify-center gap-1 rounded-md border border-dashed border-navy-200 px-2 py-1.5 text-[11px] font-bold text-navy-400 hover:border-gold-500 hover:text-gold-500">
             <CalendarPlus size={12} />
             إضافة موعد (للمسؤول)
           </a>
@@ -92,10 +92,10 @@ export function SessionsDrawer({ open, onClose, data, isAdmin }: { open: boolean
   return (
     <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
-      <div className="absolute inset-y-0 start-0 w-full max-w-md overflow-y-auto overscroll-contain bg-ivory-100 p-3 shadow-2xl animate-slide-in-start [scrollbar-gutter:stable]">
+      <div className="absolute inset-y-0 start-0 w-full max-w-md overflow-y-auto overscroll-contain bg-navy-800 p-3 shadow-2xl animate-slide-in-start [scrollbar-gutter:stable]">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-extrabold text-navy-900">الجلسات القادمة</h2>
-          <button onClick={onClose} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5" aria-label="إغلاق">
+          <h2 className="text-[15px] font-extrabold text-ivory-100">الجلسات القادمة</h2>
+          <button onClick={onClose} className="rounded-md p-2 text-navy-400 hover:bg-white/5" aria-label="إغلاق">
             <X size={18} />
           </button>
         </div>
@@ -110,7 +110,7 @@ export function SessionsDrawerButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="fixed bottom-5 end-5 z-[75] flex items-center gap-2 rounded-full border border-gold-500/40 bg-gradient-to-b from-navy-800 to-navy-950 px-5 py-3 text-[13px] font-extrabold text-[#F4F6F9] shadow-lift transition-transform hover:-translate-y-0.5 lg:hidden"
+      className="fixed bottom-5 end-5 z-[75] flex items-center gap-2 rounded-full border border-gold-500/40 bg-gradient-to-b from-navy-800 to-navy-950 px-5 py-3 text-[13px] font-extrabold text-ivory-50 shadow-lift transition-transform hover:-translate-y-0.5 lg:hidden"
     >
       <CalendarClock size={17} />
       الجلسات القادمة

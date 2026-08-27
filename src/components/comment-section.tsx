@@ -143,7 +143,7 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
   };
 
   return (
-    <div className="border-t border-navy-100 bg-ivory-50/60 px-4 py-3">
+    <div className="border-t border-navy-100 bg-navy-800 px-4 py-3">
       {comments.length > 0 && (
         <div className="mb-3 space-y-3">
           {comments.map((c) => (
@@ -158,7 +158,7 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
               <Avatar name={c.author?.name ?? 'زائر'} src={c.author?.photo} size={30} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[12px] font-extrabold text-navy-900">{c.author?.name ?? 'زائر'}</span>
+                  <span className="text-[12px] font-extrabold text-ivory-100">{c.author?.name ?? 'زائر'}</span>
                   {c.authorRole === 'admin' && <span className="rounded bg-navy-900 px-1 text-[9px] font-bold text-ivory-100">مسؤول</span>}
                   <span className="text-[10px] font-medium text-navy-300">{formatDateTime(new Date(c.createdAt))}</span>
                   <span className="ms-auto flex items-center gap-1">
@@ -168,7 +168,7 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
                           setEditingId(c.id);
                           setEditText(c.text);
                         }}
-                        className="rounded p-1 text-navy-300 hover:text-navy-600"
+                        className="rounded p-1 text-navy-300 hover:text-navy-300"
                         title="تعديل"
                       >
                         <Pencil size={12} />
@@ -187,7 +187,7 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
                     <Button size="sm" onClick={() => saveEdit(c.id)} disabled={busy}>حفظ</Button>
                   </div>
                 ) : (
-                  <p className="mt-0.5 whitespace-pre-wrap text-[13px] leading-6 text-navy-700">{c.text}</p>
+                  <p className="mt-0.5 whitespace-pre-wrap text-[13px] leading-6 text-ivory-300">{c.text}</p>
                 )}
               </div>
             </div>
@@ -219,7 +219,7 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
         </div>
       </form>
       {comments.length > 4 && !expanded && (
-        <button onClick={() => setExpanded(true)} className="mt-2 flex items-center gap-1 text-[11px] font-bold text-gold-700 hover:underline">
+        <button onClick={() => setExpanded(true)} className="mt-2 flex items-center gap-1 text-[11px] font-bold text-gold-500 hover:underline">
           <MessageSquare size={12} />
           عرض كل التعليقات
         </button>
