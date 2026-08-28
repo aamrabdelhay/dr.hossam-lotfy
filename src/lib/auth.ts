@@ -7,7 +7,7 @@ import type { StaffRole } from './constants';
 import { isStaffRole } from './rbac';
 
 const COOKIE = 'hlsession';
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 180; // 180 days
 
 export type SessionUser =
   | { role: 'admin'; userId: string; name: string; userRole: StaffRole }
@@ -23,57 +23,20 @@ function hmac(payload: string): string {
   return crypto.createHmac('sha256', secret()).update(payload).digest('base64url');
 }
 
-/**
- * The session identifier is a high-entropy random token — never a database
- * CUID. The cookie carries an HMAC-SHA256 signed envelope; only the SHA-256
- * hash of the token is persisted, so the stored value is useless to an attacker
- * even if the database leaks.
- */
-export async function createSessionCookie(input: {
-  role: 'admin' | 'lawyer';
-  userId?: string;
-  lawyerId?: string;
-  userRole?: string;
-  ip?: string;
-  userAgent?: string;
-}): Promise<{ name: string; value: string; options: Record<string, unknown> }> {
+export async function createSessionCookie(input: { role: 'admin' | 'lawyer'; userId?: string; lawyerId?: string; userRole?: string; ip?: string; userAgent?: string }): Promise<{ name: string; value: string; options: Record<string, unknown> }> {
   const raw = crypto.randomBytes(32).toString('base64url');
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
-  await prisma.authSession.create({
-    data: {
-      tokenHash,
-      role: input.role,
-      userRole: input.userRole ?? null,
-      userId: input.userId ?? null,
-      lawyerId: input.lawyerId ?? null,
-      ip: input.ip ?? null,
-      userAgent: input.userAgent?.slice(0, 250) ?? null,
-      expiresAt,
-    },
-  });
+  await prisma.authSession.create({ data: { tokenHash, role: input.role, userRole: input.userRole ?? null, userId: input.userId ?? null, lawyerId: input.lawyerId ?? null, ip: input.ip ?? null, userAgent: input.userAgent?.slice(0, 250) ?? null, expiresAt } });
 
-  // Opportunistic cleanup of expired sessions (≈1 in 10 logins)
   if (Math.random() < 0.1) {
-    prisma.authSession
-      .deleteMany({ where: { OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { not: null } }] } })
-      .catch(() => undefined);
+    prisma.authSession.deleteMany({ where: { OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { not: null } }] } }).catch(() => undefined);
   }
 
   const body = `v1.${raw}`;
   const value = `${body}.${hmac(body)}`;
-  return {
-    name: COOKIE,
-    value,
-    options: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      path: '/',
-      maxAge: SESSION_TTL_MS / 1000,
-    },
-  };
+  return { name: COOKIE, value, options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: SESSION_TTL_MS / 1000 } };
 }
 
 function parseCookieValue(value: string | undefined | null): string | null {
@@ -87,35 +50,31 @@ function parseCookieValue(value: string | undefined | null): string | null {
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  return body.slice(3); // raw random token
+  return body.slice(3);
 }
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const raw = parseCookieValue(store.get(COOKIE)?.value);
   if (!raw) return null;
-
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
   const session = await prisma.authSession.findUnique({ where: { tokenHash } });
   if (!session || session.revokedAt || session.expiresAt < new Date()) return null;
 
   if (session.role === 'admin' && session.userId) {
-    const user = await prisma.user.findUnique({ where: { id: session.userId } });
-    if (!user) return null;
-    const userRole: StaffRole = isStaffRole(session.userRole) ? (session.userRole as StaffRole) : user.role === 'ADMIN' ? 'SUPER_ADMIN' : (user.role as StaffRole);
-    return { role: 'admin', userId: user.id, name: user.name, userRole };
+    const account = await prisma.user.findUnique({ where: { id: session.userId } });
+    if (!account) return null;
+    const userRole: StaffRole = isStaffRole(session.userRole) ? (session.userRole as StaffRole) : account.role === 'ADMIN' ? 'SUPER_ADMIN' : (account.role as StaffRole);
+    return { role: 'admin', userId: account.id, name: account.name, userRole };
   }
   if (session.role === 'lawyer' && session.lawyerId) {
     const lawyer = await prisma.lawyer.findUnique({ where: { id: session.lawyerId } });
-    // Pending (not yet approved) lawyers must not be able to act on the office
-    // feed — they can only log in once the admin approves them.
     if (!lawyer || !lawyer.active || !lawyer.approvedAt) return null;
     return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug };
   }
   return null;
 }
 
-/** Revoke the current session (logout). Route handlers only. */
 export async function revokeCurrentSession(): Promise<void> {
   const store = await cookies();
   const raw = parseCookieValue(store.get(COOKIE)?.value);
@@ -124,66 +83,14 @@ export async function revokeCurrentSession(): Promise<void> {
   await prisma.authSession.updateMany({ where: { tokenHash }, data: { revokedAt: new Date() } });
 }
 
-/**
- * Cookie-clearing descriptor. The attributes MUST mirror the ones used when the
- * cookie was written (`httpOnly`/`secure`/`sameSite`/`path`) — a browser treats
- * a Set-Cookie with different attributes as a *different* cookie and silently
- * keeps the old one, which is exactly how "logout does nothing" happens.
- */
 export function clearSessionCookie() {
-  return {
-    name: COOKIE,
-    value: '',
-    options: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      path: '/',
-      maxAge: 0,
-      expires: new Date(0),
-    } as Record<string, unknown>,
-  };
+  return { name: COOKIE, value: '', options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 0, expires: new Date(0) } as Record<string, unknown> };
 }
 
-/** Name of the session cookie (route handlers may need to delete it directly). */
 export const SESSION_COOKIE_NAME = COOKIE;
+export async function isAdmin(): Promise<boolean> { const u = await getCurrentUser(); return u?.role === 'admin'; }
+export async function isLawyer(lawyerId: string): Promise<boolean> { const u = await getCurrentUser(); return u?.role === 'lawyer' && u.lawyerId === lawyerId; }
+export function safeComparePassword(password: string, hash: string): boolean { return bcrypt.compareSync(password, hash); }
 
-export async function isAdmin(): Promise<boolean> {
-  const u = await getCurrentUser();
-  return u?.role === 'admin';
-}
-
-export async function isLawyer(lawyerId: string): Promise<boolean> {
-  const u = await getCurrentUser();
-  return u?.role === 'lawyer' && u.lawyerId === lawyerId;
-}
-
-export function safeComparePassword(password: string, hash: string): boolean {
-  return bcrypt.compareSync(password, hash);
-}
-
-/**
- * Signed, expiring state token for OAuth flows (CSRF protection). The value
- * embeds a random nonce + expiry and is HMAC-signed with SESSION_SECRET, so a
- * callback only succeeds for the exact request we initiated.
- */
-export function createOAuthState(ttlMs = 10 * 60 * 1000): string {
-  const raw = crypto.randomBytes(24).toString('base64url');
-  const exp = Date.now() + ttlMs;
-  const body = `${raw}.${exp}`;
-  return `${body}.${hmac(body)}`;
-}
-
-export function verifyOAuthState(state: string | null | undefined): boolean {
-  if (!state) return false;
-  const parts = state.split('.');
-  if (parts.length !== 3) return false;
-  const [raw, expStr, sig] = parts;
-  const body = `${raw}.${expStr}`;
-  const expected = hmac(body);
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
-  const exp = Number(expStr);
-  return Number.isFinite(exp) && Date.now() <= exp;
-}
+export function createOAuthState(ttlMs = 10 * 60 * 1000): string { const raw = crypto.randomBytes(24).toString('base64url'); const exp = Date.now() + ttlMs; const body = `${raw}.${exp}`; return `${body}.${hmac(body)}`; }
+export function verifyOAuthState(state: string | null | undefined): boolean { if (!state) return false; const parts = state.split('.'); if (parts.length !== 3) return false; const [raw, expStr, sig] = parts; const body = `${raw}.${expStr}`; const expected = hmac(body); const a = Buffer.from(sig); const b = Buffer.from(expected); if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false; const exp = Number(expStr); return Number.isFinite(exp) && Date.now() <= exp; }
