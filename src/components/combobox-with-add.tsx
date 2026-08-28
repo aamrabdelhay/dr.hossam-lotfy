@@ -4,12 +4,6 @@ import * as React from 'react';
 import { Check, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-/**
- * ComboboxWithAdd — اختيار بالبحث والكتابة (بحث فوري أثناء الكتابة) مع
- * إضافة سريعة بنفس نمط SelectWithAdd («+ إضافة»). يُستخدم في اختيار
- * المحكمة/المكان والقضية. RTL-native.
- */
-
 export type ComboboxWithAddOption = {
   value: string;
   label: string;
@@ -56,7 +50,15 @@ export function ComboboxWithAdd({
   required,
   ariaLabel,
 }: ComboboxWithAddProps) {
-  const selected = options.find((o) => o.value === value);
+  const [localOptions, setLocalOptions] = React.useState<ComboboxWithAddOption[]>(options);
+  const allOptions = React.useMemo(() => {
+    const byValue = new Map<string, ComboboxWithAddOption>();
+    for (const option of options) byValue.set(option.value, option);
+    for (const option of localOptions) byValue.set(option.value, option);
+    return Array.from(byValue.values());
+  }, [options, localOptions]);
+
+  const selected = allOptions.find((o) => o.value === value);
   const [query, setQuery] = React.useState(selected?.label ?? '');
   const [open, setOpen] = React.useState(false);
   const [adding, setAdding] = React.useState(false);
@@ -65,6 +67,10 @@ export function ComboboxWithAdd({
   const [highlight, setHighlight] = React.useState(0);
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    setLocalOptions(options);
+  }, [options]);
 
   React.useEffect(() => {
     setQuery(selected?.label ?? '');
@@ -88,9 +94,9 @@ export function ComboboxWithAdd({
 
   const filtered = React.useMemo(() => {
     const q = normalize(query.trim());
-    if (!q) return options;
-    return options.filter((o) => normalize(o.label).includes(q));
-  }, [options, query]);
+    if (!q) return allOptions;
+    return allOptions.filter((o) => normalize(o.label).includes(q));
+  }, [allOptions, query]);
 
   React.useEffect(() => {
     setHighlight(0);
@@ -122,16 +128,31 @@ export function ComboboxWithAdd({
       setBusy(true);
       try {
         const maybeId = await onAdd(label);
-        const newId = typeof maybeId === 'string' && maybeId ? maybeId : value;
-        onChange(typeof maybeId === 'string' && maybeId ? maybeId : label);
-        setQuery(typeof maybeId === 'string' && maybeId ? label : label);
+        if (typeof maybeId === 'string' && maybeId) {
+          // Keep the newly-created record in the combobox immediately, even
+          // before the parent refreshes its options from the database.
+          setLocalOptions((prev) => {
+            if (prev.some((o) => o.value === maybeId)) return prev;
+            return [...prev, { value: maybeId, label }];
+          });
+          onChange(maybeId);
+          setQuery(label);
+          setAdding(false);
+          setDraft('');
+          setOpen(false);
+          return;
+        }
+        // A failed/empty onAdd must not silently select the typed label as an
+        // ID; leave the add UI open so the user can retry.
+        return;
+      } catch {
+        return;
       } finally {
         setBusy(false);
       }
-    } else {
-      onChange(label);
-      setQuery(label);
     }
+    onChange(label);
+    setQuery(label);
     setAdding(false);
     setDraft('');
     setOpen(false);
@@ -151,7 +172,7 @@ export function ComboboxWithAdd({
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setOpen(true);
-      setHighlight((h) => Math.min(h + 1, filtered.length - 1));
+      setHighlight((h) => Math.min(h + 1, Math.max(filtered.length - 1, 0)));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setOpen(true);
@@ -193,52 +214,22 @@ export function ComboboxWithAdd({
             className="h-10 w-full rounded-lg border border-navy-200 bg-white pe-9 ps-8 text-sm text-navy-900 placeholder:text-navy-300 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none disabled:opacity-60"
           />
           {query && !adding && (
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={() => {
-                setQuery('');
-                onChange('');
-                setOpen(true);
-                inputRef.current?.focus();
-              }}
-              className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-navy-300 hover:text-navy-600"
-              title="مسح"
-              aria-label="مسح الاختيار"
-            >
+            <button type="button" tabIndex={-1} onClick={() => { setQuery(''); onChange(''); setOpen(true); inputRef.current?.focus(); }} className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-navy-300 hover:text-navy-600" title="مسح" aria-label="مسح الاختيار">
               <X size={13} />
             </button>
           )}
         </div>
         {adding ? (
           <>
-            <button
-              type="button"
-              onClick={() => void confirmAdd()}
-              disabled={busy || !draft.trim()}
-              className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-emerald-700 px-2.5 text-[12px] font-extrabold text-white disabled:opacity-40"
-              title="تأكيد"
-            >
-              <Check size={14} />
+            <button type="button" onClick={() => void confirmAdd()} disabled={busy || !draft.trim()} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg bg-emerald-700 px-2.5 text-[12px] font-extrabold text-white disabled:opacity-40" title="تأكيد">
+              {busy ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Check size={14} />}
             </button>
-            <button
-              type="button"
-              onClick={cancelAdd}
-              className="inline-flex h-10 shrink-0 items-center rounded-lg border border-navy-200 px-2.5 text-navy-400 hover:text-navy-700"
-              title="إلغاء"
-            >
+            <button type="button" onClick={cancelAdd} disabled={busy} className="inline-flex h-10 shrink-0 items-center rounded-lg border border-navy-200 px-2.5 text-navy-400 hover:text-navy-700 disabled:opacity-40" title="إلغاء">
               <X size={14} />
             </button>
           </>
         ) : (
-          <button
-            type="button"
-            onClick={startAdd}
-            disabled={disabled}
-            title={addLabel}
-            aria-label={addLabel}
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-gold-500/60 bg-gold-500/10 px-2.5 text-[12px] font-extrabold text-gold-700 transition hover:bg-gold-500/20 disabled:opacity-40"
-          >
+          <button type="button" onClick={startAdd} disabled={disabled} title={addLabel} aria-label={addLabel} className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-dashed border-gold-500/60 bg-gold-500/10 px-2.5 text-[12px] font-extrabold text-gold-700 transition hover:bg-gold-500/20 disabled:opacity-40">
             <Plus size={14} />
             <span className="hidden sm:inline">{addLabel}</span>
           </button>
@@ -250,30 +241,11 @@ export function ComboboxWithAdd({
           {filtered.length === 0 ? (
             <div className="px-3 py-3">
               <p className="text-[12px] font-bold text-navy-400">لا توجد نتائج مطابقة</p>
-              {onAdd && (
-                <button
-                  type="button"
-                  onClick={startAdd}
-                  className="mt-1.5 flex items-center gap-1 text-[12px] font-extrabold text-gold-700 hover:underline"
-                >
-                  <Plus size={13} />
-                  إضافة «{query.trim()}»
-                </button>
-              )}
+              {onAdd && <button type="button" onClick={startAdd} className="mt-1.5 flex items-center gap-1 text-[12px] font-extrabold text-gold-700 hover:underline"><Plus size={13} />إضافة «{query.trim()}»</button>}
             </div>
           ) : (
             filtered.map((o, i) => (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => selectOption(o)}
-                onMouseEnter={() => setHighlight(i)}
-                className={cn(
-                  'flex w-full items-center gap-2 px-3 py-2 text-start text-[13px] font-semibold',
-                  o.value === value ? 'text-gold-700' : 'text-navy-800',
-                  i === highlight && 'bg-ivory-100',
-                )}
-              >
+              <button key={o.value} type="button" onClick={() => selectOption(o)} onMouseEnter={() => setHighlight(i)} className={cn('flex w-full items-center gap-2 px-3 py-2 text-start text-[13px] font-semibold', o.value === value ? 'text-gold-700' : 'text-navy-800', i === highlight && 'bg-ivory-100')}>
                 <span className="min-w-0 flex-1 truncate">{o.label}</span>
                 {o.value === value && <Check size={13} className="shrink-0 text-gold-600" />}
               </button>
