@@ -48,17 +48,18 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
     router.push(`/search?${params.toString()}`);
   };
 
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-    } finally {
-      window.location.replace('/');
-    }
+  const logout = () => {
+    setMobileOpen(false);
+    // Do not block navigation on a slow network: keepalive lets the revoke request
+    // finish in the background while the browser immediately returns home.
+    void fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      cache: 'no-store',
+      keepalive: true,
+      headers: { 'Cache-Control': 'no-cache' },
+    }).catch(() => undefined);
+    window.location.replace('/');
   };
 
   const courts = locations.filter((l) => l.type === 'COURT');
@@ -135,7 +136,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
         </div>
       </div>
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-t border-navy-100 bg-white/95 backdrop-blur-xl lg:hidden [scrollbar-gutter:stable]"><div className="space-y-4 px-5 py-5"><form onSubmit={doSearch} className="flex items-center gap-2"><div className="relative flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث..." className="h-10 w-full rounded-full border border-navy-200/80 bg-white ps-9 pe-3 text-[12px] text-navy-900 shadow-soft transition-all placeholder:text-navy-300 focus:border-gold-500/60 focus:outline-none focus:ring-2 focus:ring-gold-500/20" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }} /></div><button type="submit" className="h-10 shrink-0 rounded-full bg-gradient-to-b from-gold-400 to-gold-500 px-4 text-[11px] font-bold text-[#0A101D] transition-all hover:scale-[1.03] active:scale-[0.98]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>بحث</button></form><div className="grid grid-cols-1 gap-1"><Link href="/locations" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحاكم والأماكن</Link><Link href="/lawyers" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحامون</Link><Link href="/calendar" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>التقويم</Link><Link href="/search" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>البحث</Link><Link href="/lawyer-guide" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>دليل المحامي</Link>{session?.role === 'admin' && <Link href="/admin" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-gold-700 hover:bg-gold-500/[0.08]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الإدارة</Link>}{session && <Link href="/cases/archive" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>أرشيف القضايا</Link>}</div></div></div>
+        <div className="max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain border-t border-navy-100 bg-white/95 backdrop-blur-xl lg:hidden [scrollbar-gutter:stable]"><div className="space-y-4 px-5 py-5"><form onSubmit={doSearch} className="flex items-center gap-2"><div className="relative flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث..." className="h-10 w-full rounded-full border border-navy-200/80 bg-white ps-9 pe-3 text-[12px] text-navy-900 shadow-soft transition-all placeholder:text-navy-300 focus:border-gold-500/60 focus:outline-none focus:ring-2 focus:ring-gold-500/20" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }} /></div><button type="submit" className="h-10 shrink-0 rounded-full bg-gradient-to-b from-gold-400 to-gold-500 px-4 text-[11px] font-bold text-[#0A101D] transition-all hover:scale-[1.03] active:scale-[0.98]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>بحث</button></form><div className="grid grid-cols-1 gap-1"><Link href="/locations" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحاكم والأماكن</Link><Link href="/lawyers" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>المحامون</Link><Link href="/calendar" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>التقويم</Link><Link href="/search" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>البحث</Link><Link href="/lawyer-guide" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>دليل المحامي</Link>{session?.role === 'admin' && <Link href="/admin" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-gold-700 hover:bg-gold-500/[0.08]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>الإدارة</Link>}{session && <Link href="/cases/archive" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-navy-700 hover:bg-navy-900/[0.04]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>أرشيف القضايا</Link>}{session && <button onClick={logout} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-red-600 hover:bg-red-600/[0.06]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>تسجيل الخروج <LogOut size={15} /></button>}</div></div></div>
       )}
     </header>
   );
