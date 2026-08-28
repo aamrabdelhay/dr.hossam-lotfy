@@ -16,6 +16,7 @@ type ArchivedLawyer = {
   specialization: string | null;
   approvedAt: string | null;
   updatedAt: string;
+  active: boolean;
 };
 
 export default function ArchivedLawyersPage() {
