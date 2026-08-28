@@ -57,8 +57,6 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
         headers: { 'Cache-Control': 'no-cache' },
       });
     } finally {
-      // Hard navigation ensures the server-rendered navbar and protected routes
-      // are rebuilt from the now-revoked session instead of stale router state.
       window.location.replace('/');
     }
   };
@@ -110,7 +108,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
         <button className="rounded-full p-2 text-navy-400 transition-all hover:scale-105 hover:bg-navy-900/[0.06] hover:text-navy-900 active:scale-95 lg:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="القائمة">{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
         <Link href="/" className="group flex min-w-0 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-[15px] font-semibold text-white shadow-glow-gold transition-transform duration-300 group-hover:scale-105" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 600 }}>HL</span>
-          <span className="block min-w-0"><span className="block truncate text-[14px] tracking-[2px] text-navy-950 md:text-[15px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontVariant: 'small-caps', letterSpacing: '2px' }}>DR. HOSSAM LOTFY</span><span className="hidden text-[9px] font-bold tracking-[3px] text-gold-600 uppercase md:block" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '3px' }}>LAW FIRM</span></span>
+          <span className="flex min-w-0 flex-col items-center text-center"><span className="block truncate text-[14px] tracking-[2px] text-navy-950 md:text-[15px]" style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 500, fontVariant: 'small-caps', letterSpacing: '2px' }}>DR. HOSSAM LOTFY</span><span className="hidden text-[9px] font-bold tracking-[3px] text-gold-600 uppercase md:block" style={{ fontFamily: 'Inter, sans-serif', letterSpacing: '3px' }}>LAW FIRM</span></span>
         </Link>
         <form onSubmit={doSearch} className="mx-auto hidden w-full max-w-[340px] items-center gap-1.5 lg:flex"><div className="group relative flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300 transition-colors group-focus-within:text-gold-600" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن محكمة، مكان، محامٍ…" className="h-9 w-full rounded-full border border-navy-200/80 bg-white ps-9 pe-3.5 text-[12px] text-navy-900 shadow-soft transition-all placeholder:text-navy-300 focus:border-gold-500/60 focus:outline-none focus:ring-2 focus:ring-gold-500/20" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }} /></div></form>
         <nav className="hidden items-center gap-1 lg:flex">
@@ -123,9 +121,6 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
         <div className="ms-auto flex items-center gap-2 lg:ms-4">
           {session && <NotificationBell unread={unread} />}
           {!session ? loginLink : session.role === 'admin' ? (
-            /* Signed in as staff: no profile/sign-in affordance is shown — the
-               office asked not to be prompted to "enter" again after logging
-               in once. Only the archive shortcut and an explicit sign-out. */
             <div className="flex items-center gap-2">
               <Link href="/cases/archive" className="hidden items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.5px] text-navy-600 transition-all hover:scale-[1.02] hover:bg-navy-900/[0.06] hover:text-navy-950 active:scale-[0.98] sm:flex" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}><Archive size={14} className="text-gold-600" />أرشيف القضايا</Link>
               <button onClick={logout} className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold text-navy-400 transition-all hover:scale-[1.02] hover:bg-red-600/10 hover:text-red-600 active:scale-95" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }} aria-label="تسجيل الخروج" title="تسجيل الخروج"><LogOut size={14} /><span className="hidden sm:inline">تسجيل الخروج</span></button>
