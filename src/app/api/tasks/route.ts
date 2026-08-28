@@ -36,26 +36,22 @@ export const POST = handle(async (req: Request) => {
 
   let caseId: string | undefined;
   if (data.caseName || data.caseNumber) {
-    const name = data.caseName ?? '';
-    const number = data.caseNumber ?? '';
+    const name = data.caseName ?? ''; const number = data.caseNumber ?? '';
     const textWhere = demo ? { name: { contains: DEMO_TAG } } : { name: { not: { contains: DEMO_TAG } } };
     let existing = null as { id: string; clientName: string | null } | null;
     if (name && number) existing = await prisma.caseRecord.findFirst({ where: { AND: [{ name }, { number }, textWhere] }, select: { id: true, clientName: true } });
     if (!existing && number) existing = await prisma.caseRecord.findFirst({ where: { AND: [{ number }, textWhere] }, select: { id: true, clientName: true } });
     caseId = existing?.id;
-    if (!existing) {
-      const c = await prisma.caseRecord.create({ data: { name: demo ? `${name} ${DEMO_TAG}`.trim() : name, number: demo ? `DEMO-${number}` : number, clientName: data.clientName?.trim() || null } });
-      caseId = c.id;
-    } else if (data.clientName?.trim() && !existing.clientName) {
-      await prisma.caseRecord.update({ where: { id: existing.id }, data: { clientName: data.clientName.trim() } }).catch(() => undefined);
-    }
+    if (!existing) { const c = await prisma.caseRecord.create({ data: { name: demo ? `${name} ${DEMO_TAG}`.trim() : name, number: demo ? `DEMO-${number}` : number, clientName: data.clientName?.trim() || null } }); caseId = c.id; }
+    else if (data.clientName?.trim() && !existing.clientName) await prisma.caseRecord.update({ where: { id: existing.id }, data: { clientName: data.clientName.trim() } }).catch(() => undefined);
   }
 
   const lawyerIds = isOwnPost ? [session.lawyerId] : (data.lawyerIds as string[]);
-  const lawyers = await prisma.lawyer.findMany({ where: { id: { in: lawyerIds }, active: true, bio: demo ? { contains: DEMO_TAG } : { not: { contains: DEMO_TAG } } } });
-  if (lawyers.length !== new Set(lawyerIds).size) return json({ error: demo ? 'اختر محامين من بيانات الديمو فقط.' : 'أحد المحامين المحددين غير موجود' }, { status: 400 });
+  // Demo mode isolates demo-created tasks/cases; it must not reject an active real lawyer selected from the UI.
+  const lawyers = await prisma.lawyer.findMany({ where: { id: { in: lawyerIds }, active: true } });
+  if (lawyers.length !== new Set(lawyerIds).size) return json({ error: 'أحد المحامين المحددين غير موجود أو غير نشط' }, { status: 400 });
 
-  const task = await prisma.task.create({ data: { locationId: location.id, caseId, description: `${data.description?.trim() ?? ''}${demo ? ` ${DEMO_TAG}` : ''}`.trim(), notes: data.notes?.trim() || null, scheduledDate: data.scheduledDate ? new Date(`${data.scheduledDate}T00:00:00`) : null, scheduledTime: data.scheduledTime || null, authorId: isOwnPost ? session.lawyerId : null, createdById: session.role === 'admin' ? session.userId : null, assignees: { create: lawyerIds.map((lawyerId) => ({ lawyerId })) } }, include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } }, comments: { select: { createdAt: true } } } });
+  const task = await prisma.task.create({ data: { locationId: location.id, caseId, description: `${data.description?.trim() ?? ''}${demo ? ` ${DEMO_TAG}` : ''}`.trim(), notes: data.notes?.trim() || null, scheduledDate: data.scheduledDate ? new Date(`${data.scheduledDate}T00:00:00`) : null, scheduledTime: data.scheduledTime || null, authorId: isOwnPost ? session.lawyerId : null, createdById: session.role === 'admin' ? session.userId : null, assignees: { create: lawyerIds.map((lawyerId) => ({ lawyerId })) } }, include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } }, comments: { select: { createdAt: true } } });
 
   const when = task.scheduledDate ? `${formatDay(task.scheduledDate)}${task.scheduledTime ? ` — ${task.scheduledTime}` : ''}` : 'بالتنسيق';
   await logActivity({ action: 'CREATED', summary: `أنشأ مهمة جديدة: ${(task.description || location.name).slice(0, 80)}`, taskId: task.id, locationId: location.id, byUserId: session.role === 'admin' ? session.userId : null, byLawyerId: isOwnPost ? session.lawyerId : null }).catch(() => undefined);
