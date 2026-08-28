@@ -7,8 +7,9 @@ import { appOrigin } from '@/lib/google-oauth';
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * Approve a self-registered lawyer. Only then can they sign in with Gmail and
- * publish / edit their own tasks. The lawyer is notified by e-mail.
+ * Approve a self-registered lawyer. Only then can they sign in with the
+ * existing lawyer login flow and publish/edit their own tasks. The lawyer is
+ * notified by e-mail when mail delivery is configured.
  */
 export const POST = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
@@ -33,9 +34,13 @@ export const POST = handle(async (_req: Request, ctx: Ctx) => {
     byUserId: session.userId,
   });
 
-  if (updated.googleEmail) {
-    await notifyLawyerApproved(updated.googleEmail, updated.fullName, appOrigin());
+  // Prefer the private Gmail login identity, but fall back to the stored
+  // contact e-mail so an approved application is never skipped just because
+  // googleEmail was not populated.
+  const recipient = updated.googleEmail ?? updated.email;
+  if (recipient) {
+    await notifyLawyerApproved(recipient, updated.fullName, appOrigin());
   }
 
-  return json({ ok: true, lawyer: { id: updated.id, fullName: updated.fullName } });
+  return json({ ok: true, lawyer: { id: updated.id, fullName: updated.fullName }, mailRecipient: recipient ?? null });
 });
