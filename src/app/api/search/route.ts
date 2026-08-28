@@ -69,7 +69,7 @@ export async function GET(req: Request) {
           where: {
             OR: [
               ...orAcross(['description', 'notes']),
-              { caseRecord: { OR: orAcross(['name', 'number']) } },
+              { caseRecord: { OR: orAcross(['name', 'number', 'clientName']) } },
               { location: { OR: orAcross(['name', 'nameEn']) } },
             ],
           },
