@@ -40,11 +40,12 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
   const router = useRouter();
   const [commentsOpen, setCommentsOpen] = React.useState(initiallyOpen);
   const [busy, setBusy] = React.useState(false);
+  const [confirmBusy, setConfirmBusy] = React.useState(false);
+  const [confirmed, setConfirmed] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [commentsCache, setCommentsCache] = React.useState<CommentVM[]>(comments);
   const fetchedRef = React.useRef(comments.length > 0 || task.commentCount === 0);
 
-  // when the section starts open with a non-empty count but no rows yet, load them
   React.useEffect(() => {
     if (initiallyOpen && !fetchedRef.current) {
       fetchedRef.current = true;
@@ -74,8 +75,9 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
 
   const iAmAuthor = sessionRole === 'lawyer' && task.author?.id === sessionLawyerId;
   const isAdmin = sessionRole === 'admin';
-  // «إنهاء» قبل المعاد مسموح — المحامي المكلّف ينهي مبكراً، والأدمن
-  // بصلاحية writeTasks يقفل نيابةً عن المحامي.
+  const isAssignedLawyer = sessionRole === 'lawyer' && !!sessionLawyerId && task.lawyerIds.includes(sessionLawyerId);
+  const canConfirm = isAdmin || isAssignedLawyer;
+
   const canComplete = canCompleteTask(
     sessionRole
       ? { role: sessionRole, lawyerId: sessionLawyerId, canWriteTasks: isAdmin ? canWriteTasks : undefined }
@@ -84,6 +86,26 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
   );
   const canEdit = isAdmin || iAmAuthor;
   const canDelete = isAdmin;
+
+  const confirmTask = async () => {
+    if (confirmBusy || confirmed) return;
+    setConfirmBusy(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/confirm`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setConfirmed(true);
+        toastSuccess('تم تأكيد المهمة وإرسال رسالة التأكيد بالبريد.');
+        router.refresh();
+      } else {
+        toastError(data.error ?? 'تعذر إرسال تأكيد المهمة.');
+      }
+    } catch {
+      toastError('تعذر الاتصال بالخادم لإرسال تأكيد المهمة.');
+    } finally {
+      setConfirmBusy(false);
+    }
+  };
 
   const remove = async () => {
     setBusy(true);
@@ -104,7 +126,6 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
 
   return (
     <Card className="animate-fade-in-up overflow-hidden">
-      {/* Header — الناشر (poster) قابل للضغط دائماً: محامي → صفحته، إدارة → صفحة المكتب */}
       <div className="flex items-start gap-3 px-4 pt-4">
         <Link href={getOfficeProfileHref(task)} aria-label={task.author ? `صفحة ${task.author.name}` : 'صفحة إدارة المكتب'}>
           {task.author ? (
@@ -154,7 +175,6 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
         </div>
       </div>
 
-      {/* Body */}
       <div className="px-4 pb-3 pt-3">
         <Link href={`/sessions/${task.id}`} className="block">
           <p className="text-[14px] font-semibold leading-7 text-navy-800 hover:text-navy-950">{task.description}</p>
@@ -174,7 +194,6 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
           </div>
         )}
 
-        {/* Assigned lawyers */}
         {task.lawyers.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-bold text-navy-400">المكلّفون:</span>
@@ -198,7 +217,6 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex flex-wrap items-center gap-1 border-t border-navy-100 px-2 py-1.5">
         {showComments && (
           <button
@@ -209,12 +227,28 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
             {commentsCache.length > 0 || task.commentCount > 0 ? `${task.commentCount} تعليق` : 'تعليق'}
           </button>
         )}
+        {canConfirm && (
+          <button
+            onClick={confirmTask}
+            disabled={confirmBusy || confirmed}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition',
+              confirmed
+                ? 'cursor-default bg-emerald-600/10 text-emerald-700'
+                : 'text-navy-600 hover:bg-gold-500/10 hover:text-gold-700',
+            )}
+            title="إرسال تأكيد المهمة بالبريد الإلكتروني"
+          >
+            <CheckCheck size={14} />
+            {confirmBusy ? 'جارٍ التأكيد...' : confirmed ? 'تم التأكيد' : 'تأكيد'}
+          </button>
+        )}
         {canComplete && <CompleteTaskButton taskId={task.id} label={isAdmin ? 'إنهاء نيابةً عن المحامي' : 'تم التنفيذ'} />}
         {canEdit && (
           <Link href={`/sessions/${task.id}?edit=1`}>
             <Button size="sm" variant="ghost" className="ms-auto">
               <Pencil size={13} />
-              {canComplete ? 'تعديل' : 'تعديل'}
+              تعديل
             </Button>
           </Link>
         )}
@@ -225,7 +259,6 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
         )}
       </div>
 
-      {/* Comments */}
       {showComments && commentsOpen && (
         <CommentSection
           taskId={task.id}
