@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageSquare, Pencil, Trash2, Send } from 'lucide-react';
-import {Avatar, Button, Input} from './ui';import { cn } from '@/lib/cn';
+import { Avatar, Button, Input } from './ui';
+import { cn } from '@/lib/cn';
 import { toastSuccess, toastError } from './toasts';
 import { formatDateTime } from '@/lib/dates';
 
@@ -26,41 +27,32 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
 }) {
   const router = useRouter();
   const [text, setText] = React.useState('');
-  const [guestName, setGuestName] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editText, setEditText] = React.useState('');
   const [expanded, setExpanded] = React.useState(false);
   const [highlightId, setHighlightId] = React.useState<string | null>(null);
+  const isAuthenticated = !!sessionRole;
 
-  // إشعار التعليق يفتح الرابط العميق /sessions/<id>#comment-<id> —
-  // أبرِز التعليق المستهدف ومرّر إليه (يتعامل أيضاً مع تغيّر الهاش
-  // بعد التنقل أو بعد تحميل التعليقات).
   React.useEffect(() => {
     const match = /^#comment-(.+)$/.exec(window.location.hash);
     if (!match) return;
     const id = decodeURIComponent(match[1]);
     setHighlightId(id);
     const target = document.getElementById(`comment-${id}`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, []);
 
   React.useEffect(() => {
     if (!highlightId) return;
     const target = document.getElementById(`comment-${highlightId}`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlightId, comments, expanded]);
 
   React.useEffect(() => {
     const onHash = () => {
       const match = /^#comment-(.+)$/.exec(window.location.hash);
-      if (match) {
-        setHighlightId(decodeURIComponent(match[1]));
-      }
+      if (match) setHighlightId(decodeURIComponent(match[1]));
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
@@ -78,22 +70,19 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
     }
   };
 
-  const canComment = true; // guests may comment with a name
-  const isGuest = !sessionRole;
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = text.trim();
-    if (!body) return;
-    if (isGuest && !guestName.trim()) {
-      toastError('من فضلك أدخل اسمك لإضافة التعليق.');
+    if (!body || busy) return;
+    if (!isAuthenticated) {
+      toastError('يجب تسجيل الدخول أولاً لإضافة تعليق.');
       return;
     }
     setBusy(true);
     const res = await fetch(`/api/tasks/${taskId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: body, ...(isGuest ? { name: guestName.trim() } : {}) }),
+      body: JSON.stringify({ text: body }),
     });
     setBusy(false);
     if (res.ok) {
@@ -197,25 +186,23 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
 
       <form onSubmit={submit} className="flex items-center gap-2">
         <div className="flex-1">
-          {isGuest && (
-            <Input
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="اسمك (للعرض فقط)"
-              className="mb-1.5 h-8 text-[12px]"
-            />
+          {isAuthenticated ? (
+            <div className="flex gap-1.5">
+              <Input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="أضف ملاحظة أو تنبيهاً…"
+                className="h-9 text-[13px]"
+              />
+              <Button type="submit" size="sm" className="h-9" disabled={busy || !text.trim()}>
+                <Send size={14} className="-scale-x-100" />
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-navy-100 bg-white px-3 py-2 text-[11.5px] font-bold text-navy-400">
+              سجّل الدخول أولاً حتى تتمكن من إضافة تعليق.
+            </div>
           )}
-          <div className="flex gap-1.5">
-            <Input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="أضف ملاحظة أو تنبيهاً…"
-              className="h-9 text-[13px]"
-            />
-            <Button type="submit" size="sm" className="h-9" disabled={busy || !text.trim()}>
-              <Send size={14} className="-scale-x-100" />
-            </Button>
-          </div>
         </div>
       </form>
       {comments.length > 4 && !expanded && (
