@@ -113,3 +113,6 @@ button:hover:not(:disabled)>svg,[role="button"]:hover:not([aria-disabled="true"]
   button,[role="button"],button>svg,[role="button"]>svg { transition:none !important; animation:none !important; }
   button:hover:not(:disabled),button:active:not(:disabled),[role="button"]:hover:not([aria-disabled="true"]),[role="button"]:active:not([aria-disabled="true"]) { transform:none; }
 }
+
+/* Hide the obsolete per-lawyer access-link action in the admin lawyer list. */
+button[title="رابط دخول المحامي"] { display: none !important; }
