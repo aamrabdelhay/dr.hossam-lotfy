@@ -5,33 +5,59 @@ import { FilePlus2 } from 'lucide-react';
 import { Button, Card, Field, Input } from './ui';
 import { toastError, toastSuccess } from './toasts';
 
+const fields = [
+  ['year', 'سنة القضية', 'مثال: 2021'],
+  ['court', 'المحكمة', 'مثال: محكمة جنوب القاهرة'],
+  ['circuit', 'الدائرة', 'مثال: الدائرة 5 مدني'],
+  ['caseType', 'نوع القضية / التصنيف', 'مثال: مدني، تجاري، جنائي'],
+  ['plaintiff', 'المدعي', 'اسم المدعي'],
+  ['defendant', 'المدعى عليه', 'اسم المدعى عليه'],
+  ['responsibleLawyer', 'المحامي المسؤول', 'اسم المحامي'],
+  ['status', 'حالة القضية', 'مثال: انتهت، مؤجلة، حكم نهائي'],
+  ['filingDate', 'تاريخ القيد / بداية القضية', 'YYYY-MM-DD'],
+  ['lastActionDate', 'تاريخ آخر إجراء', 'YYYY-MM-DD'],
+  ['judgmentDate', 'تاريخ الحكم', 'YYYY-MM-DD'],
+  ['judgmentResult', 'نتيجة القضية / الحكم', 'الحكم أو النتيجة باختصار'],
+] as const;
+
+type FormState = Record<(typeof fields)[number][0] | 'name' | 'number' | 'clientName' | 'description', string>;
+
+const emptyForm: FormState = {
+  name: '', number: '', clientName: '', description: '', year: '', court: '', circuit: '', caseType: '',
+  plaintiff: '', defendant: '', responsibleLawyer: '', status: '', filingDate: '', lastActionDate: '', judgmentDate: '', judgmentResult: '',
+};
+
 export function CaseArchiveCreate() {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
-  const [name, setName] = React.useState('');
-  const [number, setNumber] = React.useState('');
-  const [clientName, setClientName] = React.useState('');
-  const [description, setDescription] = React.useState('');
+  const [form, setForm] = React.useState<FormState>(emptyForm);
+
+  const set = (key: keyof FormState, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !number.trim() || busy) return;
+    if (!form.name.trim() || !form.number.trim() || busy) return;
     setBusy(true);
-    const res = await fetch('/api/cases', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, number, clientName, description }),
-    });
-    setBusy(false);
-    if (!res.ok) {
+    try {
+      const res = await fetch('/api/cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
       const data = await res.json().catch(() => ({}));
-      toastError(data.error ?? 'تعذر إضافة القضية.');
-      return;
+      if (!res.ok) {
+        toastError(data.error ?? 'تعذر إضافة القضية.');
+        return;
+      }
+      toastSuccess('تمت إضافة القضية القديمة إلى الأرشيف ✓');
+      setForm(emptyForm);
+      setOpen(false);
+      window.location.reload();
+    } catch {
+      toastError('تعذر الاتصال بالخادم. حاول مرة أخرى.');
+    } finally {
+      setBusy(false);
     }
-    toastSuccess('تمت إضافة القضية إلى سجل المكتب ✓');
-    setName(''); setNumber(''); setClientName(''); setDescription('');
-    setOpen(false);
-    window.location.reload();
   };
 
   return (
@@ -42,22 +68,43 @@ export function CaseArchiveCreate() {
       </Button>
       {open && (
         <Card className="mt-3 p-4">
+          <div className="mb-4">
+            <h2 className="text-[14px] font-extrabold text-navy-900">إضافة قضية قديمة إلى الأرشيف</h2>
+            <p className="mt-1 text-[11px] font-semibold text-navy-400">كل البيانات اختيارية باستثناء اسم القضية ورقم القضية، ويمكنك إضافة أي معلومات متاحة فقط.</p>
+          </div>
           <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
             <Field label="اسم القضية">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: دعوى شركة ..." required />
+              <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="مثال: دعوى شركة ..." required />
             </Field>
             <Field label="رقم القضية">
-              <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="رقم / سنة" required dir="ltr" />
+              <Input value={form.number} onChange={(e) => set('number', e.target.value)} placeholder="رقم / سنة" required dir="ltr" />
             </Field>
             <Field label="اسم العميل">
-              <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="اسم العميل" />
+              <Input value={form.clientName} onChange={(e) => set('clientName', e.target.value)} placeholder="اختياري" />
             </Field>
-            <Field label="وصف / ملاحظات تاريخية">
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="أي معلومات عن القضية القديمة" />
+            {fields.map(([key, label, placeholder]) => (
+              <Field key={key} label={label}>
+                <Input
+                  value={form[key]}
+                  onChange={(e) => set(key, e.target.value)}
+                  placeholder={`${placeholder} — اختياري`}
+                  dir={key.includes('Date') || key === 'year' ? 'ltr' : undefined}
+                  type={key.includes('Date') ? 'date' : 'text'}
+                />
+              </Field>
+            ))}
+            <Field label="ملاحظات تاريخية">
+              <textarea
+                value={form.description}
+                onChange={(e) => set('description', e.target.value)}
+                placeholder="أي معلومات أو ملاحظات إضافية — اختياري"
+                rows={4}
+                className="w-full rounded-xl border border-navy-200 bg-white px-3 py-2.5 text-[13px] text-navy-900 outline-none transition focus:border-gold-500/60 focus:ring-2 focus:ring-gold-500/20"
+              />
             </Field>
             <div className="flex items-end gap-2 sm:col-span-2">
-              <Button type="submit" size="sm" disabled={busy}>{busy ? 'جارٍ الحفظ…' : 'حفظ في السجل'}</Button>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button>
+              <Button type="submit" size="sm" disabled={busy}>{busy ? 'جارٍ الحفظ…' : 'حفظ في الأرشيف'}</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)} disabled={busy}>إلغاء</Button>
             </div>
           </form>
         </Card>
