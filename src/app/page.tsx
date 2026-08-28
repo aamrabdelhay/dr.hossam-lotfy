@@ -44,10 +44,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <p className="text-[10px] font-bold tracking-[0.18em] text-gold-400">مركز القيادة</p>
               <h1 id="dashboard-title" className="mt-1 text-lg font-extrabold text-ivory-50">حالة المكتب اليوم</h1>
             </div>
-            <span className="hidden items-center gap-1.5 rounded-full bg-white/[0.08] px-3 py-1.5 text-[11px] font-semibold text-ivory-200 ring-1 ring-inset ring-white/10 sm:inline-flex">
-              <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-400 opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-gold-400" /></span>
-              تحديث مباشر من السجلات
-            </span>
           </div>
           <div className="grid grid-cols-2 gap-px bg-navy-100/70 sm:grid-cols-3 lg:grid-cols-6">
             {[
