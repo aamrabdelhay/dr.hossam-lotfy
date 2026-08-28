@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Scale } from 'lucide-react';
 import { Button, Field, Input } from '../ui';
 
+const REMEMBER_KEY = 'hl-lawyer-login';
+
+type RememberedLogin = { name?: string; email?: string };
+
 /**
  * Lawyer sign-in WITHOUT Google OAuth. The lawyer enters their first two names
  * and their Gmail address; the backend matches the approved lawyer and opens a
@@ -17,18 +21,35 @@ export function LawyerLoginForm() {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  React.useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) ?? 'null') as RememberedLogin | null;
+      if (saved?.name) setName(saved.name);
+      if (saved?.email) setEmail(saved.email);
+    } catch {
+      // Ignore malformed or blocked local storage.
+    }
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || busy) return;
     setBusy(true);
     setError(null);
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
     const res = await fetch('/api/auth/lawyer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+      body: JSON.stringify({ name: normalizedName, email: normalizedEmail }),
     });
     setBusy(false);
     if (res.ok) {
+      try {
+        localStorage.setItem(REMEMBER_KEY, JSON.stringify({ name: normalizedName, email: normalizedEmail }));
+      } catch {
+        // Remembering the fields is an enhancement, not a login dependency.
+      }
       const d = await res.json().catch(() => ({}));
       router.replace(d.slug ? `/lawyers/${d.slug}` : '/');
       router.refresh();
