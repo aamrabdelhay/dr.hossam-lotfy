@@ -19,9 +19,7 @@ export const GET = handle(async (req: Request) => {
   return json({ items, total });
 });
 
-const createSchema = z.object({
-  locationId: z.string().min(1, 'المكان مطلوب'), description: z.string().max(2000).optional(), notes: z.string().max(4000).optional(), caseName: z.string().max(300).optional(), caseNumber: z.string().max(200).optional(), clientName: z.string().max(200).optional(), scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'تاريخ غير صالح').optional(), scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'ساعة غير صالحة').optional(), lawyerIds: z.array(z.string()).min(1, 'اختر محامياً واحداً على الأقل').max(20, 'الحد الأقصى 20 محامياً في العملية الواحدة').optional(), ownPost: z.boolean().optional(),
-}).refine((d) => d.ownPost || (d.lawyerIds && d.lawyerIds.length > 0), { message: 'اختر المحامي/المحامين المكلفين', path: ['lawyerIds'] });
+const createSchema = z.object({ locationId: z.string().min(1, 'المكان مطلوب'), description: z.string().max(2000).optional(), notes: z.string().max(4000).optional(), caseName: z.string().max(300).optional(), caseNumber: z.string().max(200).optional(), clientName: z.string().max(200).optional(), scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'تاريخ غير صالح').optional(), scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'ساعة غير صالحة').optional(), lawyerIds: z.array(z.string()).min(1, 'اختر محامياً واحداً على الأقل').max(20, 'الحد الأقصى 20 محامياً في العملية الواحدة').optional(), ownPost: z.boolean().optional() }).refine((d) => d.ownPost || (d.lawyerIds && d.lawyerIds.length > 0), { message: 'اختر المحامي/المحامين المكلفين', path: ['lawyerIds'] });
 
 export const POST = handle(async (req: Request) => {
   const session = await user();
@@ -40,12 +38,13 @@ export const POST = handle(async (req: Request) => {
   if (data.caseName || data.caseNumber) {
     const name = data.caseName ?? '';
     const number = data.caseNumber ?? '';
+    const textWhere = demo ? { name: { contains: DEMO_TAG } } : { name: { not: { contains: DEMO_TAG } } };
     let existing = null as { id: string; clientName: string | null } | null;
-    if (name && number) existing = await prisma.caseRecord.findFirst({ where: { name, number, name: { ...(demo ? { contains: DEMO_TAG } : { not: { contains: DEMO_TAG } }) } }, select: { id: true, clientName: true } }).catch(() => null);
-    if (!existing && number) existing = await prisma.caseRecord.findFirst({ where: { number, name: demo ? { contains: DEMO_TAG } : { not: { contains: DEMO_TAG } } }, select: { id: true, clientName: true } }).catch(() => null);
+    if (name && number) existing = await prisma.caseRecord.findFirst({ where: { AND: [{ name }, { number }, textWhere] }, select: { id: true, clientName: true } });
+    if (!existing && number) existing = await prisma.caseRecord.findFirst({ where: { AND: [{ number }, textWhere] }, select: { id: true, clientName: true } });
     caseId = existing?.id;
     if (!existing) {
-      const c = await prisma.caseRecord.create({ data: { name: demo ? `${name} ${DEMO_TAG}`.trim() : name, number, clientName: data.clientName?.trim() || null } });
+      const c = await prisma.caseRecord.create({ data: { name: demo ? `${name} ${DEMO_TAG}`.trim() : name, number: demo ? `DEMO-${number}` : number, clientName: data.clientName?.trim() || null } });
       caseId = c.id;
     } else if (data.clientName?.trim() && !existing.clientName) {
       await prisma.caseRecord.update({ where: { id: existing.id }, data: { clientName: data.clientName.trim() } }).catch(() => undefined);
@@ -56,10 +55,7 @@ export const POST = handle(async (req: Request) => {
   const lawyers = await prisma.lawyer.findMany({ where: { id: { in: lawyerIds }, active: true, bio: demo ? { contains: DEMO_TAG } : { not: { contains: DEMO_TAG } } } });
   if (lawyers.length !== new Set(lawyerIds).size) return json({ error: demo ? 'اختر محامين من بيانات الديمو فقط.' : 'أحد المحامين المحددين غير موجود' }, { status: 400 });
 
-  const task = await prisma.task.create({
-    data: { locationId: location.id, caseId, description: `${data.description?.trim() ?? ''}${demo ? ` ${DEMO_TAG}` : ''}`.trim(), notes: data.notes?.trim() || null, scheduledDate: data.scheduledDate ? new Date(`${data.scheduledDate}T00:00:00`) : null, scheduledTime: data.scheduledTime || null, authorId: isOwnPost ? session.lawyerId : null, createdById: session.role === 'admin' ? session.userId : null, assignees: { create: lawyerIds.map((lawyerId) => ({ lawyerId })) } },
-    include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } }, comments: { select: { createdAt: true } } },
-  });
+  const task = await prisma.task.create({ data: { locationId: location.id, caseId, description: `${data.description?.trim() ?? ''}${demo ? ` ${DEMO_TAG}` : ''}`.trim(), notes: data.notes?.trim() || null, scheduledDate: data.scheduledDate ? new Date(`${data.scheduledDate}T00:00:00`) : null, scheduledTime: data.scheduledTime || null, authorId: isOwnPost ? session.lawyerId : null, createdById: session.role === 'admin' ? session.userId : null, assignees: { create: lawyerIds.map((lawyerId) => ({ lawyerId })) } }, include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } }, comments: { select: { createdAt: true } } } });
 
   const when = task.scheduledDate ? `${formatDay(task.scheduledDate)}${task.scheduledTime ? ` — ${task.scheduledTime}` : ''}` : 'بالتنسيق';
   await logActivity({ action: 'CREATED', summary: `أنشأ مهمة جديدة: ${(task.description || location.name).slice(0, 80)}`, taskId: task.id, locationId: location.id, byUserId: session.role === 'admin' ? session.userId : null, byLawyerId: isOwnPost ? session.lawyerId : null }).catch(() => undefined);
@@ -71,7 +67,5 @@ export const POST = handle(async (req: Request) => {
     const mailTargets = lawyers.map((l) => ({ to: (l.googleEmail ?? l.email)?.trim(), name: l.fullName })).filter((x): x is { to: string; name: string } => !!x.to);
     after(async () => { try { await notifyOfficeTaskCreated({ taskDesc, locationName: location.name, dateLabel, timeLabel, assignees: assigneeNames, clientName, caseLabel, createdBy: session.name, url }); const principal = await prisma.lawyer.findFirst({ where: { isPrincipal: true, active: true, bio: { not: { contains: DEMO_TAG } } } }); const cc = officeCcRecipients(principal?.googleEmail ?? principal?.email ?? null); for (const target of mailTargets) await sendTaskAssignedEmail({ to: target.to, cc, lawyerName: target.name, taskDesc, locationName: location.name, dateLabel, timeLabel, url }); } catch (err) { console.error('[tasks] post-response mail failed:', (err as Error)?.message ?? err); } });
   }
-
-  const vm = toTaskVM(task as never) as TaskVM;
-  return json({ ok: true, task: vm, createdCount: lawyerIds.length, demo });
+  return json({ ok: true, task: toTaskVM(task as never) as TaskVM, createdCount: lawyerIds.length, demo });
 });
