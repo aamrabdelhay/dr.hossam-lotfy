@@ -16,6 +16,15 @@ export type StaffUserRow = {
   createdAt: string;
 };
 
+type LawyerOption = {
+  id: string;
+  fullName: string;
+  email: string | null;
+  googleEmail: string | null;
+  active: boolean;
+  approvedAt: string | null;
+};
+
 const isSuper = (role: string) => role === 'SUPER_ADMIN' || role === 'ADMIN';
 
 /**
@@ -71,9 +80,7 @@ export function UsersTab({ currentUserId }: { currentUserId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[13px] font-bold text-navy-500">{users.length} حساب — المدير العام وحده يضيف أو يعدّل الحسابات</p>
-          <p className="mt-0.5 text-[11px] font-semibold text-navy-300">
-            تغيير الدور أو كلمة المرور ينهي كل جلسات المستخدم فوراً.
-          </p>
+          <p className="mt-0.5 text-[11px] font-semibold text-navy-300">اختيار محامٍ يملأ الاسم والبريد تلقائياً؛ تبقى كلمة المرور مطلوبة لإنشاء حساب الفريق.</p>
         </div>
         <Button size="sm" onClick={() => setCreating(true)}>
           <UserPlus size={14} />
@@ -167,6 +174,8 @@ function UserForm({
   onSaved: () => void;
 }) {
   const isEdit = !!user;
+  const [lawyers, setLawyers] = React.useState<LawyerOption[]>([]);
+  const [lawyerId, setLawyerId] = React.useState('');
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -179,12 +188,29 @@ function UserForm({
     setEmail(user?.email ?? '');
     setPassword('');
     setRole(user?.role && (ASSIGNABLE_ROLES as readonly string[]).includes(user.role) ? user.role : 'SECRETARY');
-  }, [open, user]);
+    setLawyerId('');
+
+    if (!isEdit) {
+      fetch('/api/lawyers')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setLawyers((d?.lawyers ?? []) as LawyerOption[]))
+        .catch(() => setLawyers([]));
+    }
+  }, [open, user, isEdit]);
+
+  const selectLawyer = (id: string) => {
+    setLawyerId(id);
+    const lawyer = lawyers.find((l) => l.id === id);
+    if (!lawyer) return;
+    setName(lawyer.fullName);
+    setEmail((lawyer.googleEmail || lawyer.email || '').toLowerCase());
+    setRole('LAWYER');
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) {
-      toastError('الاسم والبريد الإلكتروني مطلوبان.');
+      toastError('اختر محامياً لديه بريد إلكتروني صالح.');
       return;
     }
     if (!isEdit && password.length < 8) {
@@ -226,37 +252,32 @@ function UserForm({
       }
     >
       <form id="user-form" onSubmit={submit} className="space-y-4">
+        {!isEdit && (
+          <Field label="المحامي" required hint="اختر المحامي وسيتم ملء الاسم والبريد تلقائياً">
+            <Select value={lawyerId} onChange={(e) => selectLawyer(e.target.value)}>
+              <option value="">اختر محامياً…</option>
+              {lawyers.map((lawyer) => (
+                <option key={lawyer.id} value={lawyer.id}>
+                  {lawyer.fullName}{!lawyer.googleEmail && !lawyer.email ? ' — بدون بريد' : ''}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         <Field label="الاسم" required>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: أحمد محمد علي" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: أحمد محمد علي" readOnly={!isEdit} />
         </Field>
         <Field label="البريد الإلكتروني" required>
-          <Input
-            type="email"
-            dir="ltr"
-            className="ltr text-start"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@loutfilawfirm.net"
-          />
+          <Input type="email" dir="ltr" className="ltr text-start" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@loutfilawfirm.net" readOnly={!isEdit} />
         </Field>
         <Field label="الدور" required hint="يحدد صلاحياته داخل النظام">
           <Select value={role} onChange={(e) => setRole(e.target.value)}>
-            {ASSIGNABLE_ROLES.map((r) => (
-              <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>
-            ))}
+            {ASSIGNABLE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}
           </Select>
         </Field>
-        <p className="rounded-lg bg-ivory-100 px-3 py-2 text-[11px] font-bold leading-5 text-navy-400">
-          {ROLE_DESCRIPTION[role]}
-        </p>
+        <p className="rounded-lg bg-ivory-100 px-3 py-2 text-[11px] font-bold leading-5 text-navy-400">{ROLE_DESCRIPTION[role]}</p>
         <Field label="كلمة المرور" required={!isEdit} hint={isEdit ? 'اتركها فارغة للإبقاء على الحالية' : '8 أحرف على الأقل'}>
-          <Input
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
+          <Input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
         </Field>
       </form>
     </Modal>
