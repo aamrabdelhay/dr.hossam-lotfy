@@ -31,7 +31,7 @@ function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: s
 function ArchiveLink() {
   return (
     <a
-      href="/case-archive"
+      href="/cases/archive"
       className="btn-bubble mx-3 my-2 flex items-center justify-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/[0.07] px-3 py-2.5 text-[12px] font-extrabold text-gold-700 shadow-soft hover:bg-gold-500/15"
     >
       <Archive size={14} />

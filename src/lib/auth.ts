@@ -124,13 +124,29 @@ export async function revokeCurrentSession(): Promise<void> {
   await prisma.authSession.updateMany({ where: { tokenHash }, data: { revokedAt: new Date() } });
 }
 
+/**
+ * Cookie-clearing descriptor. The attributes MUST mirror the ones used when the
+ * cookie was written (`httpOnly`/`secure`/`sameSite`/`path`) — a browser treats
+ * a Set-Cookie with different attributes as a *different* cookie and silently
+ * keeps the old one, which is exactly how "logout does nothing" happens.
+ */
 export function clearSessionCookie() {
   return {
     name: COOKIE,
     value: '',
-    options: { httpOnly: true, path: '/', maxAge: 0 } as Record<string, unknown>,
+    options: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 0,
+      expires: new Date(0),
+    } as Record<string, unknown>,
   };
 }
+
+/** Name of the session cookie (route handlers may need to delete it directly). */
+export const SESSION_COOKIE_NAME = COOKIE;
 
 export async function isAdmin(): Promise<boolean> {
   const u = await getCurrentUser();

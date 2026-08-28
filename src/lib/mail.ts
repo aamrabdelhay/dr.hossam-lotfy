@@ -58,28 +58,82 @@ export function officeCcRecipients(principalEmail?: string | null): string[] {
 
 type SmtpSocket = net.Socket | tls.TLSSocket;
 
-function connectTls(host: string, port: number): Promise<tls.TLSSocket> {
-  return new Promise((resolve, reject) => {
-    const sock = tls.connect({ host, port, servername: host });
-    sock.once('secureConnect', () => resolve(sock));
-    sock.once('error', reject);
+/**
+ * Hard deadlines. Vercel's serverless functions are killed after a few seconds;
+ * a hung SMTP socket (a very common outcome when outbound 465/587 is filtered)
+ * would otherwise take the whole HTTP request down with it — which is exactly
+ * how "تعذر إنشاء المهمة" appears even though the task was created.
+ */
+const CONNECT_TIMEOUT_MS = Number(process.env.SMTP_CONNECT_TIMEOUT_MS || 7000);
+const REPLY_TIMEOUT_MS = Number(process.env.SMTP_REPLY_TIMEOUT_MS || 7000);
+const TOTAL_TIMEOUT_MS = Number(process.env.SMTP_TOTAL_TIMEOUT_MS || 20000);
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`SMTP timeout after ${ms}ms during ${label}`)), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
   });
+}
+
+function connectTls(host: string, port: number): Promise<tls.TLSSocket> {
+  return withTimeout(
+    new Promise<tls.TLSSocket>((resolve, reject) => {
+      const sock = tls.connect({ host, port, servername: host });
+      sock.setTimeout(CONNECT_TIMEOUT_MS);
+      sock.once('secureConnect', () => {
+        sock.setTimeout(0);
+        resolve(sock);
+      });
+      sock.once('timeout', () => {
+        sock.destroy();
+        reject(new Error('SMTP TLS connect timed out'));
+      });
+      sock.once('error', reject);
+    }),
+    CONNECT_TIMEOUT_MS + 1000,
+    'tls connect',
+  );
 }
 
 function connectPlain(host: string, port: number): Promise<net.Socket> {
-  return new Promise((resolve, reject) => {
-    const sock = net.connect({ host, port });
-    sock.once('connect', () => resolve(sock));
-    sock.once('error', reject);
-  });
+  return withTimeout(
+    new Promise<net.Socket>((resolve, reject) => {
+      const sock = net.connect({ host, port });
+      sock.setTimeout(CONNECT_TIMEOUT_MS);
+      sock.once('connect', () => {
+        sock.setTimeout(0);
+        resolve(sock);
+      });
+      sock.once('timeout', () => {
+        sock.destroy();
+        reject(new Error('SMTP connect timed out'));
+      });
+      sock.once('error', reject);
+    }),
+    CONNECT_TIMEOUT_MS + 1000,
+    'connect',
+  );
 }
 
 function upgradeToTls(sock: net.Socket, host: string): Promise<tls.TLSSocket> {
-  return new Promise((resolve, reject) => {
-    const secure = tls.connect({ socket: sock, servername: host });
-    secure.once('secureConnect', () => resolve(secure));
-    secure.once('error', reject);
-  });
+  return withTimeout(
+    new Promise<tls.TLSSocket>((resolve, reject) => {
+      const secure = tls.connect({ socket: sock, servername: host });
+      secure.once('secureConnect', () => resolve(secure));
+      secure.once('error', reject);
+    }),
+    CONNECT_TIMEOUT_MS + 1000,
+    'starttls',
+  );
 }
 
 function write(sock: SmtpSocket, line: string): Promise<void> {
@@ -90,36 +144,40 @@ function write(sock: SmtpSocket, line: string): Promise<void> {
 
 /** Read one complete SMTP reply ("NNN " terminates; "NNN-" continues). */
 function readReply(sock: SmtpSocket): Promise<{ code: number; text: string }> {
-  return new Promise((resolve, reject) => {
-    let buffer = '';
-    const onData = (chunk: Buffer) => {
-      buffer += chunk.toString('utf8');
-      const lines = buffer.split('\r\n');
-      for (let i = 0; i < lines.length; i++) {
-        if (/^\d{3} /.test(lines[i])) {
-          cleanup();
-          resolve({ code: Number(lines[i].slice(0, 3)), text: lines[i].slice(4) });
-          return;
+  return withTimeout(
+    new Promise<{ code: number; text: string }>((resolve, reject) => {
+      let buffer = '';
+      const onData = (chunk: Buffer) => {
+        buffer += chunk.toString('utf8');
+        const lines = buffer.split('\r\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (/^\d{3} /.test(lines[i])) {
+            cleanup();
+            resolve({ code: Number(lines[i].slice(0, 3)), text: lines[i].slice(4) });
+            return;
+          }
         }
-      }
-    };
-    const onError = (err: Error) => {
-      cleanup();
-      reject(err);
-    };
-    const onClose = () => {
-      cleanup();
-      reject(new Error('SMTP connection closed unexpectedly'));
-    };
-    const cleanup = () => {
-      sock.off('data', onData);
-      sock.off('error', onError);
-      sock.off('close', onClose);
-    };
-    sock.on('data', onData);
-    sock.once('error', onError);
-    sock.once('close', onClose);
-  });
+      };
+      const onError = (err: Error) => {
+        cleanup();
+        reject(err);
+      };
+      const onClose = () => {
+        cleanup();
+        reject(new Error('SMTP connection closed unexpectedly'));
+      };
+      const cleanup = () => {
+        sock.off('data', onData);
+        sock.off('error', onError);
+        sock.off('close', onClose);
+      };
+      sock.on('data', onData);
+      sock.once('error', onError);
+      sock.once('close', onClose);
+    }),
+    REPLY_TIMEOUT_MS,
+    'awaiting reply',
+  );
 }
 
 async function expect(sock: SmtpSocket, expected: number[]): Promise<void> {
@@ -182,6 +240,21 @@ export async function sendMail(opts: { to: string | string[]; cc?: string | stri
   const recipients = dedupeEmails([...toRecipients, ...ccRecipients]);
   if (recipients.length === 0) return;
 
+  await withTimeout(
+    deliver(cfg, toRecipients, ccRecipients, recipients, opts.subject, opts.text),
+    TOTAL_TIMEOUT_MS,
+    'delivery',
+  );
+}
+
+async function deliver(
+  cfg: SmtpConfig,
+  toRecipients: string[],
+  ccRecipients: string[],
+  recipients: string[],
+  subject: string,
+  text: string,
+): Promise<void> {
   let sock: SmtpSocket;
   if (cfg.secure) {
     sock = await connectTls(cfg.host, cfg.port);
@@ -218,7 +291,7 @@ export async function sendMail(opts: { to: string | string[]; cc?: string | stri
 
     await write(sock, 'DATA\r\n');
     await expect(sock, [354]);
-    await write(sock, `${buildMessage(cfg, toRecipients, ccRecipients, opts.subject, opts.text)}\r\n.\r\n`);
+    await write(sock, `${buildMessage(cfg, toRecipients, ccRecipients, subject, text)}\r\n.\r\n`);
     await expect(sock, [250]);
     await write(sock, 'QUIT\r\n').catch(() => undefined);
   } finally {
@@ -337,6 +410,51 @@ export async function sendTaskAssignedEmail(opts: {
       `المكان: ${opts.locationName}`,
       opts.dateLabel ? `التاريخ: ${opts.dateLabel}` : '',
       opts.timeLabel ? `الساعة: ${opts.timeLabel}` : '',
+      '',
+      `التفاصيل: ${opts.url}`,
+      '',
+      'DR. HOSSAM LOTFY LAW FIRM',
+    ]
+      .filter((l) => l !== '')
+      .join('\n'),
+  });
+}
+
+/**
+ * Office copy for EVERY newly created task.
+ *
+ * The per-lawyer notification only fires when the lawyer has a Gmail identity
+ * on file, so an office with no Google-linked lawyers received *nothing*. The
+ * admin always wants a copy, so this is sent independently of the assignees'
+ * mail addresses.
+ */
+export async function notifyOfficeTaskCreated(opts: {
+  taskDesc: string;
+  locationName: string;
+  dateLabel: string;
+  timeLabel: string;
+  assignees: string[];
+  clientName?: string | null;
+  caseLabel?: string | null;
+  createdBy: string;
+  url: string;
+}): Promise<boolean> {
+  const to = officeCcRecipients(null);
+  if (to.length === 0) return false;
+  return trySendMail({
+    to,
+    subject: 'مهمة جديدة أُضيفت — DR. HOSSAM LOTFY LAW FIRM',
+    text: [
+      'تم إنشاء مهمة/جلسة جديدة على منصة المكتب:',
+      '',
+      `المهمة: ${opts.taskDesc}`,
+      `المكان: ${opts.locationName}`,
+      opts.caseLabel ? `القضية: ${opts.caseLabel}` : '',
+      opts.clientName ? `العميل: ${opts.clientName}` : '',
+      opts.dateLabel ? `التاريخ: ${opts.dateLabel}` : 'التاريخ: بالتنسيق',
+      opts.timeLabel ? `الساعة: ${opts.timeLabel}` : '',
+      opts.assignees.length > 0 ? `المكلفون: ${opts.assignees.join('، ')}` : '',
+      `أضافها: ${opts.createdBy}`,
       '',
       `التفاصيل: ${opts.url}`,
       '',

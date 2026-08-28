@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getFeed, toTaskVM, type TaskVM } from '@/lib/queries';
@@ -7,12 +7,15 @@ import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskAssigned, notifyPostCreated } from '@/lib/notifications';
 import { formatDay } from '@/lib/dates';
-import { isMailConfigured, officeCcRecipients, sendTaskAssignedEmail } from '@/lib/mail';
+import { isMailConfigured, notifyOfficeTaskCreated, officeCcRecipients, sendTaskAssignedEmail } from '@/lib/mail';
 import { appOrigin } from '@/lib/google-oauth';
+
+// ─────────────────────────── GET ───────────────────────────
 
 export const GET = handle(async (req: Request) => {
   const session = await user();
   if (!session) return json({ error: 'يجب تسجيل الدخول لعرض مهام المكتب' }, { status: 401 });
+
   const url = new URL(req.url);
   const { items, total } = await getFeed({
     lawyerId: url.searchParams.get('lawyerId') ?? undefined,
@@ -20,33 +23,48 @@ export const GET = handle(async (req: Request) => {
     status: url.searchParams.get('status') ?? undefined,
     from: url.searchParams.get('from') ?? undefined,
     to: url.searchParams.get('to') ?? undefined,
+    q: url.searchParams.get('q') ?? undefined,
     limit: Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') ?? '30', 10) || 30)),
     offset: Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0),
   });
   return json({ items, total });
 });
 
-const createSchema = z.object({
-  locationId: z.string().min(1, 'المكان مطلوب'),
-  description: z.string().max(2000).optional(),
-  notes: z.string().max(4000).optional(),
-  caseName: z.string().max(300).optional(),
-  caseNumber: z.string().max(200).optional(),
-  clientName: z.string().max(200).optional(),
-  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'تاريخ غير صالح').optional(),
-  scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'ساعة غير صالحة').optional(),
-  lawyerIds: z.array(z.string()).min(1, 'اختر محامياً واحداً على الأقل').max(20).optional(),
-  ownPost: z.boolean().optional(),
-}).refine((d) => d.ownPost || (d.lawyerIds && d.lawyerIds.length > 0), { message: 'اختر المحامي/المحامين المكلفين', path: ['lawyerIds'] });
+// ─────────────────────────── POST ───────────────────────────
+
+const createSchema = z
+  .object({
+    locationId: z.string().min(1, 'المكان مطلوب'),
+    description: z.string().max(2000).optional(),
+    notes: z.string().max(4000).optional(),
+    caseName: z.string().max(300).optional(),
+    caseNumber: z.string().max(200).optional(),
+    clientName: z.string().max(200).optional(),
+    scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'تاريخ غير صالح').optional(),
+    scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, 'ساعة غير صالحة').optional(),
+    lawyerIds: z.array(z.string()).min(1, 'اختر محامياً واحداً على الأقل').max(20, 'الحد الأقصى 20 محامياً في العملية الواحدة').optional(),
+    ownPost: z.boolean().optional(),
+  })
+  .refine((d) => d.ownPost || (d.lawyerIds && d.lawyerIds.length > 0), {
+    message: 'اختر المحامي/المحامين المكلفين',
+    path: ['lawyerIds'],
+  });
 
 export const POST = handle(async (req: Request) => {
   const session = await user();
-  if (!session) return json({ error: 'يجب تسجيل الدخول لإضافة مهمة' }, { status: 401 });
+  if (!session) {
+    return json({ error: 'يجب تسجيل الدخول لإضافة مهمة' }, { status: 401 });
+  }
   const data = await readJson(req as never, createSchema);
+
   const isOwnPost = !!data.ownPost && session.role === 'lawyer';
   const isAdminCreate = session.role === 'admin';
-  if (isAdminCreate && !can(session.userRole, 'writeTasks')) return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
-  if (!isOwnPost && !isAdminCreate) return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
+  if (isAdminCreate && !can(session.userRole, 'writeTasks')) {
+    return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
+  }
+  if (!isOwnPost && !isAdminCreate) {
+    return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
+  }
 
   const location = await prisma.location.findUnique({ where: { id: data.locationId } });
   if (!location) return json({ error: 'المكان غير موجود' }, { status: 404 });
@@ -60,16 +78,22 @@ export const POST = handle(async (req: Request) => {
     if (!existing && number) existing = await prisma.caseRecord.findFirst({ where: { number }, select: { id: true, clientName: true } });
     caseId = existing?.id;
     if (!existing) {
-      const c = await prisma.caseRecord.create({ data: { name, number, clientName: data.clientName?.trim() || null } });
+      const c = await prisma.caseRecord.create({
+        data: { name, number, clientName: data.clientName?.trim() || null },
+      });
       caseId = c.id;
     } else if (data.clientName?.trim() && !existing.clientName) {
-      await prisma.caseRecord.update({ where: { id: existing.id }, data: { clientName: data.clientName.trim() } }).catch(() => undefined);
+      await prisma.caseRecord
+        .update({ where: { id: existing.id }, data: { clientName: data.clientName.trim() } })
+        .catch(() => undefined);
     }
   }
 
   const lawyerIds = isOwnPost ? [session.lawyerId] : (data.lawyerIds as string[]);
   const lawyers = await prisma.lawyer.findMany({ where: { id: { in: lawyerIds }, active: true } });
-  if (lawyers.length !== new Set(lawyerIds).size) return json({ error: 'أحد المحامين المحددين غير موجود' }, { status: 400 });
+  if (lawyers.length !== new Set(lawyerIds).size) {
+    return json({ error: 'أحد المحامين المحددين غير موجود' }, { status: 400 });
+  }
 
   const task = await prisma.task.create({
     data: {
@@ -84,7 +108,8 @@ export const POST = handle(async (req: Request) => {
       assignees: { create: lawyerIds.map((lawyerId) => ({ lawyerId })) },
     },
     include: {
-      location: true, caseRecord: true,
+      location: true,
+      caseRecord: true,
       author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } },
       assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } },
       comments: { select: { createdAt: true } },
@@ -92,28 +117,77 @@ export const POST = handle(async (req: Request) => {
   });
 
   const when = task.scheduledDate ? `${formatDay(task.scheduledDate)}${task.scheduledTime ? ` — ${task.scheduledTime}` : ''}` : 'بالتنسيق';
-  await logActivity({ action: 'CREATED', summary: `أنشأ مهمة جديدة: ${(task.description || location.name).slice(0, 80)}`, taskId: task.id, locationId: location.id, byUserId: session.role === 'admin' ? session.userId : null, byLawyerId: isOwnPost ? session.lawyerId : null });
-  await notifyTaskAssigned(lawyerIds, (task.description || location.name).slice(0, 60), when, `/sessions/${task.id}`);
-  if (isOwnPost) await notifyPostCreated(task.id, session.name, (task.description || location.name).slice(0, 60), location.name);
+  await logActivity({
+    action: 'CREATED',
+    summary: `أنشأ مهمة جديدة: ${(task.description || location.name).slice(0, 80)}`,
+    taskId: task.id,
+    locationId: location.id,
+    byUserId: session.role === 'admin' ? session.userId : null,
+    byLawyerId: isOwnPost ? session.lawyerId : null,
+  }).catch(() => undefined);
+  await notifyTaskAssigned(
+    lawyerIds,
+    (task.description || location.name).slice(0, 60),
+    when,
+    `/sessions/${task.id}`,
+  ).catch(() => undefined);
+  if (isOwnPost) {
+    await notifyPostCreated(task.id, session.name, (task.description || location.name).slice(0, 60), location.name).catch(
+      () => undefined,
+    );
+  }
 
-  // Notifications must never turn a successfully-created database task into a 500.
-  // SMTP outages/misconfiguration are reported separately and the task remains saved.
+  // E-mail is delivered AFTER the response is flushed. SMTP round-trips over a
+  // filtered egress path can take many seconds; blocking on them used to burn
+  // the whole function budget and surface to the user as "تعذر إنشاء المهمة"
+  // even though the task had already been written. `after()` keeps the
+  // function alive on Vercel without holding the client hostage.
   if (isMailConfigured()) {
-    try {
-      const principal = await prisma.lawyer.findFirst({ where: { isPrincipal: true, active: true } });
-      const cc = officeCcRecipients(principal?.googleEmail ?? principal?.email ?? null);
-      const dateLabel = task.scheduledDate ? formatDay(task.scheduledDate) : '';
-      for (const l of lawyers) {
-        if (!l.googleEmail) continue;
-        try {
-          await sendTaskAssignedEmail({ to: l.googleEmail, cc, lawyerName: l.fullName, taskDesc: (task.description || location.name).slice(0, 120), locationName: location.name, dateLabel, timeLabel: task.scheduledTime ?? '', url: `${appOrigin()}/sessions/${task.id}` });
-        } catch (mailError) {
-          console.error('[task-email] failed after task creation', mailError);
+    const taskDesc = (task.description || location.name).slice(0, 120);
+    const dateLabel = task.scheduledDate ? formatDay(task.scheduledDate) : '';
+    const timeLabel = task.scheduledTime ?? '';
+    const url = `${appOrigin()}/sessions/${task.id}`;
+    const assigneeNames = lawyers.map((l) => l.fullName);
+    const caseLabel = task.caseRecord ? `${task.caseRecord.name} — ${task.caseRecord.number}` : null;
+    const clientName = task.caseRecord?.clientName ?? data.clientName?.trim() ?? null;
+    const mailTargets = lawyers
+      .filter((l) => !!l.googleEmail)
+      .map((l) => ({ to: l.googleEmail as string, name: l.fullName }));
+
+    after(async () => {
+      try {
+        // Always send the office copy — it must not depend on any lawyer
+        // having a Google identity on file.
+        await notifyOfficeTaskCreated({
+          taskDesc,
+          locationName: location.name,
+          dateLabel,
+          timeLabel,
+          assignees: assigneeNames,
+          clientName,
+          caseLabel,
+          createdBy: session.name,
+          url,
+        });
+
+        const principal = await prisma.lawyer.findFirst({ where: { isPrincipal: true, active: true } });
+        const cc = officeCcRecipients(principal?.googleEmail ?? principal?.email ?? null);
+        for (const target of mailTargets) {
+          await sendTaskAssignedEmail({
+            to: target.to,
+            cc,
+            lawyerName: target.name,
+            taskDesc,
+            locationName: location.name,
+            dateLabel,
+            timeLabel,
+            url,
+          });
         }
+      } catch (err) {
+        console.error('[tasks] post-response mail failed:', (err as Error)?.message ?? err);
       }
-    } catch (mailSetupError) {
-      console.error('[task-email] notification setup failed after task creation', mailSetupError);
-    }
+    });
   }
 
   const vm = toTaskVM(task as never) as TaskVM;

@@ -74,6 +74,7 @@ export function TaskCreator({
     // Each task = one separate POST → one record per lawyer
     let ok = 0;
     let failed = 0;
+    let firstError = '';
     for (const lawyerId of lawyerIds) {
       try {
         const res = await fetch('/api/tasks', {
@@ -91,10 +92,20 @@ export function TaskCreator({
             lawyerIds: [lawyerId],
           }),
         });
-        if (res.ok) ok += 1;
-        else failed += 1;
-      } catch {
+        if (res.ok) {
+          ok += 1;
+        } else {
+          failed += 1;
+          if (!firstError) {
+            // Surface the *server's* reason instead of a generic message —
+            // "تعذر إنشاء المهمة." on its own is impossible to act on.
+            const d = await res.json().catch(() => null as { error?: string } | null);
+            firstError = d?.error || `فشل الطلب (${res.status})`;
+          }
+        }
+      } catch (err) {
         failed += 1;
+        if (!firstError) firstError = err instanceof Error ? err.message : 'تعذر الاتصال بالخادم';
       }
       setProgress(ok + failed);
     }
@@ -106,13 +117,13 @@ export function TaskCreator({
           ? lawyerIds.length > 1
             ? `تم إنشاء ${ok} مهمة منفصلة — واحدة لكل محامي ✓`
             : 'تم إنشاء المهمة ✓'
-          : `تم إنشاء ${ok} مهمة، وفشل ${failed} — أعد المحاولة للباقي.`,
+          : `تم إنشاء ${ok} مهمة، وفشل ${failed} — ${firstError}`,
       );
       onClose();
       router.refresh();
       await onCreated?.();
     } else {
-      toastError('تعذر إنشاء المهمة.');
+      toastError(firstError ? `تعذر إنشاء المهمة: ${firstError}` : 'تعذر إنشاء المهمة.');
     }
   };
 

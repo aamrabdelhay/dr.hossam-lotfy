@@ -151,14 +151,31 @@ export async function getFeed(params: {
   status?: string;
   from?: string;
   to?: string;
+  /** Free-text search across client name, case name/number and the description. */
+  q?: string;
   limit?: number;
   offset?: number;
 } = {}): Promise<{ items: TaskVM[]; total: number }> {
-  const { lawyerId, locationId, status, from, to, limit = 30, offset = 0 } = params;
+  const { lawyerId, locationId, status, from, to, q, limit = 30, offset = 0 } = params;
+  const term = q?.trim();
   const where: Prisma.TaskWhereInput = {
     ...(locationId ? { locationId } : {}),
     ...(lawyerId ? { assignees: { some: { lawyerId } } } : {}),
     ...(status ? { status: status as Task['status'] } : {}),
+    ...(term
+      ? {
+          OR: [
+            // العميل — the primary way the office looks a session up.
+            { caseRecord: { clientName: { contains: term, mode: 'insensitive' } } },
+            { caseRecord: { name: { contains: term, mode: 'insensitive' } } },
+            { caseRecord: { number: { contains: term, mode: 'insensitive' } } },
+            { description: { contains: term, mode: 'insensitive' } },
+            { notes: { contains: term, mode: 'insensitive' } },
+            { location: { name: { contains: term, mode: 'insensitive' } } },
+            { assignees: { some: { lawyer: { fullName: { contains: term, mode: 'insensitive' } } } } },
+          ],
+        }
+      : {}),
     ...(from || to
       ? {
           scheduledDate: {
@@ -300,4 +317,116 @@ export async function getAdminStats(): Promise<AdminStats> {
     locations,
     cases,
   };
+}
+
+// ─────────────────────────── Case archive ───────────────────────────
+
+export type ArchivedCase = {
+  id: string;
+  name: string;
+  number: string;
+  clientName: string | null;
+  /** The most recent session whose date has already passed. */
+  lastSession: { id: string; date: string; time: string | null; locationName: string; description: string; status: Task['status'] } | null;
+  /** The next scheduled session, if the case was re-listed (تأجيل/استئناف/نقض). */
+  nextSession: { id: string; date: string; time: string | null; locationName: string } | null;
+  /** Past sessions still not marked as executed — these need the office's attention. */
+  pendingCount: number;
+  totalSessions: number;
+  lawyers: string[];
+  events: Array<{ id: string; description: string; type: string; authorName: string | null; createdAt: string }>;
+};
+
+/**
+ * أرشيف القضايا — every case that has at least one session whose date has
+ * already passed. The office uses this to chase what happened next: an appeal
+ * (استئناف), a cassation (نقض) or simply an adjournment (تأجيل) to a new date.
+ *
+ * `needsFollowUp` (no future date on the books) is surfaced first because those
+ * are the cases at risk of being forgotten.
+ */
+export async function getCaseArchive(params: { q?: string; limit?: number } = {}): Promise<ArchivedCase[]> {
+  const term = params.q?.trim();
+  const limit = params.limit ?? 300;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const cases = await prisma.caseRecord.findMany({
+    where: {
+      // Only cases that actually have a past-dated session.
+      tasks: { some: { scheduledDate: { lt: today }, status: { not: 'CANCELLED' } } },
+      ...(term
+        ? {
+            OR: [
+              { clientName: { contains: term, mode: 'insensitive' } },
+              { name: { contains: term, mode: 'insensitive' } },
+              { number: { contains: term, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      events: { orderBy: { createdAt: 'desc' }, take: 20 },
+      tasks: {
+        where: { status: { not: 'CANCELLED' } },
+        orderBy: { scheduledDate: 'asc' },
+        include: {
+          location: { select: { name: true } },
+          assignees: { select: { lawyer: { select: { fullName: true } } } },
+        },
+      },
+    },
+    take: limit,
+  });
+
+  const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
+
+  const rows: ArchivedCase[] = cases.map((c) => {
+    const dated = c.tasks.filter((t) => t.scheduledDate);
+    const past = dated.filter((t) => new Date(t.scheduledDate as Date) < today);
+    const future = dated.filter((t) => new Date(t.scheduledDate as Date) >= today);
+    const last = past[past.length - 1] ?? null;
+    const next = future[0] ?? null;
+    const lawyers = Array.from(
+      new Set(c.tasks.flatMap((t) => t.assignees.map((a) => a.lawyer.fullName))),
+    );
+    return {
+      id: c.id,
+      name: c.name,
+      number: c.number,
+      clientName: c.clientName,
+      lastSession: last
+        ? {
+            id: last.id,
+            date: iso(last.scheduledDate as Date),
+            time: last.scheduledTime,
+            locationName: last.location.name,
+            description: last.description,
+            status: last.status,
+          }
+        : null,
+      nextSession: next
+        ? { id: next.id, date: iso(next.scheduledDate as Date), time: next.scheduledTime, locationName: next.location.name }
+        : null,
+      pendingCount: past.filter((t) => t.status !== 'COMPLETED').length,
+      totalSessions: c.tasks.length,
+      lawyers,
+      events: c.events.map((e) => ({
+        id: e.id,
+        description: e.description,
+        type: e.type,
+        authorName: e.authorName,
+        createdAt: e.createdAt.toISOString(),
+      })),
+    };
+  });
+
+  // Cases with no future date come first (they need a decision), then by the
+  // most recent past session.
+  return rows.sort((a, b) => {
+    const followUpA = a.nextSession ? 1 : 0;
+    const followUpB = b.nextSession ? 1 : 0;
+    if (followUpA !== followUpB) return followUpA - followUpB;
+    return (b.lastSession?.date ?? '').localeCompare(a.lastSession?.date ?? '');
+  });
 }
