@@ -55,31 +55,28 @@ export async function GET(_req: Request, ctx: Ctx) {
 
 const createSchema = z.object({
   text: z.string().min(1, 'نص التعليق مطلوب').max(2000),
-  name: z.string().min(2, 'الاسم مطلوب').max(80).optional(),
 });
 
-/** Any authorized user — including guests (with a display name) — may comment. */
+/** Only an authenticated lawyer or admin may comment. */
 export const POST = handle(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const data = await readJson(req as never, createSchema);
   const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لإضافة تعليق.' }, { status: 401 });
+
+  const data = await readJson(req as never, createSchema);
 
   const task = await prisma.task.findUnique({ where: { id }, include: { location: true } });
   if (!task) return json({ error: 'المهمة غير موجودة' }, { status: 404 });
 
-  if (!session && !data.name) {
-    return json({ error: 'اكتب اسمك لإضافة تعليق' }, { status: 400 });
-  }
-
-  const authorName = session ? session.name : (data.name as string);
+  const authorName = session.name;
 
   const comment = await prisma.comment.create({
     data: {
       taskId: id,
       text: data.text.trim(),
-      authorLawyerId: session?.role === 'lawyer' ? session.lawyerId : null,
-      authorUserId: session?.role === 'admin' ? session.userId : null,
-      authorName: session ? null : authorName,
+      authorLawyerId: session.role === 'lawyer' ? session.lawyerId : null,
+      authorUserId: session.role === 'admin' ? session.userId : null,
+      authorName: null,
     },
   });
 
@@ -88,8 +85,8 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
     summary: `علّق على مهمة: ${task.description.slice(0, 60)}`,
     taskId: id,
     locationId: task.locationId,
-    byLawyerId: session?.role === 'lawyer' ? session.lawyerId : null,
-    byUserId: session?.role === 'admin' ? session.userId : null,
+    byLawyerId: session.role === 'lawyer' ? session.lawyerId : null,
+    byUserId: session.role === 'admin' ? session.userId : null,
   });
   await notifyComment(id, comment.id, task.location.name, authorName, data.text.slice(0, 80));
 
