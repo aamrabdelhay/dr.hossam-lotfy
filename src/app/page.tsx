@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { CalendarClock, Landmark, Scale, Search, BriefcaseBusiness, ClipboardList, AlertTriangle, Users, MapPinned } from 'lucide-react';
 import { getSidebarData, getFeed, getAdminStats } from '@/lib/queries';
+import { getRecentLawyerStatusPosts } from '@/lib/lawyer-status';
 import { can } from '@/lib/rbac';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteNav } from '@/lib/site-data';
 import { SessionSidebar } from '@/components/session-sidebar';
 import { PostCard } from '@/components/post-card';
+import { LawyerStatusPosts } from '@/components/lawyer-status-posts';
 import { Composer } from '@/components/composer';
 import { Card, EmptyState } from '@/components/ui';
 import { FeedMore } from '@/components/feed-more';
@@ -13,17 +15,16 @@ import { FeedMore } from '@/components/feed-more';
 const FEED_PAGE_SIZE = 12;
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ feedPage?: string }> }) {
-  // Public home — visitors can browse the office feed without logging in.
   const session = await getCurrentUser();
-
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.feedPage ?? '1', 10) || 1);
 
-  const [sidebar, feed, nav, stats] = await Promise.all([
+  const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([
     getSidebarData(),
     getFeed({ limit: FEED_PAGE_SIZE, offset: (page - 1) * FEED_PAGE_SIZE }),
     getSiteNav(),
     getAdminStats(),
+    getRecentLawyerStatusPosts(),
   ]);
 
   const lawyerSession = session?.role === 'lawyer' ? session : null;
@@ -33,9 +34,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
       <aside className="hidden w-[330px] shrink-0 lg:block">
-        <div className="sticky top-[88px]">
-          <SessionSidebar data={sidebar} isAdmin={isAdmin} />
-        </div>
+        <div className="sticky top-[88px]"><SessionSidebar data={sidebar} isAdmin={isAdmin} /></div>
       </aside>
 
       <section className="min-w-0 flex-1 space-y-4">
@@ -46,10 +45,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               <h1 id="dashboard-title" className="mt-1 text-lg font-extrabold text-ivory-50">حالة المكتب اليوم</h1>
             </div>
             <span className="hidden items-center gap-1.5 rounded-full bg-white/[0.08] px-3 py-1.5 text-[11px] font-semibold text-ivory-200 ring-1 ring-inset ring-white/10 sm:inline-flex">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-400 opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-400" />
-              </span>
+              <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-400 opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-gold-400" /></span>
               تحديث مباشر من السجلات
             </span>
           </div>
@@ -63,25 +59,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               { label: 'المواعيد القادمة', value: stats.upcoming30, icon: MapPinned, tone: 'bg-gold-600/10 text-gold-700 ring-gold-600/25' },
             ].map((item) => {
               const Icon = item.icon;
-              return (
-                <Link key={item.label} href="/calendar" className="group relative bg-white p-3.5 transition-all duration-200 hover:bg-ivory-50 hover:shadow-soft sm:p-4">
-                  <span className={`mb-2.5 flex h-8 w-8 items-center justify-center rounded-xl ring-1 ring-inset transition-transform duration-200 group-hover:scale-110 ${item.tone}`}>
-                    <Icon size={15} />
-                  </span>
-                  <strong className="block text-2xl font-extrabold leading-none text-navy-950">{item.value}</strong>
-                  <span className="mt-1.5 block text-[10.5px] font-bold text-navy-400">{item.label}</span>
-                </Link>
-              );
+              return <Link key={item.label} href="/calendar" className="group relative bg-white p-3.5 transition-all duration-200 hover:bg-ivory-50 hover:shadow-soft sm:p-4"><span className={`mb-2.5 flex h-8 w-8 items-center justify-center rounded-xl ring-1 ring-inset transition-transform duration-200 group-hover:scale-110 ${item.tone}`}><Icon size={15} /></span><strong className="block text-2xl font-extrabold leading-none text-navy-950">{item.value}</strong><span className="mt-1.5 block text-[10.5px] font-bold text-navy-400">{item.label}</span></Link>;
             })}
           </div>
           <div className="flex items-center gap-3 border-t border-navy-100 px-4 py-3 text-[11px] font-semibold text-navy-400 sm:px-5">
-            <BriefcaseBusiness size={14} className="text-gold-600" />
-            <span>توزيع المواعيد خلال الشهر</span>
-            <div className="flex h-6 flex-1 items-end gap-1" aria-label="مؤشر المواعيد القادمة">
-              {[stats.today, stats.tomorrow, stats.critical, stats.important, stats.upcoming30].map((v, i) => (
-                <span key={i} className="min-w-2 flex-1 rounded-t-full bg-gradient-to-t from-gold-600/60 to-gold-400/80 transition-all" style={{ height: `${Math.max(18, Math.min(100, (v + 1) * 14))}%` }} />
-              ))}
-            </div>
+            <BriefcaseBusiness size={14} className="text-gold-600" /><span>توزيع المواعيد خلال الشهر</span>
+            <div className="flex h-6 flex-1 items-end gap-1" aria-label="مؤشر المواعيد القادمة">{[stats.today, stats.tomorrow, stats.critical, stats.important, stats.upcoming30].map((v, i) => <span key={i} className="min-w-2 flex-1 rounded-t-full bg-gradient-to-t from-gold-600/60 to-gold-400/80 transition-all" style={{ height: `${Math.max(18, Math.min(100, (v + 1) * 14))}%` }} />)}</div>
             <span className="hidden text-navy-300 sm:inline">حتى ٣٠ يوماً</span>
           </div>
         </section>
@@ -89,23 +72,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         {lawyerSession && <Composer lawyerName={lawyerSession.name} locations={nav.locations} />}
 
         <div className="flex items-center justify-between">
-          <h1 className="flex items-center gap-2.5 text-[15px] font-extrabold text-navy-900">
-            <span className="h-4 w-1 rounded-full bg-gradient-to-b from-gold-400 to-gold-600" />
-            فيد المكتب
-          </h1>
+          <h1 className="flex items-center gap-2.5 text-[15px] font-extrabold text-navy-900"><span className="h-4 w-1 rounded-full bg-gradient-to-b from-gold-400 to-gold-600" />فيد المكتب</h1>
           <span className="rounded-full bg-navy-900/[0.06] px-2.5 py-1 text-[11px] font-bold text-navy-500">{feed.total} منشور</span>
         </div>
+
+        <LawyerStatusPosts posts={lawyerStatusPosts} />
 
         {feed.items.length === 0 ? (
           <EmptyState title="لا توجد منشورات حالياً" hint="ستظهر هنا مهام المحامين والجلسات والنشاط الإداري لحظة إضافتها." />
         ) : (
-          <div className="space-y-4">
-            {feed.items.map((t) => (
-              <PostCard key={t.id} task={t} sessionRole={session?.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={canWriteTasks} />
-            ))}
-          </div>
+          <div className="space-y-4">{feed.items.map((t) => <PostCard key={t.id} task={t} sessionRole={session?.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={canWriteTasks} />)}</div>
         )}
-
         {feed.total > page * FEED_PAGE_SIZE && <FeedMore nextPage={page + 1} currentQuery={`feedPage=${page + 1}`} />}
       </section>
 
@@ -121,7 +98,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               {isAdmin && <li><Link href="/admin?tab=cases" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12.5px] font-bold text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><BriefcaseBusiness size={14} className="text-gold-600" />ملفات القضايا</Link></li>}
             </ul>
           </Card>
-
         </div>
       </aside>
     </div>
