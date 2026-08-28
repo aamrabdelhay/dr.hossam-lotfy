@@ -9,10 +9,7 @@
 /* ════════════════════════════════════════════════════════════════
    MODERN LAW FIRM THEME — 2026 refresh
    Ink navy · champagne gold · porcelain neutrals · soft depth
-   (Token NAMES unchanged from the classic theme — presentation-
-   only reskin, so every component adopts the new palette.)
    ════════════════════════════════════════════════════════════════ */
-
 :root {
   --navy: #0A101D;
   --navy2: #111B31;
@@ -60,7 +57,7 @@ body {
   background-repeat: no-repeat;
 }
 
-* { scrollbar-width: thin; scrollbar-color: #c3cddb transparent; }
+*, *::before, *::after { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #c3cddb transparent; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-thumb { background: #c3cddb; border-radius: 8px; }
 *::-webkit-scrollbar-thumb:hover { background: #a9b8cc; }
@@ -116,3 +113,37 @@ button:hover:not(:disabled)>svg,[role="button"]:hover:not([aria-disabled="true"]
 
 /* Hide the obsolete per-lawyer access-link action in the admin lawyer list. */
 button[title="رابط دخول المحامي"] { display: none !important; }
+
+/* Responsive shell: keep every top-level region inside the viewport. */
+html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+body > * { min-width: 0; }
+main { min-width: 0; width: 100%; }
+
+/* Footer is part of normal document flow: never fixed/absolute, never overlays content. */
+footer {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  margin-top: 4rem;
+  overflow: hidden;
+}
+footer > div, footer > section { min-width: 0; max-width: 100%; }
+footer p, footer a { overflow-wrap: anywhere; }
+
+@media (max-width: 1023px) {
+  footer .grid { grid-template-columns: 1fr 1fr; }
+  footer .grid > * { min-width: 0; }
+}
+
+@media (max-width: 639px) {
+  footer { margin-top: 2.5rem; }
+  footer .grid { grid-template-columns: 1fr; gap: 1.75rem; padding-left: 1rem; padding-right: 1rem; padding-top: 2.25rem; padding-bottom: 2.25rem; }
+  footer .grid > * { width: 100%; }
+  footer a, footer p { max-width: 100%; }
+
+  /* Admin/content cards should never force the page wider than the viewport. */
+  [class*="max-w-[1440px]"] { min-width: 0; max-width: 100%; }
+  table { max-width: 100%; }
+  input, textarea, select { max-width: 100%; }
+}
