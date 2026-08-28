@@ -63,5 +63,36 @@ export const POST = handle(async (req: Request) => {
       clientName: data.clientName?.trim() || null,
     },
   });
+
+  if (hasMeta || notes) {
+    const labels: Array<[keyof typeof meta, string]> = [
+      ['year', 'سنة القضية'],
+      ['court', 'المحكمة'],
+      ['circuit', 'الدائرة'],
+      ['caseType', 'نوع القضية / التصنيف'],
+      ['plaintiff', 'المدعي'],
+      ['defendant', 'المدعى عليه'],
+      ['responsibleLawyer', 'المحامي المسؤول'],
+      ['status', 'حالة القضية'],
+      ['filingDate', 'تاريخ القيد / بداية القضية'],
+      ['lastActionDate', 'تاريخ آخر إجراء'],
+      ['judgmentDate', 'تاريخ الحكم'],
+      ['judgmentResult', 'نتيجة القضية / الحكم'],
+    ];
+    const details = labels
+      .filter(([key]) => meta[key])
+      .map(([key, label]) => `${label}: ${meta[key]}`)
+      .join('\n');
+    const eventDescription = [details, notes ? `ملاحظات: ${notes}` : ''].filter(Boolean).join('\n');
+    await prisma.caseEvent.create({
+      data: {
+        caseId: c.id,
+        description: eventDescription,
+        type: 'historical_case_details',
+        authorName: 'إضافة قضية قديمة',
+      },
+    });
+  }
+
   return json({ ok: true, case: c, demo }, { status: 201 });
 });
