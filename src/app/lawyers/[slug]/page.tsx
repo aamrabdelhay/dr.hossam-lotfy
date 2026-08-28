@@ -63,8 +63,8 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
     <main className="min-h-screen bg-[#F4F6F9]">
       <div className="mx-auto w-full max-w-[1100px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         {/* Lawyer identity — intentionally no initials/avatar card. */}
-        <header className="mb-8 rounded-3xl border border-navy-100 bg-white px-5 py-7 shadow-card sm:px-8 sm:py-9">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <header className="mb-8 rounded-3xl border border-navy-100 bg-white px-5 py-7 text-center shadow-card sm:px-8 sm:py-9">
+          <div className="flex flex-col items-center gap-5">
             <div className="min-w-0">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[2px] text-gold-600" style={{ fontFamily: 'Inter, sans-serif' }}>
                 LAWYER PROFILE
@@ -81,7 +81,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
                 {getFeminineTitle(lawyer.fullName, lawyer.title)} · {specialization}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               <span className="rounded-full bg-gold-500/10 px-3 py-1.5 text-[11px] font-bold text-gold-700">مهام نشطة {activeTasks.length}</span>
               <span className="rounded-full bg-navy-900/5 px-3 py-1.5 text-[11px] font-bold text-navy-600">مكتملة {completedTasks.length}</span>
               <span className="rounded-full bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold text-emerald-700">قادمة {upcomingTasks.length}</span>
@@ -102,7 +102,6 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
           )}
         </header>
 
-        {/* Composer for the lawyer's own feed. */}
         {isSelf && (
           <section className="mb-8">
             <div className="mb-3 flex items-center justify-between">
@@ -113,7 +112,6 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
           </section>
         )}
 
-        {/* Facebook-style task feed */}
         <section>
           <div className="mb-4 flex items-end justify-between">
             <div>
