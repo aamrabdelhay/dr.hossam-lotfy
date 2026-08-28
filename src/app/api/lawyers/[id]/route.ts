@@ -36,7 +36,11 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 
   const data = await readJson(req as never, updateSchema);
 
-  // Self-updates are restricted to permitted fields
+  // Only administrators may change account state or identity fields.
+  if (!isAdmin && data.active !== undefined) {
+    return json({ error: 'لا تملك صلاحية تغيير حالة الحساب' }, { status: 403 });
+  }
+
   let payload: Record<string, unknown> = data;
   if (!isAdmin) {
     payload = {
@@ -49,13 +53,25 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   }
 
   const updated = await prisma.lawyer.update({ where: { id }, data: payload });
-  await logActivity({
-    action: data.profilePhotoUrl !== undefined ? 'PHOTO_UPDATED' : 'PROFILE_UPDATED',
-    summary: `حدّث بيانات ملفه: ${lawyer.fullName}`,
-    lawyerId: id,
-    byUserId: isAdmin ? session.userId : null,
-    byLawyerId: isSelf ? session.lawyerId : null,
-  });
+
+  if (isAdmin && data.active !== undefined && data.active !== lawyer.active) {
+    await logActivity({
+      action: data.active ? 'LAWYER_REACTIVATED' : 'LAWYER_DEACTIVATED',
+      summary: data.active
+        ? `أعاد تفعيل المحامي: ${lawyer.fullName}`
+        : `عطّل المحامي: ${lawyer.fullName}`,
+      lawyerId: id,
+      byUserId: session.userId,
+    });
+  } else {
+    await logActivity({
+      action: data.profilePhotoUrl !== undefined ? 'PHOTO_UPDATED' : 'PROFILE_UPDATED',
+      summary: `حدّث بيانات ملفه: ${lawyer.fullName}`,
+      lawyerId: id,
+      byUserId: isAdmin ? session.userId : null,
+      byLawyerId: isSelf ? session.lawyerId : null,
+    });
+  }
 
   return json({ ok: true, lawyer: updated });
 });
@@ -69,6 +85,12 @@ export const DELETE = handle(async (_req: Request, ctx: Ctx) => {
 
   if (lawyer.assignments.length > 0) {
     await prisma.lawyer.update({ where: { id }, data: { active: false } });
+    await logActivity({
+      action: 'LAWYER_DEACTIVATED',
+      summary: `عطّل المحامي: ${lawyer.fullName}`,
+      lawyerId: id,
+      byUserId: session.userId,
+    });
     return json({ ok: true, deactivated: true, notice: 'تم إخفاء المحامي (لديه مهام مسجلة). استمر الإخفاء بدل الحذف للحفاظ على السجل.' });
   }
   await prisma.lawyer.delete({ where: { id } });
