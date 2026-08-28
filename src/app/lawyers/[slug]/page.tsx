@@ -49,6 +49,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   const session = await getCurrentUser();
   const isSelf = session?.role === 'lawyer' && session.lawyerId === lawyer.id;
   const isAdminSession = session?.role === 'admin';
+  const sessionLawyerId = session?.role === 'lawyer' ? session.lawyerId : undefined;
   if (!lawyer.approvedAt && !isSelf && !isAdminSession) notFound();
 
   const nav = await getSiteNav();
@@ -133,7 +134,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
                   key={task.id}
                   task={task}
                   sessionRole={session?.role}
-                  sessionLawyerId={session?.role === 'lawyer' ? session.lawyerId : undefined}
+                  sessionLawyerId={sessionLawyerId}
                   canWriteTasks={session?.role === 'admin' ? true : undefined}
                 />
               ))}
