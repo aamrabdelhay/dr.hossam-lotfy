@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarClock, CalendarPlus, X } from 'lucide-react';
+import { CalendarClock, CalendarPlus, Archive, X } from 'lucide-react';
 import { Card, Collapsible, EmptyState } from './ui';
 import { SessionCard } from './session-card';
 import type { SidebarData } from '@/lib/queries';
@@ -59,6 +59,18 @@ export function SessionSidebar({ data, isAdmin }: { data: SidebarData; isAdmin: 
       {/* The card itself is also bounded so five open date sections cannot
           expand the document and pull the page along while scrolling. */}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+        <div className="border-b border-navy-100 p-3">
+          <a
+            href="/cases/archive"
+            className="flex items-center justify-center gap-2 rounded-xl border border-gold-500/40 bg-gold-500/[0.08] px-3 py-2.5 text-[12.5px] font-extrabold text-gold-700 transition hover:bg-gold-500/15"
+          >
+            <Archive size={15} />
+            أرشيف القضايا
+          </a>
+          <p className="mt-1.5 text-center text-[10.5px] font-semibold text-navy-300">
+            القضايا اللي عدَّى معادها — استئناف أو نقض أو تأجيل
+          </p>
+        </div>
         <Section id="tomorrow" title={`غداً — ${TomorrowDate()}`} tone="bg-red-600" tasks={data.sections.tomorrow} defaultOpen admin={isAdmin} />
         <Section id="d3" title="خلال 3 أيام" tone="bg-orange-500" tasks={data.sections.within3} defaultOpen admin={isAdmin} />
         <Section id="d14" title="خلال أسبوعين" tone="bg-amber-500" tasks={data.sections.within14} admin={isAdmin} />

@@ -21,6 +21,7 @@ import {
   Users2,
   CalendarDays,
   FilePlus2,
+  Archive,
   ShieldCheck,
 } from 'lucide-react';
 import {Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, Select, Tabs} from '../ui';
@@ -30,6 +31,7 @@ import { TaskCreator } from './task-creator';
 import { LawyerForm } from './lawyer-form';
 import { LocationForm, type AdminLocationRow } from './location-form';
 import { UsersTab } from './users-tab';
+import { DemoDataToggle } from './demo-data-toggle';
 import { SessionEditForm } from '../session-edit-form';
 import { ActivityTimeline } from '../activity-timeline';
 import { StatusBadge, UrgencyBadge } from '../urgency';
@@ -143,8 +145,24 @@ export function AdminShell(props: AdminShellProps) {
               <QuickAction icon={<UserPlus size={14} />} label="إضافة محامي" onClick={() => setModal({ kind: 'lawyer' })} />
               <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة" onClick={() => setModal({ kind: 'location', data: { type: 'COURT' } })} />
               <QuickAction icon={<Building2 size={14} />} label="إضافة مكان" onClick={() => setModal({ kind: 'location' })} />
+              <Link
+                href="/cases/archive"
+                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-ivory-100 transition hover:border-gold-500/50 hover:bg-white/10"
+              >
+                <Archive size={14} />
+                أرشيف القضايا
+              </Link>
             </div>
           </div>
+
+          {/* Maintenance controls sit on their own row, aligned to the left
+              (RTL end), so a destructive wipe can never be hit while reaching
+              for "إضافة جلسة". */}
+          {props.permissions.manageUsers && (
+            <div className="mt-4 flex flex-wrap items-center justify-start gap-3 border-t border-white/10 pt-4">
+              <DemoDataToggle />
+            </div>
+          )}
         </div>
       </Card>
 
@@ -326,8 +344,16 @@ function TasksTab({
   const [status, setStatus] = React.useState('');
   const [from, setFrom] = React.useState('');
   const [to, setTo] = React.useState('');
+  // Free-text search — primarily by client name (اسم العميل).
+  const [q, setQ] = React.useState('');
+  const [debouncedQ, setDebouncedQ] = React.useState('');
   const [confirmDelete, setConfirmDelete] = React.useState<TaskVM | null>(null);
   const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
 
   const load = React.useCallback(
     async (off: number) => {
@@ -338,6 +364,7 @@ function TasksTab({
       if (status) params.set('status', status);
       if (from) params.set('from', from);
       if (to) params.set('to', to);
+      if (debouncedQ) params.set('q', debouncedQ);
       const res = await fetch(`/api/tasks?${params}`);
       if (res.ok) {
         const d = await res.json();
@@ -347,13 +374,13 @@ function TasksTab({
       }
       setLoading(false);
     },
-    [lawyerId, locationId, status, from, to],
+    [lawyerId, locationId, status, from, to, debouncedQ],
   );
 
   React.useEffect(() => {
     load(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lawyerId, locationId, status, from, to]);
+  }, [lawyerId, locationId, status, from, to, debouncedQ]);
 
   const remove = async () => {
     if (!confirmDelete) return;
@@ -373,7 +400,15 @@ function TasksTab({
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Field label="بحث باسم العميل" hint="يبحث أيضاً في اسم/رقم القضية، الوصف، المكان واسم المحامي">
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="اكتب اسم العميل…"
+            aria-label="بحث باسم العميل"
+          />
+        </Field>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Field label="المحامي">
             <Select value={lawyerId} onChange={(e) => setLawyerId(e.target.value)}>
               <option value="">الكل</option>

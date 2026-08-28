@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getFeed, toTaskVM, type TaskVM } from '@/lib/queries';
@@ -7,7 +7,7 @@ import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskAssigned, notifyPostCreated } from '@/lib/notifications';
 import { formatDay } from '@/lib/dates';
-import { isMailConfigured, officeCcRecipients, sendTaskAssignedEmail } from '@/lib/mail';
+import { isMailConfigured, notifyOfficeTaskCreated, officeCcRecipients, sendTaskAssignedEmail } from '@/lib/mail';
 import { appOrigin } from '@/lib/google-oauth';
 
 // ─────────────────────────── GET ───────────────────────────
@@ -23,6 +23,7 @@ export const GET = handle(async (req: Request) => {
     status: url.searchParams.get('status') ?? undefined,
     from: url.searchParams.get('from') ?? undefined,
     to: url.searchParams.get('to') ?? undefined,
+    q: url.searchParams.get('q') ?? undefined,
     limit: Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') ?? '30', 10) || 30)),
     offset: Math.max(0, parseInt(url.searchParams.get('offset') ?? '0', 10) || 0),
   });
@@ -123,36 +124,70 @@ export const POST = handle(async (req: Request) => {
     locationId: location.id,
     byUserId: session.role === 'admin' ? session.userId : null,
     byLawyerId: isOwnPost ? session.lawyerId : null,
-  });
+  }).catch(() => undefined);
   await notifyTaskAssigned(
     lawyerIds,
     (task.description || location.name).slice(0, 60),
     when,
     `/sessions/${task.id}`,
-  );
+  ).catch(() => undefined);
   if (isOwnPost) {
-    await notifyPostCreated(task.id, session.name, (task.description || location.name).slice(0, 60), location.name);
+    await notifyPostCreated(task.id, session.name, (task.description || location.name).slice(0, 60), location.name).catch(
+      () => undefined,
+    );
   }
 
-  // E-mail notification to each assigned lawyer (and CC the office). Fail-soft:
-  // when SMTP is missing this simply logs and the flow continues.
+  // E-mail is delivered AFTER the response is flushed. SMTP round-trips over a
+  // filtered egress path can take many seconds; blocking on them used to burn
+  // the whole function budget and surface to the user as "تعذر إنشاء المهمة"
+  // even though the task had already been written. `after()` keeps the
+  // function alive on Vercel without holding the client hostage.
   if (isMailConfigured()) {
-    const principal = await prisma.lawyer.findFirst({ where: { isPrincipal: true, active: true } });
-    const cc = officeCcRecipients(principal?.googleEmail ?? principal?.email ?? null);
+    const taskDesc = (task.description || location.name).slice(0, 120);
     const dateLabel = task.scheduledDate ? formatDay(task.scheduledDate) : '';
-    for (const l of lawyers) {
-      if (!l.googleEmail) continue;
-      await sendTaskAssignedEmail({
-        to: l.googleEmail,
-        cc,
-        lawyerName: l.fullName,
-        taskDesc: (task.description || location.name).slice(0, 120),
-        locationName: location.name,
-        dateLabel,
-        timeLabel: task.scheduledTime ?? '',
-        url: `${appOrigin()}/sessions/${task.id}`,
-      });
-    }
+    const timeLabel = task.scheduledTime ?? '';
+    const url = `${appOrigin()}/sessions/${task.id}`;
+    const assigneeNames = lawyers.map((l) => l.fullName);
+    const caseLabel = task.caseRecord ? `${task.caseRecord.name} — ${task.caseRecord.number}` : null;
+    const clientName = task.caseRecord?.clientName ?? data.clientName?.trim() ?? null;
+    const mailTargets = lawyers
+      .filter((l) => !!l.googleEmail)
+      .map((l) => ({ to: l.googleEmail as string, name: l.fullName }));
+
+    after(async () => {
+      try {
+        // Always send the office copy — it must not depend on any lawyer
+        // having a Google identity on file.
+        await notifyOfficeTaskCreated({
+          taskDesc,
+          locationName: location.name,
+          dateLabel,
+          timeLabel,
+          assignees: assigneeNames,
+          clientName,
+          caseLabel,
+          createdBy: session.name,
+          url,
+        });
+
+        const principal = await prisma.lawyer.findFirst({ where: { isPrincipal: true, active: true } });
+        const cc = officeCcRecipients(principal?.googleEmail ?? principal?.email ?? null);
+        for (const target of mailTargets) {
+          await sendTaskAssignedEmail({
+            to: target.to,
+            cc,
+            lawyerName: target.name,
+            taskDesc,
+            locationName: location.name,
+            dateLabel,
+            timeLabel,
+            url,
+          });
+        }
+      } catch (err) {
+        console.error('[tasks] post-response mail failed:', (err as Error)?.message ?? err);
+      }
+    });
   }
 
   const vm = toTaskVM(task as never) as TaskVM;

@@ -13,6 +13,7 @@ import {
   X,
   CalendarClock,
   UserCircle2,
+  Archive,
   ChevronDown,
 } from 'lucide-react';
 import { Avatar } from './ui';
@@ -61,10 +62,25 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
     router.push(`/search?${params.toString()}`);
   };
 
+  const [loggingOut, setLoggingOut] = React.useState(false);
+
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.refresh();
-    router.push('/');
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+    } catch {
+      // Ignore network errors — we still force a reload so a stale client
+      // never keeps showing a signed-in shell.
+    }
+    // A soft `router.push` would re-use the client-side RSC cache and keep
+    // rendering the authenticated navbar. A full document load guarantees the
+    // session is really gone and the user lands on the public home page.
+    window.location.replace('/');
   };
 
   const courts = locations.filter((l) => l.type === 'COURT');
@@ -241,13 +257,27 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
               <span className="hidden sm:inline">تسجيل دخول</span>
             </Link>
           ) : session.role === 'admin' ? (
+            /* Already signed in as staff — no sign-in affordance is shown, only
+               a direct route to the admin area and an explicit sign-out. */
             <div className="flex items-center gap-2">
-              <Link href="/admin" className="flex items-center gap-2 rounded-full px-2.5 py-1.5 text-[11px] font-semibold tracking-[1px] text-navy-600 transition-colors hover:bg-navy-900/[0.06] hover:text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
-                <UserCircle2 size={14} className="text-gold-600" />
-                <span className="hidden sm:inline">{session.name}</span>
+              <Link
+                href="/cases/archive"
+                className="hidden items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.5px] text-navy-600 transition-colors hover:bg-navy-900/[0.06] hover:text-navy-950 sm:flex"
+                style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+              >
+                <Archive size={14} className="text-gold-600" />
+                أرشيف القضايا
               </Link>
-              <button onClick={logout} className="rounded-full p-2 text-navy-300 transition-colors hover:bg-red-600/10 hover:text-red-600" aria-label="تسجيل الخروج">
+              <button
+                onClick={logout}
+                disabled={loggingOut}
+                className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold text-navy-400 transition-colors hover:bg-red-600/10 hover:text-red-600 disabled:opacity-50"
+                style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+                aria-label="تسجيل الخروج"
+                title="تسجيل الخروج"
+              >
                 <LogOut size={14} />
+                <span className="hidden sm:inline">تسجيل الخروج</span>
               </button>
             </div>
           ) : (
@@ -256,7 +286,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
                 <UserCircle2 size={16} className="text-gold-600" />
                 <span className="hidden max-w-32 truncate text-[11px] font-semibold tracking-[1px] sm:inline" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>{session.name}</span>
               </Link>
-              <button onClick={logout} className="rounded-full p-2 text-navy-300 transition-colors hover:bg-red-600/10 hover:text-red-600" aria-label="تسجيل الخروج">
+              <button onClick={logout} disabled={loggingOut} className="rounded-full p-2 text-navy-300 transition-colors hover:bg-red-600/10 hover:text-red-600 disabled:opacity-50" aria-label="تسجيل الخروج">
                 <LogOut size={14} />
               </button>
             </div>
@@ -299,6 +329,19 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
               <Link href="/lawyer-guide" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                 <Landmark size={15} className="text-gold-400/70" /> دليل المحامي
               </Link>
+              <Link href="/cases/archive" className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
+                <Archive size={15} className="text-gold-400/70" /> أرشيف القضايا
+              </Link>
+              {session && (
+                <button
+                  onClick={logout}
+                  disabled={loggingOut}
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-start text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-600/10 disabled:opacity-50"
+                  style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}
+                >
+                  <LogOut size={15} /> تسجيل الخروج
+                </button>
+              )}
               {!session && (
                 <Link href="/auth" prefetch={false} className="flex items-center gap-3 rounded-xl px-3 py-3 text-[12px] font-semibold text-navy-400 transition-colors hover:bg-ivory-100 hover:text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
                   <KeyRound size={15} /> تسجيل دخول
