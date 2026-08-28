@@ -16,7 +16,7 @@ function TomorrowDate() {
 function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: string; title: string; tone: string; tasks: SidebarData['sections']['all']; defaultOpen?: boolean; admin?: boolean }) {
   return (
     <Collapsible title={title} count={tasks.length} tone={tone} defaultOpen={defaultOpen}>
-      <div id={`session-section-${id}`} className="max-h-[46vh] overflow-y-auto overscroll-contain px-3 pb-3 [scrollbar-gutter:stable]">
+      <div id={`session-section-${id}`} className="px-3 pb-3">
         {tasks.length === 0 ? (
           <p className="px-1 py-2 text-[11px] font-semibold text-navy-300">لا توجد جلسات خلال هذه الفترة.</p>
         ) : (
@@ -30,10 +30,7 @@ function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: s
 
 function ArchiveLink() {
   return (
-    <a
-      href="/cases/archive"
-      className="btn-bubble mx-3 my-2 flex items-center justify-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/[0.07] px-3 py-2.5 text-[12px] font-extrabold text-gold-700 shadow-soft hover:bg-gold-500/15"
-    >
+    <a href="/cases/archive" className="btn-bubble mx-3 my-2 flex items-center justify-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/[0.07] px-3 py-2.5 text-[12px] font-extrabold text-gold-700 shadow-soft hover:bg-gold-500/15">
       <Archive size={14} />
       أرشيف القضايا
     </a>
@@ -74,9 +71,11 @@ export function SessionsDrawer({ open, onClose, data, isAdmin }: { open: boolean
   return (
     <div className="fixed inset-0 z-[90] lg:hidden" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
-      <div className="absolute inset-y-0 start-0 w-full max-w-md overflow-y-auto overscroll-contain bg-ivory-100 p-3 shadow-2xl animate-slide-in-start [scrollbar-gutter:stable]">
-        <div className="mb-3 flex items-center justify-between"><h2 className="text-[15px] font-extrabold text-navy-900">الجلسات القادمة</h2><button onClick={onClose} className="btn-bubble rounded-full p-2 text-navy-400 hover:bg-navy-900/5" aria-label="إغلاق"><X size={18} /></button></div>
-        <SessionSidebar data={data} isAdmin={isAdmin} />
+      <div className="absolute inset-y-0 start-0 flex w-full max-w-md flex-col overflow-hidden bg-ivory-100 p-3 shadow-2xl animate-slide-in-start">
+        <div className="mb-3 flex shrink-0 items-center justify-between"><h2 className="text-[15px] font-extrabold text-navy-900">الجلسات القادمة</h2><button onClick={onClose} className="btn-bubble rounded-full p-2 text-navy-400 hover:bg-navy-900/5" aria-label="إغلاق"><X size={18} /></button></div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <SessionSidebar data={data} isAdmin={isAdmin} />
+        </div>
       </div>
     </div>
   );
