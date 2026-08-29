@@ -66,7 +66,22 @@ export async function revokeCurrentSession(): Promise<void> {
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
   await prisma.authSession.updateMany({ where: { tokenHash }, data: { revokedAt: new Date() } });
 }
-export function clearSessionCookie() { return { name: COOKIE, value: '', options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 0, expires: new Date(0) } as Record<string, unknown>; }
+
+export function clearSessionCookie() {
+  return {
+    name: COOKIE,
+    value: '',
+    options: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 0,
+      expires: new Date(0),
+    } as Record<string, unknown>,
+  };
+}
+
 export const SESSION_COOKIE_NAME = COOKIE;
 export async function isAdmin(): Promise<boolean> { const u = await getCurrentUser(); return !!u && (u.role === 'admin' || (u.role === 'lawyer' && u.isAdmin)); }
 export async function isLawyer(lawyerId: string): Promise<boolean> { const u = await getCurrentUser(); return u?.role === 'lawyer' && u.lawyerId === lawyerId; }
