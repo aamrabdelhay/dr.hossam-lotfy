@@ -32,9 +32,11 @@ export async function readJson<T>(req: Request, schema: ZodType<T>): Promise<T> 
   return result.data;
 }
 
-type RouteContext = Record<string, unknown>;
-type RouteHandler = (req: Request, context?: any) => Promise<NextResponse>;
-export function handle(fn: RouteHandler) {
+type OneArgHandler = (req: Request) => Promise<NextResponse>;
+type TwoArgHandler<C> = (req: Request, context: C) => Promise<NextResponse>;
+export function handle(fn: OneArgHandler): (req: Request) => Promise<NextResponse>;
+export function handle<C>(fn: TwoArgHandler<C>): (req: Request, context: C) => Promise<NextResponse>;
+export function handle(fn: OneArgHandler | TwoArgHandler<any>) {
   return async (req: Request, context?: any): Promise<NextResponse> => {
     try { return await fn(req, context); }
     catch (e) { if (e instanceof ApiError) return httpError(e.status, e.message); console.error('[api]', e); return httpError(500, 'حدث خطأ غير متوقع. حاول مرة أخرى.'); }
