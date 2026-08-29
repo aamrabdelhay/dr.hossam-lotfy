@@ -86,7 +86,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <Card className="p-4">
             <h3 className="mb-3 text-[12px] font-extrabold text-navy-800">تنقّل سريع</h3>
             <ul className="space-y-1 text-[12.5px] font-bold">
-              <li><Link href="/locations" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Landmark size={14} className="text-gold-600" />المحاكم والأماكن</Link></li>
+              <li><Link href="/locations" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Landmark size={14} className="text-gold-600" />المحاكم والجهات الحكومية</Link></li>
               <li><Link href="/lawyers" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Scale size={14} className="text-gold-600" />المحامون</Link></li>
               <li><Link href="/calendar" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><CalendarClock size={14} className="text-gold-600" />التقويم</Link></li>
               <li><Link href="/search" className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-navy-600 transition-colors hover:bg-ivory-100 hover:text-navy-950"><Search size={14} className="text-gold-600" />البحث المتقدم</Link></li>

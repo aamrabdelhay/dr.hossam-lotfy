@@ -14,7 +14,7 @@ const contactPhones = [
 
 const quickLinks = [
   ['/', 'الرئيسية'],
-  ['/locations', 'المحاكم والأماكن'],
+  ['/locations', 'المحاكم والجهات الحكومية'],
   ['/lawyers', 'المحامون'],
   ['/calendar', 'التقويم'],
   ['/search', 'البحث'],

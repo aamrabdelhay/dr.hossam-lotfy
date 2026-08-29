@@ -765,7 +765,7 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
         <p className="text-[13px] font-bold text-navy-500">{locations.length} مكان — كل مكان له صفحة مستقلة</p>
         <Button size="sm" onClick={onAdd}>
           <Building2 size={14} />
-          + إضافة مكان
+          + إضافة محكمة أو جهة
         </Button>
       </div>
       <Card className="divide-y divide-navy-100">
@@ -869,6 +869,7 @@ function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
                   {openId === item.id ? 'إخفاء السجل' : `السجل (${item.events.length})`}
                 </button>
                 <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">عرض المرتبط</Link>
+                <button onClick={() => { const name = window.prompt('اسم القضية', item.name); if (name === null) return; const number = window.prompt('رقم القضية', item.number); if (number === null) return; const clientName = window.prompt('اسم العميل', item.clientName ?? ''); if (clientName === null) return; void fetch(`/api/cases/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, number, clientName: clientName || null }) }).then(async (r) => { const d = await r.json().catch(() => ({})); if (r.ok) { toastSuccess('تم تعديل القضية ✓'); router.refresh(); } else toastError(d.error ?? 'تعذر تعديل القضية.'); }); }} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">تعديل</button>
               </div>
 
               {openId === item.id && (

@@ -120,7 +120,7 @@ export function SearchPageClient() {
               <section>
                 <h2 className="mb-2.5 flex items-center gap-2 text-[13px] font-extrabold text-navy-800">
                   <Landmark size={15} className="text-gold-600" />
-                  المحاكم والأماكن
+                  المحاكم والجهات الحكومية
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {results.locations.map((l) => (

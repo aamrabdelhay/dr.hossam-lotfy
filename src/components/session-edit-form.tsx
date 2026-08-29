@@ -125,7 +125,7 @@ export function SessionEditForm({
     >
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="المحكمة / المكان" required>
+          <Field label="المحكمة / جهة حكومية" required>
             <ComboboxWithAdd
               ariaLabel="المحكمة أو المكان"
               placeholder="ابحث بالاسم أو اختر…"

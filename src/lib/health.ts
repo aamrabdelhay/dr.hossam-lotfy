@@ -269,7 +269,7 @@ export async function checkHealth(): Promise<HealthReport> {
       );
     }
     if (!report.schema.extendedLocationColumns) {
-      report.hints.push('أعمدة دليل الأماكن الموسّعة غير مكتملة؛ طبّق migration extend_location.');
+      report.hints.push('أعمدة دليل الجهات الحكومية الموسّعة غير مكتملة؛ طبّق migration extend_location.');
     }
     if (!report.schema.authSessionsTable) {
       report.hints.push('جدول جلسات الدخول auth_sessions غير موجود؛ طبّق migration extend_location.');

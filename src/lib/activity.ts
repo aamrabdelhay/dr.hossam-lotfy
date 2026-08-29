@@ -60,7 +60,7 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   DELETED: 'حذف',
   PHOTO_UPDATED: 'تحديث صورة',
   PROFILE_UPDATED: 'تحديث الملف',
-  LOCATION_ADDED: 'إضافة مكان',
+  LOCATION_ADDED: 'إضافة محكمة أو جهة',
   LAWYER_ADDED: 'إضافة محامي',
   LAWYER_REGISTERED: 'تسجيل محامٍ جديد',
   LAWYER_APPROVED: 'اعتماد محامٍ',

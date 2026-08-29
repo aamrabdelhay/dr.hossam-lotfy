@@ -18,7 +18,7 @@ type BellNotification = {
 
 const TYPE_LABEL: Record<string, string> = {
   TASK_ASSIGNED: 'مهمة جديدة',
-  TASK_EDITED: 'تعديل مهمة',
+  TASK_EDITED: 'تعديل',
   SESSION_CRITICAL: 'جلسة حرجة',
   SESSION_TOMORROW: 'جلسة غداً',
   COMMENT: 'تعليق',

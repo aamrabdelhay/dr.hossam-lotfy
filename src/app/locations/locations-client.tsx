@@ -166,7 +166,7 @@ export function LocationsClient({
       </section>
 
       <section>
-        <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-navy-800"><Building2 size={17} className="text-gold-600" />كل الجهات والأماكن <span className="text-[11px] font-bold text-navy-300">({rest.length})</span></h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-navy-800"><Building2 size={17} className="text-gold-600" />كل الجهات والجهات الحكومية <span className="text-[11px] font-bold text-navy-300">({rest.length})</span></h2>
         {rest.length === 0 ? <EmptyState title={hasFilters ? 'لا توجد نتائج مطابقة للفلاتر.' : 'لا أماكن أخرى بعد.'} hint="المحاكم، النيابات، الشهر العقاري، الضرائب، السجل التجاري، النقابة والجهات الحكومية." /> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{rest.map((l) => <LocationCard key={l.id} row={l} nearby={nearby} />)}</div>}
       </section>
     </>

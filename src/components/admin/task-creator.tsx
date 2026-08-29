@@ -88,7 +88,7 @@ export function TaskCreator({ open, onClose, locations, lawyers, cases, defaultD
       <form id="task-creator-form" onSubmit={submit} className="space-y-4">
         <Field label="المحامي / المحامون" required status={lawyerIds.length > 0}><MultiLawyerSelector lawyers={lawyers} selected={lawyerIds} onChange={setLawyerIds} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="المحكمة / المكان" required status={!!locationId}><ComboboxWithAdd id="task-location" name="locationId" ariaLabel="المحكمة أو المكان" placeholder="ابحث بالاسم أو اكتب محكمة جديدة…" options={locations.map((l) => ({ value: l.id, label: l.name }))} value={locationId} onChange={setLocationId} onAdd={addLocation} /></Field>
+          <Field label="المحكمة / جهة حكومية" required status={!!locationId}><ComboboxWithAdd id="task-location" name="locationId" ariaLabel="المحكمة أو المكان" placeholder="ابحث بالاسم أو اكتب محكمة جديدة…" options={locations.map((l) => ({ value: l.id, label: l.name }))} value={locationId} onChange={setLocationId} onAdd={addLocation} /></Field>
           <Field label="القضية" status={!!caseId}><ComboboxWithAdd id="task-case" name="caseId" ariaLabel="القضية" placeholder="ابحث أو اختر قضية…" options={cases.map((c) => ({ value: c.id, label: `${c.name} — ${c.number}` }))} value={caseId} onChange={setCaseId} onAdd={addCase} /></Field>
           <Field label="اسم العميل" status={!!clientName.trim()}><Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="اسم العميل" /></Field>
           <Field label="التاريخ" status={!!date}><Input type="date" name="scheduledDate" value={date} onChange={(e) => setDate(e.target.value)} /></Field>

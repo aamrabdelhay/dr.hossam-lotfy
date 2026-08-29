@@ -36,7 +36,7 @@ export async function notifyTaskAssigned(lawyerIds: string[], taskTitle: string,
 
 export async function notifyTaskEdited(lawyerIds: string[], taskTitle: string) {
   for (const id of lawyerIds) {
-    await notifyLawyer(id, 'TASK_EDITED', 'تم تعديل مهمة', taskTitle, '/sessions');
+    await notifyLawyer(id, 'TASK_EDITED', 'تم تعديل', taskTitle, '/sessions');
   }
 }
 
