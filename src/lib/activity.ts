@@ -1,4 +1,3 @@
-```ts
 import 'server-only';
 import { prisma } from './prisma';
 
@@ -76,4 +75,3 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   CASE_EVENT: 'حدث قضية',
   CASE_UPDATED: 'تعديل بيانات القضية',
 };
-```
