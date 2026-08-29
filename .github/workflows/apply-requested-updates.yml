@@ -42,7 +42,18 @@ jobs:
           s=s.replace("{ id: 'locations', label: 'الأماكن'", "{ id: 'locations', label: 'الجهات الحكومية'")
           s=s.replace("{ id: 'users', label: 'المستخدمون' }", "{ id: 'users', label: 'الادمن' }")
           s=s.replace('+ إضافة جلسة / مهمة', '+ تكليف')
+          marker='''<Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">عرض المرتبط</Link>'''
+          if marker in s and 'تعديل القضية' not in s:
+            s=s.replace(marker, marker+'''\n                <button onClick={() => { const name = window.prompt('اسم القضية', item.name); if (name === null) return; const number = window.prompt('رقم القضية', item.number); if (number === null) return; const clientName = window.prompt('اسم العميل', item.clientName ?? ''); if (clientName === null) return; void fetch(`/api/cases/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, number, clientName: clientName || null }) }).then(async (r) => { const d = await r.json().catch(() => ({})); if (r.ok) { toastSuccess('تم تعديل القضية ✓'); router.refresh(); } else toastError(d.error ?? 'تعذر تعديل القضية.'); }); }} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">تعديل</button>''')
           p.write_text(s)
+
+          # Use the requested terminology consistently across the application source.
+          for path in Path('src').rglob('*'):
+            if path.is_file() and path.suffix in {'.ts','.tsx','.css'}:
+              text=path.read_text()
+              new=text.replace('المحكمة / المكان', 'المحكمة / جهة حكومية').replace('تفاصيل الجلسة / المهمة', 'تفاصيل').replace('تعديل مهمة', 'تعديل').replace('الأماكن', 'الجهات الحكومية').replace('إضافة مكان', 'إضافة محكمة أو جهة')
+              if '📞' in new: new=new.replace('📞', '')
+              if new != text: path.write_text(new)
           PY
 
           cat > src/components/admin/users-tab.tsx <<'TSX'
@@ -67,5 +78,5 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/navbar.tsx src/app/layout.tsx src/app/page.tsx src/components/admin/admin-shell.tsx src/components/admin/users-tab.tsx
+          git add src
           if ! git diff --cached --quiet; then git commit -m "feat: apply requested office updates [auto-edit]"; git push; fi
