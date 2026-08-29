@@ -41,15 +41,15 @@ export const POST = handle(async (req: Request) => {
   const lawyers = lawyerIds.length ? await prisma.lawyer.findMany({ where: { id: { in: lawyerIds }, active: true } }) : [];
   if (lawyers.length !== new Set(lawyerIds).size) return json({ error: 'أحد المحامين المحددين غير موجود أو غير نشط' }, { status: 400 });
   const taskData = {
-    ...(data.locationId ? { locationId: data.locationId } : {}),
-    ...(caseId ? { caseId } : {}),
+    ...(data.locationId ? { location: { connect: { id: data.locationId } } } : {}),
+    ...(caseId ? { caseRecord: { connect: { id: caseId } } } : {}),
     description: `${data.description.trim()}${demo ? ` ${DEMO_TAG}` : ''}`.trim(),
     ...(data.notes?.trim() ? { notes: data.notes.trim() } : {}),
     ...(data.scheduledDate ? { scheduledDate: new Date(`${data.scheduledDate}T00:00:00`) } : {}),
     ...(data.scheduledTime ? { scheduledTime: data.scheduledTime } : {}),
-    ...(isOwnPost && session.lawyerId ? { authorId: session.lawyerId } : {}),
-    ...(createdById ? { createdById } : {}),
-    assignees: { create: lawyerIds.map((lawyerId) => ({ lawyerId })) },
+    ...(isOwnPost && session.lawyerId ? { author: { connect: { id: session.lawyerId } } } : {}),
+    ...(createdById ? { createdBy: { connect: { id: createdById } } } : {}),
+    assignees: { create: lawyerIds.map((lawyerId) => ({ lawyer: { connect: { id: lawyerId } } })) },
   };
   const task = await prisma.task.create({ data: taskData, include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } }, comments: { select: { createdAt: true } } } });
   const when = task.scheduledDate ? `${formatDay(task.scheduledDate)}${task.scheduledTime ? ` — ${task.scheduledTime}` : ''}` : 'بالتنسيق'; await logActivity({ action: 'CREATED', summary: `أنشأ مهمة جديدة: ${(task.description || data.locationId || '').slice(0, 80)}`, taskId: task.id, locationId: data.locationId, byUserId: createdById ?? undefined, byLawyerId: isOwnPost ? session.lawyerId : undefined }).catch(() => undefined); if (lawyerIds.length) await notifyTaskAssigned(lawyerIds, task.description.slice(0, 60), when, `/sessions/${task.id}`).catch(() => undefined); if (isOwnPost) await notifyPostCreated(task.id, session.name, task.description.slice(0, 60), task.location?.name ?? '').catch(() => undefined);
