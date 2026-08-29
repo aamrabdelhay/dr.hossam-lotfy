@@ -51,26 +51,27 @@ export function AuthCard() {
     <div className="relative mx-auto w-full max-w-md">
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(720px_280px_at_50%_-60px,var(--accent-soft),transparent_70%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] bg-[radial-gradient(720px_280px_at_50%_-60px,rgba(212,169,63,0.14),transparent_70%)]"
       />
 
-      <div className="overflow-hidden rounded-2xl border border-line bg-surface/95 shadow-lift ring-1 ring-line backdrop-blur-sm">
+      <div className="overflow-hidden rounded-3xl border border-navy-100/80 bg-white/95 shadow-lift ring-1 ring-navy-950/5 backdrop-blur-sm">
         {/* Header */}
-        <div className="masthead relative px-6 py-7 text-center">
+        <div className="relative bg-navy-950 px-6 py-7 text-center">
+          <div className="mesh-gold absolute inset-0" aria-hidden />
           <div className="relative">
-            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-[var(--masthead-accent)] ring-2 ring-white/15">
+            <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-gold-400 ring-2 ring-gold-500/40">
               <Scale size={26} />
             </span>
-            <h1 className="text-xl font-extrabold text-[var(--masthead-fg)]">بوابة الدخول</h1>
-            <p className="mx-auto mt-1.5 max-w-xs text-[12px] font-medium leading-6 text-[var(--masthead-muted)]">
+            <h1 className="text-xl font-extrabold text-ivory-50">بوابة الدخول</h1>
+            <p className="mx-auto mt-1.5 max-w-xs text-[12px] font-medium leading-6 text-ivory-300">
               DR. HOSSAM LOTFY LAW FIRM — اختر الطريقة المناسبة للمتابعة.
             </p>
           </div>
-          <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-l from-transparent via-[var(--masthead-seal)]/60 to-transparent" />
+          <span className="gold-hairline absolute inset-x-0 bottom-0" aria-hidden />
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-3 gap-1 border-b border-line bg-inset px-2 pt-2" role="tablist" aria-label="طرق الدخول">
+        <div className="grid grid-cols-3 gap-1 border-b border-navy-100 bg-ivory-50 px-2 pt-2" role="tablist" aria-label="طرق الدخول">
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -79,12 +80,12 @@ export function AuthCard() {
               onClick={() => setMode(m.id)}
               className={cn(
                 'relative flex flex-col items-center gap-1 rounded-t-xl px-2 py-2.5 text-[11.5px] font-bold transition-colors duration-200 sm:flex-row sm:justify-center sm:gap-1.5',
-                mode === m.id ? 'bg-surface text-accent' : 'text-muted hover:text-ink-2',
+                mode === m.id ? 'bg-white text-navy-950' : 'text-navy-400 hover:text-navy-700',
               )}
             >
-              <span className={cn('transition-colors', mode === m.id ? 'text-accent' : 'text-faint')}>{m.icon}</span>
+              <span className={cn('transition-colors', mode === m.id ? 'text-gold-600' : 'text-navy-300')}>{m.icon}</span>
               <span>{m.label}</span>
-              {mode === m.id && <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden />}
+              {mode === m.id && <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-gradient-to-l from-gold-400 to-gold-600" aria-hidden />}
             </button>
           ))}
         </div>
@@ -92,8 +93,8 @@ export function AuthCard() {
         {/* Active panel */}
         <div className="px-6 py-6">
           <div className="mb-4 text-center">
-            <h2 className="text-[15px] font-extrabold text-ink-strong">{active.heading}</h2>
-            <p className="mt-1 text-[12px] font-medium leading-6 text-muted">{active.sub}</p>
+            <h2 className="text-[15px] font-extrabold text-navy-950">{active.heading}</h2>
+            <p className="mt-1 text-[12px] font-medium leading-6 text-navy-400">{active.sub}</p>
           </div>
           {mode === 'login' && <LawyerLoginForm />}
           {mode === 'register' && <LawyerRegisterForm />}
@@ -102,7 +103,8 @@ export function AuthCard() {
       </div>
 
       <p
-        className="mt-6 text-center font-latin text-[10px] uppercase tracking-[3px] text-faint"
+        className="mt-6 text-center text-[10px] uppercase tracking-[3px] text-navy-300"
+        style={{ fontFamily: 'Cormorant Garamond, serif', letterSpacing: '3px' }}
       >
         DR. HOSSAM LOTFY LAW FIRM
       </p>

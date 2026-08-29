@@ -47,7 +47,7 @@ export default async function SessionsPage() {
           <h2 className="mb-3 text-[14px] font-extrabold text-navy-800">سابقة <span className="ms-1.5 text-[11px] font-bold text-navy-300">({past.total})</span></h2>
           <div className="space-y-2">
             {past.items.map((t) => (
-              <Link key={t.id} href={`/sessions/${t.id}`} className="block rounded-lg border border-line bg-surface/70 px-4 py-2.5 transition hover:border-accent">
+              <Link key={t.id} href={`/sessions/${t.id}`} className="block rounded-lg border border-navy-100 bg-white/60 px-4 py-2.5 transition hover:border-gold-500">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="text-[12px] font-extrabold text-navy-400">{t.scheduledDate ? formatDay(new Date(`${t.scheduledDate}T12:00:00`)) : 'بالتنسيق'}</span>
                   <span className="text-[12.5px] font-bold text-navy-700">{t.location.name}</span>

@@ -53,7 +53,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
   return <Card className="animate-fade-in-up overflow-hidden">
     <div className="flex items-start gap-3 px-4 pt-4">
       <Link href={getOfficeProfileHref(task)} aria-label={task.author ? `صفحة ${task.author.name}` : 'صفحة إدارة المكتب'}>
-        {task.author ? <Avatar name={task.author.name} src={task.author.photo} size={42} ring /> : <span className="masthead flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl text-[var(--masthead-accent)] ring-1 ring-line"><FileText size={18} /></span>}
+        {task.author ? <Avatar name={task.author.name} src={task.author.photo} size={42} ring /> : <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-400 ring-2 ring-gold-500/60 ring-offset-2 ring-offset-white"><FileText size={18} /></span>}
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><Link href={getOfficeProfileHref(task)} className="truncate text-[14px] font-extrabold text-navy-950 hover:underline">{task.author ? task.author.name : 'إدارة المكتب'}</Link>{task.author ? <Badge tone="gold">{TITLE_LABEL[task.author.title]}</Badge> : <Badge tone="navy">إدارة</Badge>}</div>
@@ -72,7 +72,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
       {task.lawyers.length > 0 && <div className="mt-3 flex flex-wrap items-center gap-1.5"><span className="text-[11px] font-bold text-navy-400">المكلّفون:</span>{task.lawyers.map((l) => <Link key={l.id} href={`/lawyers/${l.slug}`} className={cn('flex items-center gap-1.5 rounded-full border py-0.5 pe-2.5 ps-1 text-[11px] font-bold transition', l.completed ? 'border-emerald-600/30 bg-emerald-600/5 text-emerald-700' : 'border-navy-200 bg-ivory-50 text-navy-700 hover:border-gold-500')}><Avatar name={l.name} src={l.photo} size={18} />{l.name}{l.completed && <CheckCheck size={11} className="text-emerald-600" />}</Link>)}</div>}
     </div>
     <div className="flex flex-wrap items-center gap-1 border-t border-navy-100 px-2 py-1.5">
-      {showComments && <button onClick={toggleComments} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-bold text-muted hover:bg-surface-alt"><MessageSquare size={14} />{commentsCache.length > 0 || task.commentCount > 0 ? `${task.commentCount} تعليق` : 'تعليق'}</button>}
+      {showComments && <button onClick={toggleComments} className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold text-navy-500 hover:bg-navy-900/5"><MessageSquare size={14} />{commentsCache.length > 0 || task.commentCount > 0 ? `${task.commentCount} تعليق` : 'تعليق'}</button>}
       {canConfirm && <button onClick={confirmTask} disabled={confirmBusy || confirmed} className={cn('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition', confirmed ? 'cursor-default bg-emerald-600/10 text-emerald-700' : 'text-navy-600 hover:bg-gold-500/10 hover:text-gold-700')} title="إرسال تأكيد المهمة بالبريد الإلكتروني"><CheckCheck size={14} />{confirmBusy ? 'جارٍ التأكيد...' : confirmed ? 'تم التأكيد' : 'تأكيد'}</button>}
       {canComplete && <CompleteTaskButton taskId={task.id} label={isAdmin ? 'إنهاء نيابةً عن المحامي' : 'تم التنفيذ'} />}
       {canEdit && <Link href={`/sessions/${task.id}?edit=1`}><Button size="sm" variant="ghost" className="ms-auto"><Pencil size={13} />تعديل</Button></Link>}

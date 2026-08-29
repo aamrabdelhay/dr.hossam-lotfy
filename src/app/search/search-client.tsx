@@ -127,7 +127,7 @@ export function SearchPageClient() {
                     <Link key={l.id} href={`/locations/${l.slug}`}>
                       <Card className="h-full p-4 transition hover:border-gold-500 hover:shadow-md">
                         <div className="flex items-start gap-3">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-soft text-accent ring-1 ring-inset ring-accent/20">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy-950 text-gold-400">
                             {l.type === 'COURT' ? <Landmark size={18} /> : <Building2 size={18} />}
                           </span>
                           <div className="min-w-0">
@@ -189,7 +189,7 @@ export function SearchPageClient() {
         )}
 
         {!loading && !q.trim() && (
-          <div className="rounded-xl border border-dashed border-line-strong bg-inset px-6 py-10 text-center">
+          <div className="rounded-xl border border-dashed border-navy-200 bg-white/60 px-6 py-10 text-center">
             <Search size={30} className="mx-auto text-navy-200" />
             <p className="mt-3 text-sm font-bold text-navy-500">ابدأ الكتابة لعرض النتائج فوراً</p>
             <p className="mt-1 text-xs font-medium text-navy-300">
