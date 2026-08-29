@@ -25,7 +25,10 @@ export type ActivityAction =
   | 'CASE_EVENT'
   | 'CASE_UPDATED'
   | 'LAWYER_ADMIN_GRANTED'
-  | 'LAWYER_ADMIN_REVOKED';
+  | 'LAWYER_ADMIN_REVOKED'
+  | 'COMPLETION_REJECTED'
+  | 'COMPLETION_REQUESTED'
+  | 'COMPLETED_BY_APPROVAL';
 
 export async function logActivity(input: {
   action: ActivityAction;
@@ -78,4 +81,7 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   CASE_UPDATED: 'تعديل بيانات القضية',
   LAWYER_ADMIN_GRANTED: 'منح صلاحية الادمن',
   LAWYER_ADMIN_REVOKED: 'إزالة صلاحية الادمن',
+  COMPLETION_REJECTED: 'رفض إنهاء التكليف',
+  COMPLETION_REQUESTED: 'طلب إنهاء التكليف',
+  COMPLETED_BY_APPROVAL: 'تم التنفيذ بالموافقة',
 };
