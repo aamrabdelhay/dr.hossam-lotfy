@@ -29,14 +29,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     prisma.lawyer.findMany({ where: { active: true, approvedAt: { not: null } }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } }),
     prisma.activityLog.findMany({ where: { taskId: id }, orderBy: { createdAt: 'desc' }, take: 30 }),
   ]);
-
   if (!task) notFound();
 
   const raw = task.raw;
   const role = session?.role;
   const myLawyerId = session?.role === 'lawyer' ? session.lawyerId : null;
   const myAdminId = session?.role === 'admin' ? session.userId : null;
-  const isAdmin = role === 'admin' || (role === 'lawyer' && session.isAdmin);
+  const isAdmin = role === 'admin' || (role === 'lawyer' && session?.isAdmin === true);
   const iAmAuthor = myLawyerId != null && task.author?.id === myLawyerId;
   const canEdit = isAdmin || iAmAuthor;
   const canWriteTasks = session !== null && (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin);
