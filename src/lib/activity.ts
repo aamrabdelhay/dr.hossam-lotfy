@@ -18,8 +18,13 @@ export type ActivityAction =
   | 'LAWYER_REJECTED'
   | 'LAWYER_REACTIVATED'
   | 'LAWYER_DEACTIVATED'
+  | 'USER_ADDED'
+  | 'USER_UPDATED'
+  | 'USER_DELETED'
+  | 'CASE_EVENT'
+  | 'CASE_UPDATED'
   | 'LAWYER_ADMIN_GRANTED'
-  | 'LAWYER_ADMIN_REVOKED'
+  | 'LAWYER_ADMIN_REVOKED';
   | 'LAWYER_LOGIN'
   | 'USER_ADDED'
   | 'USER_UPDATED'
@@ -70,8 +75,14 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   LAWYER_REJECTED: 'رفض محامٍ',
   LAWYER_REACTIVATED: 'إعادة تفعيل محامٍ',
   LAWYER_DEACTIVATED: 'تعطيل محامٍ',
+  USER_ADDED: 'إضافة حساب',
+  USER_UPDATED: 'تعديل حساب',
+  USER_DELETED: 'حذف حساب',
+  CASE_EVENT: 'حدث قضية',
+  CASE_UPDATED: 'تعديل بيانات القضية',
   LAWYER_ADMIN_GRANTED: 'منح صلاحية الادمن',
   LAWYER_ADMIN_REVOKED: 'إزالة صلاحية الادمن',
+};
   LAWYER_LOGIN: 'تسجيل دخول محامٍ',
   USER_ADDED: 'إضافة حساب',
   USER_UPDATED: 'تعديل حساب',
