@@ -13,7 +13,19 @@ export const metadata: Metadata = { title: 'منطقة الإدارة' };
 
 export default async function AdminPage() {
   const session = await getCurrentUser();
-  if (!session || session.role !== 'admin') redirect('/admin/login');
+  if (!session) redirect('/auth');
+
+  let adminIdentity: { userId: string; name: string; role: string } | null = null;
+  if (session.role === 'admin') {
+    adminIdentity = { userId: session.userId, name: session.name, role: session.userRole };
+  } else if (session.isAdmin) {
+    const email = (await prisma.lawyer.findUnique({ where: { id: session.lawyerId }, select: { email: true, googleEmail: true } }))?.googleEmail || (await prisma.lawyer.findUnique({ where: { id: session.lawyerId }, select: { email: true } }))?.email;
+    if (email) {
+      const account = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() }, select: { id: true, name: true, role: true } });
+      if (account && (account.role === 'SUPER_ADMIN' || account.role === 'ADMIN')) adminIdentity = { userId: account.id, name: session.name, role: 'SUPER_ADMIN' };
+    }
+  }
+  if (!adminIdentity) redirect('/');
 
   const [stats, lawyers, locations, cases, feed, activity, notifications] = await Promise.all([
     getAdminStats(),
@@ -28,7 +40,7 @@ export default async function AdminPage() {
     prisma.caseRecord.findMany({ orderBy: { id: 'desc' }, take: 100, include: { events: { orderBy: { createdAt: 'desc' }, take: 100 } } }),
     getFeed({ limit: 15 }),
     prisma.activityLog.findMany({ orderBy: { createdAt: 'desc' }, take: 12, include: { lawyer: { select: { fullName: true, slug: true } } } }),
-    prisma.notification.findMany({ where: { userId: session.userId }, orderBy: { createdAt: 'desc' }, take: 30 }),
+    prisma.notification.findMany({ where: { userId: adminIdentity.userId }, orderBy: { createdAt: 'desc' }, take: 30 }),
   ]);
 
   return (
@@ -42,8 +54,8 @@ export default async function AdminPage() {
         </div>
       </div>
       <AdminShell
-        session={{ userId: session.userId, name: session.name, role: session.userRole }}
-        permissions={permissionsOf(session.userRole)}
+        session={adminIdentity}
+        permissions={permissionsOf('SUPER_ADMIN')}
         stats={stats}
         lawyers={lawyers.map((l) => ({ id: l.id, slug: l.slug, name: l.fullName, title: l.title, phone: l.phone, email: l.email, googleEmail: l.googleEmail, approved: l.approvedAt != null, specialization: l.specialization, bio: l.bio, position: l.position, photo: l.profilePhotoUrl, isPrincipal: l.isPrincipal, active: l.active, upcoming: l.assignments.length }))}
         locations={locations.map((l) => ({ ...l, type: l.type as string }))}
