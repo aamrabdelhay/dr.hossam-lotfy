@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createSessionCookie } from '@/lib/auth';
@@ -13,7 +13,7 @@ const loginSchema = z.object({ code: z.string().min(1).max(64) });
  * Admin sign-in by code only. Any code other than the configured one is
  * rejected with 401 — there is no e-mail/password admin login anymore.
  */
-export const POST = handle(async (req: NextRequest) => {
+export const POST = handle(async (req: Request) => {
   const { code } = await readJson(req, loginSchema);
 
   if (code !== ADMIN_CODE) {
