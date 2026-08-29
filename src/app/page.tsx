@@ -26,7 +26,7 @@ export default async function HomePage() {
   const canWriteTasks = session ? (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin) : false;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
+    <div className="page-enter mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
       <aside className="hidden w-[330px] shrink-0 lg:block">
         <div className="sticky top-[88px]"><SessionSidebar data={sidebar} isAdmin={isAdmin} /></div>
       </aside>
@@ -34,7 +34,7 @@ export default async function HomePage() {
       <section className="min-w-0 flex-1 space-y-4">
         <section aria-labelledby="dashboard-title" className="overflow-hidden rounded-2xl border border-navy-100/80 bg-white shadow-card">
           <div className="mesh-gold flex items-center justify-between gap-3 border-b border-navy-800 bg-gradient-to-l from-navy-950 via-navy-900 to-navy-850 px-4 py-4 sm:px-5">
-            <h1 id="dashboard-title" className="text-lg font-extrabold text-ivory-50">المكتب اليوم</h1>
+            <span id="dashboard-title" aria-hidden="true" className="sr-only">إحصاءات المكتب</span>
           </div>
           <div className="grid grid-cols-2 gap-px bg-navy-100/70 sm:grid-cols-3 lg:grid-cols-6">
             {[
