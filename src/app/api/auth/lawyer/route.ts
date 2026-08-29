@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createSessionCookie } from '@/lib/auth';
 import { handle, json, readJson } from '@/lib/api';
@@ -8,7 +8,7 @@ import { logActivity } from '@/lib/activity';
 const loginSchema = z.object({ name: z.string().min(2, 'الاسم مطلوب').max(120), email: z.string().email('بريد إلكتروني غير صالح').max(120) });
 function normName(s: string): string { return s.trim().toLowerCase().replace(/[\u064B-\u065F\u0670]/g, '').replace(/\s+/g, ' '); }
 
-export const POST = handle(async (req: NextRequest) => {
+export const POST = handle(async (req: Request) => {
   const { name, email } = await readJson(req, loginSchema);
   const emailNorm = email.trim().toLowerCase();
   const providedParts = name.trim().split(/\s+/).filter(Boolean);
