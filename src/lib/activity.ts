@@ -1,3 +1,4 @@
+```ts
 import 'server-only';
 import { prisma } from './prisma';
 
@@ -22,7 +23,8 @@ export type ActivityAction =
   | 'USER_ADDED'
   | 'USER_UPDATED'
   | 'USER_DELETED'
-  | 'CASE_EVENT';
+  | 'CASE_EVENT'
+  | 'CASE_UPDATED';
 
 export async function logActivity(input: {
   action: ActivityAction;
@@ -72,4 +74,6 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   USER_UPDATED: 'تعديل حساب',
   USER_DELETED: 'حذف حساب',
   CASE_EVENT: 'حدث قضية',
+  CASE_UPDATED: 'تعديل بيانات القضية',
 };
+```
