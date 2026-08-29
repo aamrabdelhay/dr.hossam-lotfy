@@ -5,7 +5,7 @@ import { Button } from '@/components/ui';
 export default function NotFound() {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-24 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-navy-950 text-gold-400">
+      <span className="masthead flex h-16 w-16 items-center justify-center rounded-2xl text-[var(--masthead-accent)] shadow-card">
         <Gavel size={28} />
       </span>
       <h1 className="text-lg font-extrabold text-navy-950">الصفحة غير موجودة</h1>

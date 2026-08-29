@@ -67,34 +67,34 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
       <div className="min-w-0 flex-1">
         {/* Header */}
         <Card className="overflow-hidden">
-          <div className={`relative px-5 py-8 sm:px-8 ${IsCourt ? 'bg-navy-950' : 'bg-navy-900'}`}>
-            <div className="gold-hairline absolute inset-x-0 bottom-0" />
+          <div className="masthead relative px-5 py-8 sm:px-8">
+            <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-l from-transparent via-[var(--masthead-seal)]/60 to-transparent" />
             <div className="flex flex-wrap items-center gap-4">
-              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/10 text-gold-400 ring-1 ring-gold-500/40">
+              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/10 text-[var(--masthead-accent)] ring-1 ring-white/15">
                 {IsCourt ? <Landmark size={30} /> : <Building2 size={30} />}
               </span>
               <div className="min-w-0">
-                <h1 className="text-xl font-extrabold text-ivory-50 sm:text-2xl">{location.name}</h1>
+                <h1 className="text-xl font-extrabold text-[var(--masthead-fg)] sm:text-2xl">{location.name}</h1>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <Badge tone="gold">{LOCATION_TYPE_LABEL[location.type] ?? location.type}</Badge>
-                  {location.subType && <span className="text-[12px] font-semibold text-ivory-300">{location.subType}</span>}
+                  {location.subType && <span className="text-[12px] font-semibold text-[var(--masthead-muted)]">{location.subType}</span>}
                   {[location.city, location.governorate].filter(Boolean).join(' — ') && (
-                    <span className="flex items-center gap-1 text-[12px] font-semibold text-ivory-300">{location.city || location.governorate}</span>
+                    <span className="flex items-center gap-1 text-[12px] font-semibold text-[var(--masthead-muted)]">{location.city || location.governorate}</span>
                   )}
                 </div>
               </div>
               <div className="ms-auto hidden gap-4 sm:flex">
                 <div className="text-center">
-                  <p className="text-xl font-extrabold text-gold-300">{upcoming}</p>
-                  <p className="text-[10px] font-bold text-ivory-300">جلسات قادمة</p>
+                  <p className="text-xl font-extrabold text-[var(--masthead-seal)]">{upcoming}</p>
+                  <p className="text-[10px] font-bold text-[var(--masthead-muted)]">جلسات قادمة</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-extrabold text-gold-300">{location.tasks.length}</p>
-                  <p className="text-[10px] font-bold text-ivory-300">نشاط مسجل</p>
+                  <p className="text-xl font-extrabold text-[var(--masthead-seal)]">{location.tasks.length}</p>
+                  <p className="text-[10px] font-bold text-[var(--masthead-muted)]">نشاط مسجل</p>
                 </div>
               </div>
             </div>
-            {location.description && <p className="mt-4 max-w-2xl text-[12.5px] leading-6 text-ivory-300">{location.description}</p>}
+            {location.description && <p className="mt-4 max-w-2xl text-[12.5px] leading-6 text-[var(--masthead-muted)]">{location.description}</p>}
           </div>
         </Card>
 

@@ -17,7 +17,7 @@ export function LawyerStatusPosts({ posts }: { posts: LawyerStatusPost[] }) {
       {posts.map((post) => (
         <Card key={post.id} className="overflow-hidden border-navy-100/80 bg-white shadow-card">
           <div className="flex items-start gap-3 p-4 sm:p-5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-navy-950 text-gold-400 ring-1 ring-gold-500/30">
+            <span className="masthead flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[var(--masthead-accent)] ring-1 ring-line">
               {post.action === 'LAWYER_DEACTIVATED' ? <Archive size={17} /> : <UserRound size={17} />}
             </span>
             <div className="min-w-0 flex-1">

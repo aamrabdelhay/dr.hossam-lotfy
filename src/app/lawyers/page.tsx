@@ -40,7 +40,7 @@ export default async function LawyersPage() {
           <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {sorted.map((l) => (
               <Link key={l.id} href={`/lawyers/${l.slug}`} className="group min-w-0">
-                <Card className={`card-hover h-full p-4 sm:p-5 ${l.isPrincipal ? 'border-gold-500/60 shadow-[0_0_0_1px_rgba(212,169,63,0.3)]' : 'hover:border-gold-500/50'}`}>
+                <Card className={`card-hover h-full p-4 sm:p-5 ${l.isPrincipal ? 'border-gold-500/60 shadow-[0_0_0_1px_var(--accent-ring)]' : 'hover:border-gold-500/50'}`}>
                   <div className="flex min-w-0 items-start gap-3 sm:gap-4">
                     <div className="shrink-0"><Avatar name={l.fullName} src={l.profilePhotoUrl} size={56} ring={l.isPrincipal} /></div>
                     <div className="min-w-0 flex-1">
