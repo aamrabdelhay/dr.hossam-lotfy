@@ -148,7 +148,7 @@ export function CommentSection({ taskId, comments, sessionRole, sessionLawyerId,
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-[12px] font-extrabold text-navy-900">{c.author?.name ?? 'زائر'}</span>
-                  {c.authorRole === 'admin' && <span className="rounded bg-navy-900 px-1 text-[9px] font-bold text-ivory-100">مسؤول</span>}
+                  {c.authorRole === 'admin' && <span className="rounded bg-accent px-1.5 py-px text-[9px] font-bold text-on-accent">مسؤول</span>}
                   <span className="text-[10px] font-medium text-navy-300">{formatDateTime(new Date(c.createdAt))}</span>
                   <span className="ms-auto flex items-center gap-1">
                     {c.isMine && (
