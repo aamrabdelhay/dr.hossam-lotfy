@@ -6,22 +6,16 @@ import { can } from '@/lib/rbac';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteNav } from '@/lib/site-data';
 import { SessionSidebar } from '@/components/session-sidebar';
-import { PostCard } from '@/components/post-card';
 import { LawyerStatusPosts } from '@/components/lawyer-status-posts';
 import { Composer } from '@/components/composer';
 import { Card, EmptyState } from '@/components/ui';
-import { FeedMore } from '@/components/feed-more';
+import { FeedWindow } from '@/components/feed-window';
 
-const FEED_PAGE_SIZE = 12;
-
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ feedPage?: string }> }) {
+export default async function HomePage() {
   const session = await getCurrentUser();
-  const params = await searchParams;
-  const page = Math.max(1, parseInt(params.feedPage ?? '1', 10) || 1);
-
   const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([
     getSidebarData(),
-    getFeed({ limit: FEED_PAGE_SIZE, offset: (page - 1) * FEED_PAGE_SIZE }),
+    getFeed({ limit: 1000 }),
     getSiteNav(),
     getAdminStats(),
     getRecentLawyerStatusPosts(),
@@ -40,9 +34,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <section className="min-w-0 flex-1 space-y-4">
         <section aria-labelledby="dashboard-title" className="overflow-hidden rounded-2xl border border-navy-100/80 bg-white shadow-card">
           <div className="mesh-gold flex items-center justify-between gap-3 border-b border-navy-800 bg-gradient-to-l from-navy-950 via-navy-900 to-navy-850 px-4 py-4 sm:px-5">
-            <div>
-              <h1 id="dashboard-title" className="text-lg font-extrabold text-ivory-50">المكتب اليوم</h1>
-            </div>
+            <h1 id="dashboard-title" className="text-lg font-extrabold text-ivory-50">المكتب اليوم</h1>
           </div>
           <div className="grid grid-cols-2 gap-px bg-navy-100/70 sm:grid-cols-3 lg:grid-cols-6">
             {[
@@ -76,9 +68,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         {feed.items.length === 0 ? (
           <EmptyState title="لا توجد منشورات حالياً" hint="ستظهر هنا مهام المحامين والجلسات والنشاط الإداري لحظة إضافتها." />
         ) : (
-          <div className="space-y-4">{feed.items.map((t) => <PostCard key={t.id} task={t} sessionRole={session?.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={canWriteTasks} />)}</div>
+          <FeedWindow tasks={feed.items} sessionRole={session?.role} sessionLawyerId={lawyerSession?.lawyerId} canWriteTasks={canWriteTasks} />
         )}
-        {feed.total > page * FEED_PAGE_SIZE && <FeedMore nextPage={page + 1} currentQuery={`feedPage=${page + 1}`} />}
       </section>
 
       <aside className="hidden w-[250px] shrink-0 xl:block">
