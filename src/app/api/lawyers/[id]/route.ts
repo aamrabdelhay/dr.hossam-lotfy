@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { handle, json, readJson, user } from '@/lib/api';
+import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 
