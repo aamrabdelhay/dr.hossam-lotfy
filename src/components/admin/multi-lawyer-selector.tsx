@@ -27,7 +27,7 @@ export function MultiLawyerSelector({ lawyers, selected, onChange }: {
     <div ref={ref} className="relative">
       <div className="flex min-h-10 cursor-pointer flex-wrap items-center gap-1.5 rounded-lg border border-navy-200 bg-white px-2.5 py-2" onClick={() => setOpen((v) => !v)}>
         {selected.length === 0 && <span className="text-[13px] font-semibold text-navy-300">اختر المحامي</span>}
-        {selected.map((id) => { const l = lawyers.find((x) => x.id === id); return <span key={id} className="flex items-center gap-1 rounded-lg bg-accent py-0.5 pe-1 ps-2.5 text-[11px] font-bold text-on-accent">{l?.name ?? id}<button type="button" onClick={(e) => { e.stopPropagation(); toggle(id); }} className="rounded p-0.5 hover:bg-white/25"><X size={11} /></button></span>; })}
+        {selected.map((id) => { const l = lawyers.find((x) => x.id === id); return <span key={id} className="flex items-center gap-1 rounded-full bg-navy-950 py-0.5 pe-1 ps-2.5 text-[11px] font-bold text-ivory-100">{l?.name ?? id}<button type="button" onClick={(e) => { e.stopPropagation(); toggle(id); }} className="rounded-full p-0.5 hover:bg-white/20"><X size={11} /></button></span>; })}
         <span className="ms-auto text-[10px] font-bold text-navy-300">{selected.length}/{MAX}</span>
       </div>
       {open && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-navy-100 bg-white shadow-xl">

@@ -61,12 +61,12 @@ export function LawyerProfileEditor({
 
   return (
     <>
-      <button onClick={openEditor} className="flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-[10px] font-bold tracking-[1.5px] uppercase text-ink-2 shadow-soft transition-colors hover:border-accent hover:text-accent" style={{ letterSpacing: '1.5px' }}>
+      <button onClick={openEditor} className="flex items-center gap-1.5 border border-[#242424] px-3 py-1.5 text-[10px] tracking-[1.5px] uppercase text-[#242424] transition-colors hover:bg-[#242424] hover:text-[#F7F5F0]" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif', letterSpacing: '1.5px' }}>
         <Pencil size={11} /> تعديل صفحتي
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={`تعديل صفحتي — ${fullName}`} wide footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setOpen(false)}>إلغاء</Button><Button onClick={() => void save()} disabled={busy}>{busy && <Loader2 size={14} className="animate-spin" />}حفظ التعديلات</Button></div>}>
         <div className="space-y-4">
-          <p className="text-[12px] font-semibold leading-6 text-muted">يمكنك تعديل بيانات ملفك الشخصي بالكامل. إعدادات الإدارة مثل تفعيل الحساب وترتيب ظهوره تظل للإدارة فقط.</p>
+          <p className="text-[12px] font-semibold leading-6 text-navy-400">يمكنك تعديل بيانات ملفك الشخصي بالكامل. إعدادات الإدارة مثل تفعيل الحساب وترتيب ظهوره تظل للإدارة فقط.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="الصفة" required status={!!titleVal}><Select value={titleVal} onChange={(e) => setTitleVal(e.target.value as 'DOCTOR' | 'ADVOCATE')}><option value="ADVOCATE">محامي</option><option value="DOCTOR">دكتور</option></Select></Field>
             <Field label="الاسم الكامل" required status={fullNameVal.trim().split(/\s+/).filter(Boolean).length >= 3}><Input value={fullNameVal} onChange={(e) => setFullNameVal(e.target.value)} /></Field>

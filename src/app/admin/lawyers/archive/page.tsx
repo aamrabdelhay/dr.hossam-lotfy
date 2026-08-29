@@ -81,7 +81,7 @@ export default function ArchivedLawyersPage() {
         <div className="space-y-3">
           {items.map((lawyer) => (
             <Card key={lawyer.id} className="flex flex-wrap items-center gap-3 p-4">
-              <span className="masthead flex h-11 w-11 items-center justify-center rounded-xl text-[var(--masthead-accent)]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-navy-950 text-gold-400">
                 <UserRound size={19} />
               </span>
               <div className="min-w-0 flex-1">

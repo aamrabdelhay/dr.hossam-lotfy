@@ -93,7 +93,7 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
 
       {/* Header Card */}
       <Card className="overflow-hidden">
-        <div className="masthead relative px-5 py-7 sm:px-8">
+        <div className={`relative px-5 py-7 sm:px-8 ${location.type === 'COURT' ? 'bg-navy-950' : 'bg-navy-900'}`}>
           <div className="gold-hairline absolute inset-x-0 bottom-0" />
           <div className="flex flex-wrap items-start gap-4">
             <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/10 text-gold-400 ring-1 ring-gold-500/40">
@@ -101,24 +101,24 @@ export default async function LawyerGuideDetailPage({ params }: { params: Promis
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-extrabold text-[var(--masthead-fg)] sm:text-2xl">{location.name}</h1>
+                <h1 className="text-xl font-extrabold text-ivory-50 sm:text-2xl">{location.name}</h1>
                 {isVerified && <Badge tone="gold"><ShieldCheck size={11} /> موثق</Badge>}
                 {isArchived && <Badge tone="amber">مؤرشف</Badge>}
               </div>
-              {location.nameEn && <p className="mt-1 font-latin text-[12px] font-medium text-[var(--masthead-muted)]">{location.nameEn}</p>}
+              {location.nameEn && <p className="mt-1 text-[12px] font-medium text-ivory-300">{location.nameEn}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge tone="gold">{location.category?.nameAr || categoryForType(location.type, location.name, location.subType ?? '')}</Badge>
-                {location.subType && <span className="text-[11px] text-[var(--masthead-muted)]">{location.subType}</span>}
+                {location.subType && <span className="text-[11px] text-ivory-300">{location.subType}</span>}
                 {[location.district, location.city, location.governorate].filter(Boolean).join(' — ') && (
-                  <span className="text-[11px] font-semibold text-[var(--masthead-muted)]">{[location.district, location.city, location.governorate].filter(Boolean).join(' — ')}</span>
+                  <span className="text-[11px] font-semibold text-ivory-300">{[location.district, location.city, location.governorate].filter(Boolean).join(' — ')}</span>
                 )}
               </div>
             </div>
             <div className="flex gap-3">
               {location.distanceFromDokki != null && (
                 <div className="text-center">
-                  <p className="text-xl font-extrabold text-[var(--masthead-seal)]">{location.distanceFromDokki.toFixed(1)}</p>
-                  <p className="text-[10px] font-bold text-[var(--masthead-muted)]">كم من الدقي</p>
+                  <p className="text-xl font-extrabold text-gold-300">{location.distanceFromDokki.toFixed(1)}</p>
+                  <p className="text-[10px] font-bold text-ivory-300">كم من الدقي</p>
                 </div>
               )}
             </div>

@@ -179,7 +179,7 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
   return (
     <Card className="group h-full p-4 transition hover:border-gold-500 hover:shadow-md">
       <div className="flex items-start gap-3">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-accent-soft text-accent ring-1 ring-inset ring-accent/20' : 'bg-surface-alt text-muted ring-1 ring-inset ring-line'}`}>{isCourt ? <Landmark size={20} /> : <Building2 size={20} />}</span>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-navy-950 text-gold-400' : 'bg-navy-800 text-ivory-200'}`}>{isCourt ? <Landmark size={20} /> : <Building2 size={20} />}</span>
         <div className="min-w-0 flex-1">
           <Link href={`/locations/${row.slug}`} className="block"><p className="text-[14px] font-extrabold text-navy-950 group-hover:text-navy-800">{row.name}</p></Link>
           <p className="mt-0.5 text-[11px] font-bold text-navy-300">{row.category} — {row.subType || (LOCATION_TYPE_LABEL[row.type] ?? row.type)}</p>
@@ -194,7 +194,7 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
       </div>
       {row.services.length > 0 && <div className="mt-3 border-t border-navy-100 pt-3"><p className="mb-1 text-[10px] font-extrabold text-navy-400">خدمات بارزة</p><div className="flex flex-wrap gap-1">{row.services.slice(0, 4).map((s) => <span key={s} className="rounded bg-navy-50 px-1.5 py-0.5 text-[10px] font-semibold text-navy-600">{s}</span>)}</div></div>}
       <div className="mt-3 flex flex-wrap gap-1.5">
-        <Link href={`/locations/${row.slug}`} className="btn-bubble inline-flex items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-[10px] font-extrabold text-on-accent">التفاصيل</Link>
+        <Link href={`/locations/${row.slug}`} className="btn-bubble inline-flex items-center gap-1 rounded-full bg-navy-950 px-3 py-1.5 text-[10px] font-extrabold text-white">التفاصيل</Link>
       </div>
       {(row.workingHours || row.lastVerified) && <div className="mt-2 flex flex-wrap gap-2 text-[9px] font-semibold text-navy-300">{row.workingHours && <span className="inline-flex items-center gap-1"><Clock3 size={10} />{row.workingHours}</span>}{row.lastVerified && <span>آخر تحقق: {new Date(row.lastVerified).toLocaleDateString('ar-EG')}</span>}</div>}
     </Card>

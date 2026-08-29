@@ -167,7 +167,7 @@ export function LawyerGuideClient({
     <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-extrabold text-navy-950" style={{ fontFamily: 'var(--font-sans)' }}>
+        <h1 className="text-2xl font-extrabold text-navy-950" style={{ fontFamily: 'IBM Plex Sans Arabic, sans-serif' }}>
           دليل المحامي في مصر
         </h1>
         <p className="mt-2 text-[13px] font-medium text-navy-400">
@@ -191,7 +191,7 @@ export function LawyerGuideClient({
           <button
             type="button"
             onClick={locateMe}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 py-2 text-[12px] font-bold text-ink-2 hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 bg-white px-3 py-2 text-[12px] font-bold text-navy-700 hover:border-gold-500 hover:text-gold-700"
           >
             <Navigation size={14} />
             الأقرب إليّ
@@ -199,16 +199,16 @@ export function LawyerGuideClient({
           <button
             type="button"
             onClick={goToOffice}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 py-2 text-[12px] font-bold text-ink-2 hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1.5 rounded-md border border-navy-200 bg-white px-3 py-2 text-[12px] font-bold text-navy-700 hover:border-gold-500 hover:text-gold-700"
           >
             <MapPin size={14} />
             بالقرب من المكتب
           </button>
-          <div className="flex overflow-hidden rounded-lg border border-line-strong">
+          <div className="flex rounded-md border border-navy-200">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 ${viewMode === 'list' ? 'bg-accent text-on-accent' : 'bg-surface text-muted'}`}
+              className={`px-3 py-2 ${viewMode === 'list' ? 'bg-navy-950 text-white' : 'bg-white text-navy-500'}`}
               aria-label="عرض القائمة"
             >
               <LayoutGrid size={14} />
@@ -216,7 +216,7 @@ export function LawyerGuideClient({
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-accent text-on-accent' : 'bg-surface text-muted'}`}
+              className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-navy-950 text-white' : 'bg-white text-navy-500'}`}
               aria-label="عرض الشبكة"
             >
               <MapIcon size={14} />
@@ -305,8 +305,8 @@ export function LawyerGuideClient({
             onClick={() => setCategory(category === c.id ? '' : c.id)}
             className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
               category === c.id
-                ? 'bg-accent text-on-accent'
-                : 'border border-line-strong bg-surface text-ink-2 hover:border-accent'
+                ? 'bg-navy-950 text-white'
+                : 'border border-navy-200 bg-white text-navy-600 hover:border-gold-500'
             }`}
           >
             {c.nameAr}
@@ -379,7 +379,7 @@ function LocationCard({
     return (
       <Card className="group h-full p-4 transition hover:border-gold-500 hover:shadow-md">
         <div className="flex items-start gap-3">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-accent-soft text-accent ring-1 ring-inset ring-accent/20' : 'bg-surface-alt text-muted ring-1 ring-inset ring-line'}`}>
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-navy-950 text-gold-400' : 'bg-navy-800 text-ivory-200'}`}>
             {isCourt ? <Landmark size={18} /> : <Building2 size={18} />}
           </span>
           <div className="min-w-0 flex-1">
@@ -406,7 +406,7 @@ function LocationCard({
           {row.requiresPersonal && <Badge tone="outline">حضور شخصي</Badge>}
         </div>
         <div className="mt-3 flex gap-1.5">
-          <Link href={`/lawyer-guide/${row.slug}`} className="btn-bubble flex-1 rounded-lg bg-accent px-2 py-1 text-center text-[10px] font-bold text-on-accent">
+          <Link href={`/lawyer-guide/${row.slug}`} className="btn-bubble flex-1 rounded-full bg-navy-950 px-2 py-1 text-center text-[10px] font-bold text-white">
             التفاصيل
           </Link>
         </div>
@@ -417,7 +417,7 @@ function LocationCard({
   // List view — row layout
   return (
     <Card className="group flex flex-col gap-3 p-3 transition hover:border-gold-500 sm:flex-row sm:items-center">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-accent-soft text-accent ring-1 ring-inset ring-accent/20' : 'bg-surface-alt text-muted ring-1 ring-inset ring-line'}`}>
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isCourt ? 'bg-navy-950 text-gold-400' : 'bg-navy-800 text-ivory-200'}`}>
         {isCourt ? <Landmark size={18} /> : <Building2 size={18} />}
       </div>
       <div className="min-w-0 flex-1">
@@ -442,7 +442,7 @@ function LocationCard({
         {row.hasOnlineService && <Badge tone="gray">أونلاين</Badge>}
         {row.requiresPersonal && <Badge tone="outline">حضور شخصي</Badge>}
         <div className="flex gap-1.5">
-          <Link href={`/lawyer-guide/${row.slug}`} className="btn-bubble rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-on-accent">
+          <Link href={`/lawyer-guide/${row.slug}`} className="btn-bubble rounded-full bg-navy-950 px-3 py-1 text-[10px] font-bold text-white">
             <Eye size={11} className="inline" /> عرض
           </Link>
         </div>

@@ -35,7 +35,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   const specialization = cleanDemo(lawyer.specialization) || '—';
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-[#F4F6F9]">
       <div className="mx-auto w-full max-w-[1100px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <header className="mb-8 rounded-3xl border border-navy-100 bg-white px-5 py-7 text-center shadow-card sm:px-8 sm:py-9">
           <div className="flex flex-col items-center gap-5">

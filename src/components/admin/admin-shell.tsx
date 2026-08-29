@@ -127,14 +127,14 @@ export function AdminShell(props: AdminShellProps) {
     <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6">
       {/* Admin profile header */}
       <Card className="mb-5 overflow-hidden">
-        <div className="masthead px-5 py-5 sm:px-7">
+        <div className="bg-navy-950 px-5 py-5 sm:px-7">
           <div className="flex flex-wrap items-center gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-[var(--masthead-accent)] ring-1 ring-white/15">
+            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 text-gold-400 ring-1 ring-gold-500/40">
               <Users2 size={26} />
             </span>
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-extrabold text-[var(--masthead-fg)]">منطقة الإدارة</h1>
-              <p className="text-[12px] font-semibold text-[var(--masthead-muted)]">
+              <h1 className="text-lg font-extrabold text-ivory-50">منطقة الإدارة</h1>
+              <p className="text-[12px] font-semibold text-ivory-300">
                 إدارة المكتب
               </p>
             </div>
@@ -145,7 +145,7 @@ export function AdminShell(props: AdminShellProps) {
               <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
               <Link
                 href="/cases/archive"
-                className="flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-[var(--masthead-fg)] transition hover:border-[var(--masthead-accent)]/50 hover:bg-white/10"
+                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-ivory-100 transition hover:border-gold-500/50 hover:bg-white/10"
               >
                 <Archive size={14} />
                 أرشيف القضايا
@@ -242,7 +242,7 @@ function QuickAction({ icon, label, onClick, gold }: { icon: React.ReactNode; la
       onClick={onClick}
       className={cn(
         'flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-extrabold transition',
-        gold ? 'bg-[var(--masthead-accent)] text-[#0b1a14] hover:brightness-110' : 'bg-white/10 text-[var(--masthead-fg)] ring-1 ring-white/15 hover:bg-white/20',
+        gold ? 'bg-gold-500 text-navy-950 hover:bg-gold-400' : 'bg-white/10 text-ivory-100 ring-1 ring-white/15 hover:bg-white/20',
       )}
     >
       {icon}
@@ -769,7 +769,7 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
       <Card className="divide-y divide-navy-100">
         {locations.map((l) => (
           <div key={l.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-soft text-accent ring-1 ring-inset ring-accent/20">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy-950 text-gold-400">
               {l.type === 'COURT' ? <Landmark size={16} /> : <Building2 size={16} />}
             </span>
             <div className="min-w-0 flex-1">
@@ -879,7 +879,7 @@ function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
           {cases.map((item, index) => (
             <div key={item.id} className="px-5 py-4 hover:bg-ivory-50">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-xs font-extrabold text-muted ring-1 ring-inset ring-line">{index + 1}</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-navy-950 text-xs font-extrabold text-gold-300">{index + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-extrabold text-navy-900">{item.name}</p>
                   <p className="mt-0.5 truncate font-latin text-[11px] font-semibold text-navy-400" dir="ltr">{item.number}</p>
