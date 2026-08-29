@@ -30,43 +30,47 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 
   const isAdmin = session.role === 'admin';
   const isSelf = session.role === 'lawyer' && session.lawyerId === id;
-  if (!isAdmin && !isSelf) {
-    return json({ error: 'لا تملك صلاحية تعديل هذا الملف' }, { status: 403 });
-  }
+  if (!isAdmin && !isSelf) return json({ error: 'لا تملك صلاحية تعديل هذا الملف' }, { status: 403 });
 
   const data = await readJson(req as never, updateSchema);
 
-  // Only administrators may change account state or identity fields.
-  if (!isAdmin && data.active !== undefined) {
-    return json({ error: 'لا تملك صلاحية تغيير حالة الحساب' }, { status: 403 });
+  // Lawyers may edit their complete personal profile, but cannot change
+  // account status, ordering, or any administrative control.
+  if (!isAdmin && (data.active !== undefined || data.sortOrder !== undefined)) {
+    return json({ error: 'لا تملك صلاحية تغيير إعدادات الحساب الإدارية' }, { status: 403 });
   }
 
-  let payload: Record<string, unknown> = data;
-  if (!isAdmin) {
-    payload = {
-      phone: data.phone !== undefined ? data.phone : undefined,
-      specialization: data.specialization !== undefined ? data.specialization : undefined,
-      bio: data.bio !== undefined ? data.bio : undefined,
-      profilePhotoUrl: data.profilePhotoUrl !== undefined ? data.profilePhotoUrl : undefined,
-      coverPhotoUrl: data.coverPhotoUrl !== undefined ? data.coverPhotoUrl : undefined,
-    };
-  }
+  const payload: Record<string, unknown> = isAdmin
+    ? data
+    : {
+        fullName: data.fullName,
+        title: data.title,
+        phone: data.phone,
+        email: data.email,
+        googleEmail: data.googleEmail,
+        specialization: data.specialization,
+        bio: data.bio,
+        position: data.position,
+        profilePhotoUrl: data.profilePhotoUrl,
+        coverPhotoUrl: data.coverPhotoUrl,
+      };
+
+  // Remove undefined properties so omitted fields remain unchanged.
+  for (const key of Object.keys(payload)) if (payload[key] === undefined) delete payload[key];
 
   const updated = await prisma.lawyer.update({ where: { id }, data: payload });
 
   if (isAdmin && data.active !== undefined && data.active !== lawyer.active) {
     await logActivity({
       action: data.active ? 'LAWYER_REACTIVATED' : 'LAWYER_DEACTIVATED',
-      summary: data.active
-        ? `أعاد تفعيل المحامي: ${lawyer.fullName}`
-        : `عطّل المحامي: ${lawyer.fullName}`,
+      summary: data.active ? `أعاد تفعيل المحامي: ${lawyer.fullName}` : `عطّل المحامي: ${lawyer.fullName}`,
       lawyerId: id,
       byUserId: session.userId,
     });
   } else {
     await logActivity({
       action: data.profilePhotoUrl !== undefined ? 'PHOTO_UPDATED' : 'PROFILE_UPDATED',
-      summary: `حدّث بيانات ملفه: ${lawyer.fullName}`,
+      summary: `${isAdmin ? 'حدّث بيانات المحامي' : 'حدّث بيانات ملفه'}: ${lawyer.fullName}`,
       lawyerId: id,
       byUserId: isAdmin ? session.userId : null,
       byLawyerId: isSelf ? session.lawyerId : null,
@@ -85,12 +89,7 @@ export const DELETE = handle(async (_req: Request, ctx: Ctx) => {
 
   if (lawyer.assignments.length > 0) {
     await prisma.lawyer.update({ where: { id }, data: { active: false } });
-    await logActivity({
-      action: 'LAWYER_DEACTIVATED',
-      summary: `عطّل المحامي: ${lawyer.fullName}`,
-      lawyerId: id,
-      byUserId: session.userId,
-    });
+    await logActivity({ action: 'LAWYER_DEACTIVATED', summary: `عطّل المحامي: ${lawyer.fullName}`, lawyerId: id, byUserId: session.userId });
     return json({ ok: true, deactivated: true, notice: 'تم إخفاء المحامي (لديه مهام مسجلة). استمر الإخفاء بدل الحذف للحفاظ على السجل.' });
   }
   await prisma.lawyer.delete({ where: { id } });
