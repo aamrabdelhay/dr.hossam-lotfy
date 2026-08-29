@@ -18,7 +18,7 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const lawyer = await prisma.lawyer.findUnique({
     where: { slug },
-    include: { assignments: { include: { task: { include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true, profilePhotoUrl: true } }, completedAt: true } }, comments: { select: { createdAt: true }, take: 1, orderBy: { createdAt: 'desc' } } } } }, orderBy: { createdAt: 'desc' }, take: 100 } },
+    include: { assignments: { include: { task: { include: { location: true, caseRecord: true, author: { select: { id: true, fullName: true, title: true, slug: true } }, assignees: { select: { lawyer: { select: { id: true, fullName: true, title: true, slug: true } }, completedAt: true } }, comments: { select: { createdAt: true }, take: 1, orderBy: { createdAt: 'desc' } } } } }, orderBy: { createdAt: 'desc' }, take: 100 } },
   });
   if (!lawyer) notFound();
   const session = await getCurrentUser();
@@ -47,10 +47,10 @@ export default async function LawyerProfilePage({ params }: { params: Promise<{ 
             </div>
             <div className="flex flex-wrap justify-center gap-2"><span className="rounded-full bg-gold-500/10 px-3 py-1.5 text-[11px] font-bold text-gold-700">مهام نشطة {activeTasks.length}</span><span className="rounded-full bg-navy-900/5 px-3 py-1.5 text-[11px] font-bold text-navy-600">مكتملة {completedTasks.length}</span><span className="rounded-full bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold text-emerald-700">قادمة {upcomingTasks.length}</span></div>
           </div>
-          {isSelf && <div className="mt-6 border-t border-navy-100 pt-5"><LawyerProfileEditor lawyerId={lawyer.id} fullName={lawyer.fullName} title={lawyer.title as 'DOCTOR' | 'ADVOCATE'} phone={lawyer.phone} email={lawyer.email} googleEmail={lawyer.googleEmail} specialization={lawyer.specialization} bio={lawyer.bio} position={lawyer.position} profilePhotoUrl={lawyer.profilePhotoUrl} coverPhotoUrl={lawyer.coverPhotoUrl} /></div>}
+          {isSelf && <div className="mt-6 border-t border-navy-100 pt-5"><LawyerProfileEditor lawyerId={lawyer.id} fullName={lawyer.fullName} title={lawyer.title as 'DOCTOR' | 'ADVOCATE'} phone={lawyer.phone} email={lawyer.email} googleEmail={lawyer.googleEmail} specialization={lawyer.specialization} bio={lawyer.bio} position={lawyer.position} /></div>}
         </header>
 
-        {isSelf && <section className="mb-8"><div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold text-navy-950" style={{ fontFamily: 'Cairo, sans-serif' }}>إضافة مهمة</h2><span className="text-[11px] text-navy-400">ستظهر كمشاركة في صفحتك</span></div><Composer lawyerName={lawyer.fullName} lawyerPhoto={lawyer.profilePhotoUrl} locations={nav.locations} /></section>}
+        {isSelf && <section className="mb-8"><div className="mb-3 flex items-center justify-between"><h2 className="text-lg font-bold text-navy-950" style={{ fontFamily: 'Cairo, sans-serif' }}>إضافة مهمة</h2><span className="text-[11px] text-navy-400">ستظهر كمشاركة في صفحتك</span></div><Composer lawyerName={lawyer.fullName} locations={nav.locations} /></section>}
         <section><div className="mb-4 flex items-end justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[1.5px] text-gold-600">OFFICE FEED</p><h2 className="mt-1 text-xl font-bold text-navy-950" style={{ fontFamily: 'Cairo, sans-serif' }}>مهام ومواعيد المحامي</h2></div><span className="text-xs text-navy-400">{tasks.length} مشاركة</span></div>
           {tasks.length === 0 ? <div className="rounded-3xl border border-dashed border-navy-200 bg-white px-6 py-12 text-center text-sm text-navy-400 shadow-soft" style={{ fontFamily: 'Cairo, sans-serif' }}>لا توجد مهام أو مواعيد مسجلة لهذا المحامي حتى الآن.</div> : <div className="space-y-4">{tasks.map((task) => <PostCard key={task.id} task={task} sessionRole={session?.role} sessionLawyerId={sessionLawyerId} canWriteTasks={session?.role === 'admin' ? true : undefined} />)}</div>}
         </section>
