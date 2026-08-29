@@ -92,7 +92,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </nav>
             <div className="editorial-note mt-8">
               <span>ملاحظة المكتب</span>
-              <p>راجع المواعيد القريبة أولاً، ثم المهام المفتوحة والمستندات التي تحتاج إلى اعتماد.</p>
             </div>
           </aside>
         </section>
