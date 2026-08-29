@@ -21,7 +21,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('🌱 Seeding DR. HOSSAM LOTFY LAW FIRM…');
+  console.log('🌱 Seeding Dr.hossam lotfi LAW FIRM…');
 
   // ── admin / staff account ──
   const email = (process.env.ADMIN_EMAIL || 'admin@loutfilawfirm.net').toLowerCase();
@@ -29,7 +29,7 @@ async function main() {
   if (!existing) {
     await prisma.user.create({
       data: {
-        name: process.env.ADMIN_NAME || 'DR. Hossam Lotfy',
+        name: process.env.ADMIN_NAME || 'Dr.hossam lotfi',
         email,
         passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Loutfy@Admin2026', 10),
         role: 'SUPER_ADMIN',
@@ -77,7 +77,7 @@ async function seedDemo() {
 
   const hsl = await mk(0, {
     slug: 'dr-hossam-lotfy',
-    fullName: 'DR. Hossam Lotfy',
+    fullName: 'Dr.hossam lotfi',
     title: LawyerTitle.DOCTOR,
     specialization: 'محامٍ أمام محكمة النقض والمحاكم الدستورية والإدارية العليا',
     bio: 'مؤسس ورئيس المكتب.',
