@@ -1,0 +1,16 @@
+name: Trigger office updates
+on:
+  push:
+    branches: [main]
+permissions:
+  actions: write
+  contents: write
+jobs:
+  trigger:
+    if: ${{ !contains(github.event.head_commit.message, 'feat: update office admin and lawyer workflows') && !contains(github.event.head_commit.message, 'ci: trigger office update workflow') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch update workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run apply-office-updates.yml --repo "${GITHUB_REPOSITORY}" --ref main
