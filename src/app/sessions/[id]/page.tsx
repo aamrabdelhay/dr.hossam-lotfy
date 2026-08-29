@@ -17,12 +17,10 @@ import { StatusBadge, UrgencyBadge } from '@/components/urgency';
 import { formatFullDate, formatTimeOfDay, formatDateTime } from '@/lib/dates';
 import { LOCATION_TYPE_LABEL, TITLE_LABEL } from '@/lib/constants';
 
-export const metadata: Metadata = { title: 'تفاصيل الجلسة' };
+export const metadata: Metadata = { title: 'تفاصيل' };
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
-  // Public session details — visitors can read; actions stay gated server-side.
   const session = await getCurrentUser();
-
   const { id } = await params;
   const [task, sidebar, locations, lawyers, taskActivity] = await Promise.all([
     getTaskVM(id, true),
@@ -38,10 +36,10 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const role = session?.role;
   const myLawyerId = session?.role === 'lawyer' ? session.lawyerId : null;
   const myAdminId = session?.role === 'admin' ? session.userId : null;
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || (role === 'lawyer' && session.isAdmin);
   const iAmAuthor = myLawyerId != null && task.author?.id === myLawyerId;
   const canEdit = isAdmin || iAmAuthor;
-  const canWriteTasks = session !== null && session.role === 'admin' && can(session.userRole, 'writeTasks');
+  const canWriteTasks = session !== null && (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin);
 
   const commentsVM: CommentVM[] = raw.comments.map((c) => ({
     id: c.id,
@@ -57,13 +55,13 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const time = formatTimeOfDay(task.scheduledTime);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
+    <div className="page-enter mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
       <aside className="hidden w-[330px] shrink-0 lg:block"><div className="sticky top-[88px]"><SessionSidebar data={sidebar} isAdmin={isAdmin} /></div></aside>
       <div className="min-w-0 flex-1 space-y-5">
         <Card className="overflow-hidden">
           <div className="bg-navy-950 px-5 py-4"><div className="flex flex-wrap items-center gap-3"><div className="min-w-0 flex-1"><p className="text-[11px] font-bold text-gold-400">تفاصيل</p><h1 className="mt-1 text-lg font-extrabold leading-7 text-ivory-50 sm:text-xl">{task.description}</h1></div><div className="flex flex-wrap items-center gap-2"><StatusBadge status={task.status} />{task.scheduledDate && task.status !== 'COMPLETED' && <UrgencyBadge urgency={task.urgency} />}</div></div></div>
           <div className="grid gap-x-6 gap-y-4 px-5 py-5 sm:grid-cols-2 lg:grid-cols-3">
-            <Detail icon={<MapPin size={15} />} label="المكان"><Link href={`/locations/${task.location.slug}`} className="font-extrabold text-navy-900 hover:underline">{task.location.name}</Link><span className="text-[11px] font-bold text-navy-300">{LOCATION_TYPE_LABEL[task.location.type]}</span></Detail>
+            <Detail icon={<MapPin size={15} />} label="المحكمة / جهة حكومية"><Link href={`/locations/${task.location.slug}`} className="font-extrabold text-navy-900 hover:underline">{task.location.name}</Link><span className="text-[11px] font-bold text-navy-300">{LOCATION_TYPE_LABEL[task.location.type]}</span></Detail>
             <Detail icon={<CalendarDays size={15} />} label="التاريخ واليوم">{date ? <span className="font-extrabold text-navy-900">{formatFullDate(date)}</span> : 'غير محدد'}</Detail>
             <Detail icon={<Clock size={15} />} label="الساعة">{time ? <span className="font-extrabold text-navy-900">{time}</span> : 'غير محدد'}</Detail>
             {(task.caseName || task.caseNumber) && <Detail icon={<FileText size={15} />} label="القضية"><span className="font-extrabold text-navy-900">{task.caseName}</span><span className="font-latin text-[11px] font-bold text-navy-400">{task.caseNumber}</span></Detail>}
