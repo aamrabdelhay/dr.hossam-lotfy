@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
 import { handle, json, readJson, requirePermission, user } from '@/lib/api';
+import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -14,8 +14,6 @@ const updateSchema = z.object({
   specialization: z.string().max(200).nullable().optional(),
   bio: z.string().max(2000).nullable().optional(),
   position: z.string().max(120).nullable().optional(),
-  profilePhotoUrl: z.string().max(500).nullable().optional(),
-  coverPhotoUrl: z.string().max(500).nullable().optional(),
   sortOrder: z.number().int().min(0).max(10000).optional(),
   active: z.boolean().optional(),
 });
@@ -24,7 +22,6 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const session = await user();
   if (!session) return json({ error: 'سجّل الدخول أولاً' }, { status: 401 });
-
   const lawyer = await prisma.lawyer.findUnique({ where: { id } });
   if (!lawyer) return json({ error: 'المحامي غير موجود' }, { status: 404 });
 
@@ -33,60 +30,29 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   if (!isAdmin && !isSelf) return json({ error: 'لا تملك صلاحية تعديل هذا الملف' }, { status: 403 });
 
   const data = await readJson(req as never, updateSchema);
-
-  // Lawyers may edit their complete personal profile, but cannot change
-  // account status, ordering, or any administrative control.
-  if (!isAdmin && (data.active !== undefined || data.sortOrder !== undefined)) {
-    return json({ error: 'لا تملك صلاحية تغيير إعدادات الحساب الإدارية' }, { status: 403 });
-  }
+  if (!isAdmin && (data.active !== undefined || data.sortOrder !== undefined)) return json({ error: 'لا تملك صلاحية تغيير إعدادات الحساب الإدارية' }, { status: 403 });
 
   const payload: Record<string, unknown> = isAdmin
     ? data
-    : {
-        fullName: data.fullName,
-        title: data.title,
-        phone: data.phone,
-        email: data.email,
-        googleEmail: data.googleEmail,
-        specialization: data.specialization,
-        bio: data.bio,
-        position: data.position,
-        profilePhotoUrl: data.profilePhotoUrl,
-        coverPhotoUrl: data.coverPhotoUrl,
-      };
-
-  // Remove undefined properties so omitted fields remain unchanged.
+    : { fullName: data.fullName, title: data.title, phone: data.phone, email: data.email, googleEmail: data.googleEmail, specialization: data.specialization, bio: data.bio, position: data.position };
   for (const key of Object.keys(payload)) if (payload[key] === undefined) delete payload[key];
 
-  const updated = await prisma.lawyer.update({ where: { id }, data: payload });
+  // Lawyer photos are intentionally disabled for the entire office.
+  const updated = await prisma.lawyer.update({ where: { id }, data: { ...payload, profilePhotoUrl: null, coverPhotoUrl: null } });
 
   if (isAdmin && data.active !== undefined && data.active !== lawyer.active) {
-    await logActivity({
-      action: data.active ? 'LAWYER_REACTIVATED' : 'LAWYER_DEACTIVATED',
-      summary: data.active ? `أعاد تفعيل المحامي: ${lawyer.fullName}` : `عطّل المحامي: ${lawyer.fullName}`,
-      lawyerId: id,
-      byUserId: session.userId,
-    });
+    await logActivity({ action: data.active ? 'LAWYER_REACTIVATED' : 'LAWYER_DEACTIVATED', summary: data.active ? `أعاد تفعيل المحامي: ${lawyer.fullName}` : `عطّل المحامي: ${lawyer.fullName}`, lawyerId: id, byUserId: session.userId });
   } else {
-    await logActivity({
-      action: data.profilePhotoUrl !== undefined ? 'PHOTO_UPDATED' : 'PROFILE_UPDATED',
-      summary: `${isAdmin ? 'حدّث بيانات المحامي' : 'حدّث بيانات ملفه'}: ${lawyer.fullName}`,
-      lawyerId: id,
-      byUserId: isAdmin ? session.userId : null,
-      byLawyerId: isSelf ? session.lawyerId : null,
-    });
+    await logActivity({ action: 'PROFILE_UPDATED', summary: `${isAdmin ? 'حدّث بيانات المحامي' : 'حدّث بيانات ملفه'}: ${lawyer.fullName}`, lawyerId: id, byUserId: isAdmin ? session.userId : null, byLawyerId: isSelf ? session.lawyerId : null });
   }
-
   return json({ ok: true, lawyer: updated });
 });
 
-/** Deactivate (soft) — admin only. Hard delete blocked while tasks exist (FKs). */
 export const DELETE = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const session = await requirePermission('manageLawyers');
   const lawyer = await prisma.lawyer.findUnique({ where: { id }, include: { assignments: true } });
   if (!lawyer) return json({ error: 'المحامي غير موجود' }, { status: 404 });
-
   if (lawyer.assignments.length > 0) {
     await prisma.lawyer.update({ where: { id }, data: { active: false } });
     await logActivity({ action: 'LAWYER_DEACTIVATED', summary: `عطّل المحامي: ${lawyer.fullName}`, lawyerId: id, byUserId: session.userId });
