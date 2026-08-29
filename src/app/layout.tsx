@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Link from 'next/link';
 import './globals.css';
-import './flowfunds-restyle.css';
 import { Navbar } from '@/components/navbar';
 import { Footer } from '@/components/footer';
 import { WarningBar } from '@/components/warning-bar';
