@@ -1,0 +1,71 @@
+name: Apply requested office updates
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[auto-edit]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply requested UI and admin updates
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('src/components/navbar.tsx'); s=p.read_text()
+          s=s.replace("session: { role: 'admin' | 'lawyer'; name: string; slug?: string; photo?: string | null } | null", "session: { role: 'admin' | 'lawyer'; name: string; slug?: string; photo?: string | null; isAdmin?: boolean } | null")
+          s=s.replace("session.role === 'admin' ? <div", "(session.role === 'admin' || session.isAdmin) ? <div")
+          s=s.replace("{session?.role === 'admin' && <><Link href=\"/admin\"", "{(session?.role === 'admin' || session?.isAdmin) && <><Link href=\"/admin\"")
+          p.write_text(s)
+
+          p=Path('src/app/layout.tsx'); s=p.read_text()
+          s=s.replace("photo: null } : null", "photo: null, isAdmin: session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin) } : null")
+          s=s.replace("isAdmin={session?.role === 'admin'}", "isAdmin={session?.role === 'admin' || (session?.role === 'lawyer' && session.isAdmin)}")
+          p.write_text(s)
+
+          p=Path('src/app/page.tsx'); s=p.read_text()
+          s=s.replace('<p className="text-[10px] font-bold tracking-[0.18em] text-gold-400">مركز القيادة</p>\n              <h1 id="dashboard-title" className="mt-1 text-lg font-extrabold text-ivory-50">حالة المكتب اليوم</h1>', '<h1 id="dashboard-title" className="text-lg font-extrabold text-ivory-50">المكتب اليوم</h1>')
+          s=s.replace("const isAdmin = session?.role === 'admin';", "const isAdmin = session?.role === 'admin' || (session?.role === 'lawyer' && session.isAdmin);")
+          s=s.replace("const canWriteTasks = session ? (session.role === 'admin' && can(session.userRole, 'writeTasks')) : false;", "const canWriteTasks = session ? (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin) : false;")
+          p.write_text(s)
+
+          p=Path('src/components/admin/admin-shell.tsx'); s=p.read_text()
+          s=s.replace('DR. HOSSAM LOTFY LAW FIRM — تحكم كامل: الجلسات، المحامون، الأماكن، والنشاط.', 'إدارة المكتب')
+          s=s.replace('label="إضافة مهمة" onClick={() => setModal({ kind: \'task\' })}', 'label="تكليفات" onClick={() => setModal({ kind: \'task\', data: { multi: true } })}')
+          s=s.replace('label="إسناد لعدة محامين" onClick={() => setModal({ kind: \'task\', data: { multi: true } })}', 'label="تكليفات" onClick={() => setModal({ kind: \'task\', data: { multi: true } })}')
+          s=s.replace('label="إضافة مكان" onClick={() => setModal({ kind: \'location\' })}', 'label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: \'location\' })}')
+          s=s.replace('label="إضافة محكمة" onClick={() => setModal({ kind: \'location\', data: { type: \'COURT\' } })}', 'label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: \'location\' })}')
+          s=s.replace("{ id: 'locations', label: 'الأماكن'", "{ id: 'locations', label: 'الجهات الحكومية'")
+          s=s.replace("{ id: 'users', label: 'المستخدمون' }", "{ id: 'users', label: 'الادمن' }")
+          s=s.replace('+ إضافة جلسة / مهمة', '+ تكليف')
+          p.write_text(s)
+          PY
+
+          cat > src/components/admin/users-tab.tsx <<'TSX'
+          'use client';
+          import * as React from 'react';
+          import { useRouter } from 'next/navigation';
+          import { ShieldCheck, ShieldOff } from 'lucide-react';
+          import { Avatar, Badge, Button, Card, EmptyState } from '../ui';
+          import { toastSuccess, toastError } from '../toasts';
+          type LawyerAdminRow = { id: string; fullName: string; email: string | null; googleEmail: string | null; active: boolean; isAdmin: boolean; approvedAt: string | null };
+          export function UsersTab({ currentUserId }: { currentUserId: string }) {
+            const router = useRouter();
+            const [lawyers, setLawyers] = React.useState<LawyerAdminRow[]>([]);
+            const [loading, setLoading] = React.useState(true);
+            const [busy, setBusy] = React.useState<string | null>(null);
+            const load = React.useCallback(async () => { setLoading(true); const res = await fetch('/api/lawyers?admin=1', { cache: 'no-store' }); if (res.ok) { const d = await res.json(); setLawyers((d.lawyers ?? []) as LawyerAdminRow[]); } else { const d = await res.json().catch(() => ({})); toastError(d.error ?? 'تعذر تحميل المحامين.'); } setLoading(false); }, []);
+            React.useEffect(() => { void load(); }, [load]);
+            const toggle = async (lawyer: LawyerAdminRow) => { const email = lawyer.googleEmail || lawyer.email; if (!email) { toastError('أضف بريداً إلكترونياً للمحامي أولاً.'); return; } setBusy(lawyer.id); const res = await fetch(`/api/lawyers/${lawyer.id}/admin`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isAdmin: !lawyer.isAdmin }) }); const d = await res.json().catch(() => ({})); setBusy(null); if (!res.ok) { toastError(d.error ?? 'تعذر تعديل صلاحية الادمن.'); return; } toastSuccess(lawyer.isAdmin ? 'تمت إزالة صلاحية الادمن.' : 'تم منح المحامي صلاحية الادمن ✓'); await load(); router.refresh(); };
+            return <div className="space-y-4"><div><p className="text-[13px] font-bold text-navy-500">الادمن</p><p className="mt-0.5 text-[11px] font-semibold text-navy-300">من هنا تمنح أو تزيل صلاحية الإدارة لأي حساب محامٍ.</p></div>{loading ? <EmptyState title="جارٍ التحميل…" /> : lawyers.length === 0 ? <EmptyState title="لا يوجد محامون" /> : <Card className="divide-y divide-navy-100">{lawyers.map((lawyer) => { const email = lawyer.googleEmail || lawyer.email; return <div key={lawyer.id} className="flex flex-wrap items-center gap-3 px-4 py-3"><Avatar name={lawyer.fullName} size={40} /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-[13.5px] font-extrabold text-navy-950">{lawyer.fullName}</p>{lawyer.isAdmin && <Badge tone="gold"><ShieldCheck size={11} /> ادمن</Badge>}{lawyer.id === currentUserId && <Badge tone="navy">أنت</Badge>}</div><p className="ltr mt-0.5 truncate text-start font-latin text-[11.5px] font-semibold text-navy-400" dir="ltr">{email || 'بدون بريد إلكتروني'}</p></div><Button size="sm" variant={lawyer.isAdmin ? 'outline' : 'gold'} onClick={() => void toggle(lawyer)} disabled={busy === lawyer.id || !email}>{busy === lawyer.id ? 'جارٍ الحفظ…' : lawyer.isAdmin ? <><ShieldOff size={14} /> إزالة الادمن</> : <><ShieldCheck size={14} /> جعل ادمن</>}</Button></div>; })}</Card>}</div>;
+          }
+          TSX
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/navbar.tsx src/app/layout.tsx src/app/page.tsx src/components/admin/admin-shell.tsx src/components/admin/users-tab.tsx
+          if ! git diff --cached --quiet; then git commit -m "feat: apply requested office updates [auto-edit]"; git push; fi
