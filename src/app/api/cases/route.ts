@@ -8,7 +8,24 @@ const LEGACY_META_PREFIX = '__ARCHIVED_CASE_META__';
 export const GET = handle(async () => {
   const session = await user();
   if (!session) return json({ error: 'يجب تسجيل الدخول لعرض ملفات القضايا' }, { status: 401 });
-  const cases = await prisma.caseRecord.findMany({ orderBy: { id: 'desc' }, take: 200, include: { events: { orderBy: { createdAt: 'desc' }, take: 100 } } });
+  const cases = await prisma.caseRecord.findMany({
+    orderBy: { id: 'desc' },
+    take: 200,
+    include: {
+      events: { orderBy: { createdAt: 'desc' }, take: 100 },
+      tasks: {
+        where: { status: { not: 'CANCELLED' }, scheduledDate: { not: null } },
+        orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
+        select: {
+          id: true,
+          scheduledDate: true,
+          scheduledTime: true,
+          status: true,
+          location: { select: { name: true } },
+        },
+      },
+    },
+  });
   return json({ cases });
 });
 
