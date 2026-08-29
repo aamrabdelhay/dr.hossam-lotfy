@@ -14,16 +14,16 @@ import { prisma } from '@/lib/prisma';
 import type { NavLawyer, NavLocation } from '@/lib/constants';
 import { isFrameworkError, redact } from '@/lib/health';
 
+// Authentication is request-specific. Never allow the root layout to be
+// statically cached or reused between signed-in and signed-out visitors.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
-  title: {
-    default: 'DR. HOSSAM LOTFY LAW FIRM — نظام إدارة الجلسات والمهام',
-    template: '%s — DR. HOSSAM LOTFY LAW FIRM',
-  },
+  title: { default: 'DR. HOSSAM LOTFY LAW FIRM — نظام إدارة الجلسات والمهام', template: '%s — DR. HOSSAM LOTFY LAW FIRM' },
   description: 'منصة مكتب د. حسام لطفي للمحاماة: إدارة الجلسات والمحاكم والمهام والمتابعة اليومية للمحامين — من مين نازل فين، وإمتى، وهيعمل إيه.',
 };
-
 export const viewport: Viewport = { themeColor: '#05080F', width: 'device-width', initialScale: 1 };
-
 const EMPTY_NAV = { lawyers: [] as NavLawyer[], locations: [] as NavLocation[] };
 const EMPTY_SIDEBAR: SidebarData = { warning: false, warningCount: 0, sections: { tomorrow: [], within3: [], within14: [], within30: [], all: [] } };
 type SafeLoad<T> = { value: T; unavailable: boolean };
@@ -44,7 +44,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = sessionResult.value;
   let databaseUnavailable = navResult.unavailable || sidebarResult.unavailable || sessionResult.unavailable;
   let unread = 0;
-
   if (session) {
     const unreadResult = await loadFailSoft('notification count', () => session.role === 'admin' ? prisma.notification.count({ where: { userId: session.userId, readAt: null } }) : prisma.notification.count({ where: { lawyerId: session.lawyerId, readAt: null } }), 0);
     unread = unreadResult.value;
