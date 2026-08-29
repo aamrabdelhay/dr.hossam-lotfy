@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarClock, CalendarPlus, X, Archive } from 'lucide-react';
+import { CalendarClock, CalendarPlus, X, Archive, BriefcaseBusiness } from 'lucide-react';
 import { Card, Collapsible, EmptyState } from './ui';
 import { SessionCard } from './session-card';
 import type { SidebarData } from '@/lib/queries';
@@ -11,6 +11,83 @@ function TomorrowDate() {
   const d = new Date(startOfToday());
   d.setDate(d.getDate() + 1);
   return formatDay(d);
+}
+
+type UpcomingArchivedCase = {
+  id: string;
+  name: string;
+  number: string;
+  clientName: string | null;
+  tasks: Array<{ id: string; scheduledDate: string | null; scheduledTime: string | null; status: string; location: { name: string } }>;
+};
+
+function UpcomingCases() {
+  const [cases, setCases] = React.useState<UpcomingArchivedCase[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch('/api/cases', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('cases unavailable'))))
+      .then((data) => {
+        if (cancelled) return;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const rows = (data.cases ?? []) as UpcomingArchivedCase[];
+        const result = rows
+          .map((c) => {
+            const dated = c.tasks.filter((t) => t.scheduledDate);
+            const hasPast = dated.some((t) => new Date(`${t.scheduledDate}T00:00:00`) < today);
+            const next = dated
+              .filter((t) => new Date(`${t.scheduledDate}T00:00:00`) >= today && t.status !== 'CANCELLED')
+              .sort((a, b) => `${a.scheduledDate}T${a.scheduledTime ?? '23:59'}`.localeCompare(`${b.scheduledDate}T${b.scheduledTime ?? '23:59'}`))[0];
+            return hasPast && next ? { ...c, tasks: [next] } : null;
+          })
+          .filter((c): c is UpcomingArchivedCase => !!c)
+          .sort((a, b) => `${a.tasks[0].scheduledDate}T${a.tasks[0].scheduledTime ?? '23:59'}`.localeCompare(`${b.tasks[0].scheduledDate}T${b.tasks[0].scheduledTime ?? '23:59'}`));
+        setCases(result);
+      })
+      .catch(() => setCases([]))
+      .finally(() => setLoading(false));
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading || cases.length === 0) return null;
+  return (
+    <section className="mx-3 my-2 overflow-hidden rounded-2xl border border-gold-500/25 bg-gold-500/[0.035]">
+      <div className="flex items-center gap-2 border-b border-gold-500/15 px-3 py-2.5">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold-500/10 text-gold-700"><BriefcaseBusiness size={14} /></span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[12px] font-extrabold text-navy-900">قضايا لها مواعيد قادمة</h3>
+          <p className="text-[9.5px] font-semibold text-navy-400">من الأرشيف إلى جدول المتابعة</p>
+        </div>
+        <span className="rounded-full bg-gold-500/10 px-2 py-1 text-[9px] font-bold text-gold-700">{cases.length}</span>
+      </div>
+      <div className="divide-y divide-gold-500/10">
+        {cases.slice(0, 12).map((c) => {
+          const next = c.tasks[0];
+          return (
+            <a key={c.id} href={`/cases/archive?q=${encodeURIComponent(c.name)}`} className="block px-3 py-2.5 transition hover:bg-white/70">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[11.5px] font-extrabold text-navy-800">{c.name}</p>
+                  <p className="font-latin text-[9.5px] font-bold text-navy-400" dir="ltr">{c.number}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-emerald-600/10 px-2 py-1 text-[9px] font-extrabold text-emerald-700">موعد قادم</span>
+              </div>
+              <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-navy-500">
+                <CalendarClock size={11} className="text-gold-600" />
+                {next.scheduledDate && formatDay(new Date(`${next.scheduledDate}T12:00:00`))}
+                {next.scheduledTime && <span dir="ltr" className="font-latin text-navy-400">{next.scheduledTime}</span>}
+                <span className="text-navy-300">•</span>{next.location.name}
+              </p>
+              {c.clientName && <p className="mt-0.5 truncate text-[9.5px] font-semibold text-navy-400">العميل: {c.clientName}</p>}
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 function Section({ id, title, tone, tasks, defaultOpen = false, admin }: { id: string; title: string; tone: string; tasks: SidebarData['sections']['all']; defaultOpen?: boolean; admin?: boolean }) {
@@ -47,6 +124,7 @@ export function SessionSidebar({ data, isAdmin }: { data: SidebarData; isAdmin: 
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
         <ArchiveLink />
+        <UpcomingCases />
         <Section id="tomorrow" title={`غداً — ${TomorrowDate()}`} tone="bg-red-600" tasks={data.sections.tomorrow} defaultOpen admin={isAdmin} />
         <Section id="d3" title="خلال 3 أيام" tone="bg-orange-500" tasks={data.sections.within3} defaultOpen admin={isAdmin} />
         <Section id="d14" title="خلال أسبوعين" tone="bg-amber-500" tasks={data.sections.within14} admin={isAdmin} />
