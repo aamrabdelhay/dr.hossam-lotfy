@@ -141,10 +141,8 @@ export function AdminShell(props: AdminShellProps) {
             <div className="flex flex-wrap gap-2">
               <QuickAction icon={<CalendarPlus size={14} />} label="إضافة جلسة" onClick={() => setModal({ kind: 'task', data: { session: true } })} gold />
               <QuickAction icon={<FilePlus2 size={14} />} label="تكليفات" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
-              <QuickAction icon={<Users2 size={14} />} label="تكليفات" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
               <QuickAction icon={<UserPlus size={14} />} label="إضافة محامي" onClick={() => setModal({ kind: 'lawyer' })} />
               <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
-              <QuickAction icon={<Building2 size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
               <Link
                 href="/cases/archive"
                 className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-ivory-100 transition hover:border-gold-500/50 hover:bg-white/10"
@@ -814,7 +812,36 @@ function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
   const router = useRouter();
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [newEvent, setNewEvent] = React.useState<Record<string, string>>({});
+  const [editCase, setEditCase] = React.useState<AdminShellProps['cases'][number] | null>(null);
+  const [editName, setEditName] = React.useState('');
+  const [editNumber, setEditNumber] = React.useState('');
+  const [editClientName, setEditClientName] = React.useState('');
   const [busy, setBusy] = React.useState(false);
+
+  const saveCase = async () => {
+    if (!editCase || busy) return;
+    const name = editName.trim();
+    const number = editNumber.trim();
+    if (!name || !number) {
+      toastError('اسم القضية ورقم القضية مطلوبان.');
+      return;
+    }
+    setBusy(true);
+    const res = await fetch(`/api/cases/${editCase.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, number, clientName: editClientName.trim() || null }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok) {
+      toastSuccess('تم تعديل القضية ✓');
+      setEditCase(null);
+      router.refresh();
+    } else {
+      toastError(d.error ?? 'تعذر تعديل القضية.');
+    }
+  };
 
   const addEvent = async (caseId: string) => {
     const text = (newEvent[caseId] ?? '').trim();
@@ -869,7 +896,17 @@ function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
                   {openId === item.id ? 'إخفاء السجل' : `السجل (${item.events.length})`}
                 </button>
                 <Link href={`/search?q=${encodeURIComponent(item.number)}&type=session`} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">عرض المرتبط</Link>
-                <button onClick={() => { const name = window.prompt('اسم القضية', item.name); if (name === null) return; const number = window.prompt('رقم القضية', item.number); if (number === null) return; const clientName = window.prompt('اسم العميل', item.clientName ?? ''); if (clientName === null) return; void fetch(`/api/cases/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, number, clientName: clientName || null }) }).then(async (r) => { const d = await r.json().catch(() => ({})); if (r.ok) { toastSuccess('تم تعديل القضية ✓'); router.refresh(); } else toastError(d.error ?? 'تعذر تعديل القضية.'); }); }} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5">تعديل</button>
+                <button
+                  onClick={() => {
+                    setEditCase(item);
+                    setEditName(item.name);
+                    setEditNumber(item.number);
+                    setEditClientName(item.clientName ?? '');
+                  }}
+                  className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-navy-500 hover:bg-navy-900/5"
+                >
+                  تعديل
+                </button>
               </div>
 
               {openId === item.id && (
@@ -907,6 +944,32 @@ function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
           ))}
         </div>
       )}
+
+      <Modal
+        open={!!editCase}
+        onClose={() => setEditCase(null)}
+        title={editCase ? `تعديل القضية: ${editCase.name}` : 'تعديل القضية'}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setEditCase(null)} disabled={busy}>إلغاء</Button>
+            <Button variant="gold" onClick={saveCase} disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <Field label="اسم القضية">
+            <Input value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus />
+          </Field>
+          <Field label="رقم القضية">
+            <Input value={editNumber} onChange={(e) => setEditNumber(e.target.value)} dir="ltr" className="font-latin" />
+          </Field>
+          <Field label="اسم العميل">
+            <Input value={editClientName} onChange={(e) => setEditClientName(e.target.value)} />
+          </Field>
+        </div>
+      </Modal>
     </Card>
   );
 }
