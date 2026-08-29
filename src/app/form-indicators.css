@@ -1,0 +1,32 @@
+@supports selector(label:has(*)) {
+  label.block > span:first-child > span[role="img"] { display: none; }
+  label.block > span:first-child .text-gold-600,
+  label.block > span:first-child .text-navy-300 { display: none; }
+
+  label.block > span:first-child::before {
+    content: '';
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 9999px;
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.12);
+    transition: background-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  label.block:has(.text-gold-600) > span:first-child::before {
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+  }
+
+  label.block:has(.bg-emerald-500) > span:first-child::before {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.12);
+  }
+
+  label.block:has(.bg-red-500) > span:first-child::before {
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12);
+  }
+}
