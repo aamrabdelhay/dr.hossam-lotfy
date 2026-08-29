@@ -11,7 +11,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 180;
 
 export type SessionUser =
   | { role: 'admin'; userId: string; name: string; userRole: StaffRole }
-  | { role: 'lawyer'; lawyerId: string; name: string; slug: string };
+  | { role: 'lawyer'; lawyerId: string; name: string; slug: string; isAdmin: boolean };
 
 function secret(): string { const s = process.env.SESSION_SECRET; if (!s) throw new Error('SESSION_SECRET is not set'); return s; }
 function hmac(payload: string): string { return crypto.createHmac('sha256', secret()).update(payload).digest('base64url'); }
@@ -50,7 +50,13 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   if (session.role === 'lawyer' && session.lawyerId) {
     const lawyer = await prisma.lawyer.findUnique({ where: { id: session.lawyerId } });
     if (!lawyer || !lawyer.active) return null;
-    return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug };
+    const identityEmail = (lawyer.googleEmail || lawyer.email || '').trim().toLowerCase();
+    let isAdmin = false;
+    if (identityEmail) {
+      const adminAccount = await prisma.user.findUnique({ where: { email: identityEmail }, select: { role: true } });
+      isAdmin = adminAccount?.role === 'SUPER_ADMIN' || adminAccount?.role === 'ADMIN';
+    }
+    return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug, isAdmin };
   }
   return null;
 }
@@ -60,9 +66,9 @@ export async function revokeCurrentSession(): Promise<void> {
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
   await prisma.authSession.updateMany({ where: { tokenHash }, data: { revokedAt: new Date() } });
 }
-export function clearSessionCookie() { return { name: COOKIE, value: '', options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 0, expires: new Date(0) } as Record<string, unknown> }; }
+export function clearSessionCookie() { return { name: COOKIE, value: '', options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/', maxAge: 0, expires: new Date(0) } as Record<string, unknown>; }
 export const SESSION_COOKIE_NAME = COOKIE;
-export async function isAdmin(): Promise<boolean> { const u = await getCurrentUser(); return u?.role === 'admin'; }
+export async function isAdmin(): Promise<boolean> { const u = await getCurrentUser(); return !!u && (u.role === 'admin' || (u.role === 'lawyer' && u.isAdmin)); }
 export async function isLawyer(lawyerId: string): Promise<boolean> { const u = await getCurrentUser(); return u?.role === 'lawyer' && u.lawyerId === lawyerId; }
 export function safeComparePassword(password: string, hash: string): boolean { return bcrypt.compareSync(password, hash); }
 export function createOAuthState(ttlMs = 10 * 60 * 1000): string { const raw = crypto.randomBytes(24).toString('base64url'); const exp = Date.now() + ttlMs; const body = `${raw}.${exp}`; return `${body}.${hmac(body)}`; }
