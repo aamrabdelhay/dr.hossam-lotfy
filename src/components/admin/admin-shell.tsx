@@ -135,16 +135,16 @@ export function AdminShell(props: AdminShellProps) {
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-extrabold text-ivory-50">منطقة الإدارة</h1>
               <p className="text-[12px] font-semibold text-ivory-300">
-                DR. HOSSAM LOTFY LAW FIRM — تحكم كامل: الجلسات، المحامون، الأماكن، والنشاط.
+                إدارة المكتب
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <QuickAction icon={<CalendarPlus size={14} />} label="إضافة جلسة" onClick={() => setModal({ kind: 'task', data: { session: true } })} gold />
-              <QuickAction icon={<FilePlus2 size={14} />} label="إضافة مهمة" onClick={() => setModal({ kind: 'task' })} />
-              <QuickAction icon={<Users2 size={14} />} label="إسناد لعدة محامين" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
+              <QuickAction icon={<FilePlus2 size={14} />} label="تكليفات" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
+              <QuickAction icon={<Users2 size={14} />} label="تكليفات" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
               <QuickAction icon={<UserPlus size={14} />} label="إضافة محامي" onClick={() => setModal({ kind: 'lawyer' })} />
-              <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة" onClick={() => setModal({ kind: 'location', data: { type: 'COURT' } })} />
-              <QuickAction icon={<Building2 size={14} />} label="إضافة مكان" onClick={() => setModal({ kind: 'location' })} />
+              <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
+              <QuickAction icon={<Building2 size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
               <Link
                 href="/cases/archive"
                 className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-ivory-100 transition hover:border-gold-500/50 hover:bg-white/10"
@@ -173,9 +173,9 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'overview', label: 'نظرة عامة' },
           { id: 'tasks', label: 'الجلسات والمهام' },
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
-          { id: 'locations', label: 'الأماكن', count: props.stats.locations },
+          { id: 'locations', label: 'الجهات الحكومية', count: props.stats.locations },
           { id: 'cases', label: 'القضايا', count: props.stats.cases },
-          ...(props.permissions.manageUsers ? [{ id: 'users', label: 'المستخدمون' }] : []),
+          ...(props.permissions.manageUsers ? [{ id: 'users', label: 'الادمن' }] : []),
           { id: 'activity', label: 'النشاط' },
           { id: 'notifications', label: 'الإشعارات' },
         ]}
@@ -292,7 +292,7 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
             <h2 className="text-[15px] font-extrabold text-navy-900">فيد الإدارة</h2>
             <Button size="sm" variant="gold" onClick={props.onOpenTask}>
               <CalendarPlus size={14} />
-              + إضافة جلسة / مهمة
+              + تكليف
             </Button>
           </div>
           {feedTasks.length === 0 ? (
