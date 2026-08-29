@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { handle, json, readJson, requirePermission, user } from '@/lib/api';
+import { handle, json, readJson, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 
@@ -25,7 +25,7 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
   const lawyer = await prisma.lawyer.findUnique({ where: { id } });
   if (!lawyer) return json({ error: 'المحامي غير موجود' }, { status: 404 });
 
-  const isAdmin = session.role === 'admin';
+  const isAdmin = session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin);
   const isSelf = session.role === 'lawyer' && session.lawyerId === id;
   if (!isAdmin && !isSelf) return json({ error: 'لا تملك صلاحية تعديل هذا الملف' }, { status: 403 });
 
@@ -37,13 +37,12 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
     : { fullName: data.fullName, title: data.title, phone: data.phone, email: data.email, googleEmail: data.googleEmail, specialization: data.specialization, bio: data.bio, position: data.position };
   for (const key of Object.keys(payload)) if (payload[key] === undefined) delete payload[key];
 
-  // Lawyer photos are intentionally disabled for the entire office.
   const updated = await prisma.lawyer.update({ where: { id }, data: { ...payload, profilePhotoUrl: null, coverPhotoUrl: null } });
 
   if (isAdmin && data.active !== undefined && data.active !== lawyer.active) {
-    await logActivity({ action: data.active ? 'LAWYER_REACTIVATED' : 'LAWYER_DEACTIVATED', summary: data.active ? `أعاد تفعيل المحامي: ${lawyer.fullName}` : `عطّل المحامي: ${lawyer.fullName}`, lawyerId: id, byUserId: session.userId });
+    await logActivity({ action: data.active ? 'LAWYER_REACTIVATED' : 'LAWYER_DEACTIVATED', summary: data.active ? `أعاد تفعيل المحامي: ${lawyer.fullName}` : `عطّل المحامي: ${lawyer.fullName}`, lawyerId: id, byUserId: session.role === 'admin' ? session.userId : undefined, byLawyerId: session.role === 'lawyer' ? session.lawyerId : undefined });
   } else {
-    await logActivity({ action: 'PROFILE_UPDATED', summary: `${isAdmin ? 'حدّث بيانات المحامي' : 'حدّث بيانات ملفه'}: ${lawyer.fullName}`, lawyerId: id, byUserId: isAdmin ? session.userId : null, byLawyerId: isSelf ? session.lawyerId : null });
+    await logActivity({ action: 'PROFILE_UPDATED', summary: `${isAdmin ? 'حدّث بيانات المحامي' : 'حدّث بيانات ملفه'}: ${lawyer.fullName}`, lawyerId: id, byUserId: session.role === 'admin' ? session.userId : undefined, byLawyerId: isSelf ? session.lawyerId : undefined });
   }
   return json({ ok: true, lawyer: updated });
 });
