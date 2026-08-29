@@ -20,8 +20,9 @@ export const POST = handle(async (req: Request) => {
   if (isAdminCreate && !can(session.userRole, 'writeTasks')) return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 }); if (!isOwnPost && !isAdminCreate) return json({ error: 'لا تملك صلاحية إضافة مهمة' }, { status: 403 });
   if (!data.locationId && !data.lawyerIds?.length && !data.caseName && !data.caseNumber && !data.scheduledDate && !data.scheduledTime && !data.clientId) {
     const id = `task_${crypto.randomUUID().replaceAll('-', '')}`;
-    await prisma.$executeRawUnsafe(`INSERT INTO "tasks" ("id","description","notes","status","createdById","createdAt","updatedAt") VALUES ($1,$2,$3,'PENDING',$4,NOW(),NOW())`, id, data.description, data.notes?.trim() || null, session.userId);
-    await logActivity({ action: 'CREATED', summary: `أنشأ تكليفاً جديداً: ${data.description.slice(0, 80)}`, taskId: id, byUserId: session.userId }).catch(() => undefined);
+    const createdById = session.role === 'admin' ? session.userId : null;
+    await prisma.$executeRawUnsafe(`INSERT INTO "tasks" ("id","description","notes","status","createdById","createdAt","updatedAt") VALUES ($1,$2,$3,'PENDING',$4,NOW(),NOW())`, id, data.description, data.notes?.trim() || null, createdById);
+    await logActivity({ action: 'CREATED', summary: `أنشأ تكليفاً جديداً: ${data.description.slice(0, 80)}`, taskId: id, byUserId: createdById }).catch(() => undefined);
     return json({ ok: true, task: { id, description: data.description, notes: data.notes?.trim() || null, status: 'PENDING' }, createdCount: 1, standalone: true, demo });
   }
   if (data.locationId) { const location = await prisma.location.findUnique({ where: { id: data.locationId } }); if (!location) return json({ error: 'المكان غير موجود' }, { status: 404 }); }
