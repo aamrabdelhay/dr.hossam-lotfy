@@ -36,7 +36,7 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
   const myLawyerId = session?.role === 'lawyer' ? session.lawyerId : null;
   const myAdminId = session?.role === 'admin' ? session.userId : null;
   const isAdmin = role === 'admin' || (role === 'lawyer' && session?.isAdmin === true);
-  const isAdmin = role === 'admin' || (role === 'lawyer' && session?.isAdmin === true);
+  const iAmAuthor = myLawyerId != null && task.author?.id === myLawyerId;
   const canEdit = isAdmin || iAmAuthor;
   const canWriteTasks = session !== null && (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin);
 
