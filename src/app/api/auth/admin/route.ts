@@ -6,12 +6,15 @@ import { handle, json, readJson } from '@/lib/api';
 
 /** The office administration access code. Only this exact value is accepted. */
 const ADMIN_CODE = 'hl';
+const FALLBACK_ADMIN_EMAIL = 'admin@hossam-lotfy.local';
 
 const loginSchema = z.object({ code: z.string().min(1).max(64) });
 
 /**
  * Admin sign-in by code only. Any code other than the configured one is
- * rejected with 401 — there is no e-mail/password admin login anymore.
+ * rejected with 401. If the database has not been seeded with an admin yet,
+ * create a minimal code-only admin account so the first login cannot fail with
+ * an unexpected "no admin user" error.
  */
 export const POST = handle(async (req: Request) => {
   const { code } = await readJson(req, loginSchema);
@@ -20,12 +23,24 @@ export const POST = handle(async (req: Request) => {
     return json({ error: 'رمز الدخول غير صحيح' }, { status: 401 });
   }
 
-  const admin = await prisma.user.findFirst({
+  let admin = await prisma.user.findFirst({
     where: { role: { in: ['ADMIN', 'SUPER_ADMIN', 'OFFICE_MANAGER', 'SECRETARY'] } },
     orderBy: { createdAt: 'asc' },
   });
+
+  // Keep admin authentication independent from a separate password login.
+  // This also makes a fresh/empty production database usable immediately.
   if (!admin) {
-    return json({ error: 'لا يوجد مستخدم إدارة مهيأ في قاعدة البيانات.' }, { status: 503 });
+    admin = await prisma.user.upsert({
+      where: { email: FALLBACK_ADMIN_EMAIL },
+      update: { role: 'SUPER_ADMIN' },
+      create: {
+        name: 'إدارة المكتب',
+        email: FALLBACK_ADMIN_EMAIL,
+        passwordHash: 'CODE_ONLY_ADMIN',
+        role: 'SUPER_ADMIN',
+      },
+    });
   }
 
   const cookie = await createSessionCookie({
