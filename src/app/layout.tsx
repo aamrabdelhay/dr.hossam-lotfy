@@ -16,7 +16,7 @@ import type { NavLawyer, NavLocation } from '@/lib/constants';
 import { isFrameworkError, redact } from '@/lib/health';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-export const metadata: Metadata = { title: { default: 'DR. HOSSAM LOTFY LAW FIRM — نظام إدارة الجلسات والمهام', template: '%s — DR. HOSSAM LOTFY LAW FIRM' }, description: 'منصة مكتب د. حسام لطفي للمحاماة: إدارة الجلسات والمحاكم والمهام والمتابعة اليومية للمحامين — من مين نازل فين، وإمتى، وهيعمل إيه.' };
+export const metadata: Metadata = { title: { default: 'Dr.hossam lotfi LAW FIRM — نظام إدارة الجلسات والمهام', template: '%s — Dr.hossam lotfi LAW FIRM' }, description: 'منصة مكتب د. حسام لطفي للمحاماة: إدارة الجلسات والمحاكم والمهام والمتابعة اليومية للمحامين — من مين نازل فين، وإمتى، وهيعمل إيه.' };
 export const viewport: Viewport = { themeColor: '#05080F', width: 'device-width', initialScale: 1 };
 const EMPTY_NAV = { lawyers: [] as NavLawyer[], locations: [] as NavLocation[] };
 const EMPTY_SIDEBAR: SidebarData = { warning: false, warningCount: 0, sections: { tomorrow: [], within3: [], within14: [], within30: [], all: [] } };
