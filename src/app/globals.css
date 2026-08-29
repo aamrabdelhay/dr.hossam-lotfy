@@ -95,7 +95,7 @@ button:disabled,[role="button"][aria-disabled="true"] { cursor:not-allowed; }
 button[class*="bg-"]:hover:not(:disabled),[role="button"][class*="bg-"]:hover:not([aria-disabled="true"]) { box-shadow:0 7px 18px -10px rgba(5,8,15,.38); }
 button:active:not(:disabled)>svg,[role="button"]:active:not([aria-disabled="true"])>svg { transform:scale(.97); }
 button>svg,[role="button"]>svg { transition:transform 160ms cubic-bezier(.22,1,.36,1); }
-button:hover:not(:disabled)>svg,[role="button"]:hover:not([aria-disabled="true"] )>svg { transform:scale(1.04); }
+button:hover:not(:disabled)>svg,[role="button"]:hover:not([aria-disabled="true"])>svg { transform:scale(1.04); }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } button,[role="button"],button>svg,[role="button"]>svg { transition:none !important; animation:none !important; } button:hover:not(:disabled),button:active:not(:disabled),[role="button"]:hover:not([aria-disabled="true"]),[role="button"]:active:not([aria-disabled="true"]) { transform:none; } }
 button[title="رابط دخول المحامي"] { display: none !important; }
 html, body { width: 100%; max-width: 100%; overflow-x: clip; }
