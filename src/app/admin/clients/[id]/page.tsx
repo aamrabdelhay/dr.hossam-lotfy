@@ -5,14 +5,16 @@ import { ArrowRight, BriefcaseBusiness, CalendarDays, Clock3, FileText, Mail, Ma
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Card } from '@/components/ui';
+import { ClientProfileEditor } from '@/components/admin/client-profile-editor';
 
 export const metadata: Metadata = { title: 'ملف العميل — الإدارة' };
 
-type Client = { id:string; name:string; phone:string|null; email:string|null; nationalId:string|null; address:string|null; notes:string|null; createdAt:Date; updatedAt:Date };
+type Client = { id:string; name:string; phone:string|null; email:string|null; nationalId:string|null; address:string|null; notes:string|null; assignedLawyerId:string|null; createdAt:Date; updatedAt:Date };
 type CaseRow = { id:string; name:string; number:string; description:string|null; clientName:string|null; createdAt:Date|null; eventCount:number; taskCount:number };
 type EventRow = { id:string; caseId:string; description:string; type:string; authorName:string|null; createdAt:Date };
 type TaskRow = { id:string; caseId:string|null; description:string; notes:string|null; scheduledDate:Date|null; scheduledTime:string|null; status:string; createdAt:Date; locationName:string|null };
 
+type LawyerRow = { id:string; name:string };
 function fmtDate(value: Date|null|undefined){ if(!value) return 'غير محدد'; return new Intl.DateTimeFormat('ar-EG',{year:'numeric',month:'long',day:'numeric'}).format(new Date(value)); }
 function statusLabel(value:string){ return ({PENDING:'قيد التنفيذ',IN_PROGRESS:'جاري التنفيذ',COMPLETED:'تم التنفيذ',CANCELLED:'ملغي'} as Record<string,string>)[value] ?? value; }
 
@@ -21,8 +23,9 @@ export default async function ClientProfilePage({params}:{params:Promise<{id:str
   const admin=!!session&&(session.role==='admin'||(session.role==='lawyer'&&session.isAdmin));
   if(!admin) redirect('/auth');
   const {id}=await params;
-  const clients=await prisma.$queryRawUnsafe<Client[]>(`SELECT "id","name","phone","email","nationalId","address","notes","createdAt","updatedAt" FROM "clients" WHERE "id"=$1 LIMIT 1`,id);
+  const clients=await prisma.$queryRawUnsafe<Client[]>(`SELECT "id","name","phone","email","nationalId","address","notes","assignedLawyerId","createdAt","updatedAt" FROM "clients" WHERE "id"=$1 LIMIT 1`,id);
   const client=clients[0]; if(!client) notFound();
+  const lawyers=await prisma.$queryRawUnsafe<LawyerRow[]>(`SELECT "id","fullName" AS "name" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" ASC`);
   const cases=await prisma.$queryRawUnsafe<CaseRow[]>(`SELECT cr."id",cr."name",cr."number",cr."description",cr."clientName",MIN(ce."createdAt") AS "createdAt",COUNT(DISTINCT ce."id")::int AS "eventCount",COUNT(DISTINCT t."id")::int AS "taskCount" FROM "case_records" cr LEFT JOIN "case_events" ce ON ce."caseId"=cr."id" LEFT JOIN "tasks" t ON t."caseId"=cr."id" WHERE cr."clientId"=$1 GROUP BY cr."id" ORDER BY COALESCE(MIN(ce."createdAt"),TIMESTAMP '1970-01-01') DESC, cr."id" DESC`,id);
   const events=await prisma.$queryRawUnsafe<EventRow[]>(`SELECT ce."id",ce."caseId",ce."description",ce."type",ce."authorName",ce."createdAt" FROM "case_events" ce INNER JOIN "case_records" cr ON cr."id"=ce."caseId" WHERE cr."clientId"=$1 ORDER BY ce."createdAt" DESC`,id);
   const tasks=await prisma.$queryRawUnsafe<TaskRow[]>(`SELECT t."id",t."caseId",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",l."name" AS "locationName" FROM "tasks" t INNER JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "locations" l ON l."id"=t."locationId" WHERE cr."clientId"=$1 ORDER BY COALESCE(t."scheduledDate",t."createdAt"::date) DESC,t."createdAt" DESC`,id);
@@ -30,7 +33,7 @@ export default async function ClientProfilePage({params}:{params:Promise<{id:str
   return <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6" dir="rtl">
     <Link href="/admin/clients" className="mb-5 inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600 shadow-soft"><ArrowRight size={14}/> العودة لقائمة العملاء</Link>
     <section className="mb-5 overflow-hidden rounded-3xl border border-navy-100 bg-white shadow-soft">
-      <div className="bg-gradient-to-l from-navy-950 to-navy-800 p-5 text-white sm:p-7"><div className="flex flex-wrap items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10"><UserRound size={30}/></div><div className="min-w-0 flex-1"><p className="text-[11px] font-bold text-white/60">ملف العميل</p><h1 className="mt-1 text-2xl font-black">{client.name}</h1><p className="mt-1 text-xs text-white/60">ملف شامل للبيانات والقضايا والتاريخ والأرشيف</p></div><div className="rounded-2xl bg-white/10 px-5 py-3 text-center"><div className="text-2xl font-black">{cases.length}</div><div className="text-[10px] font-bold text-white/60">قضية</div></div></div></div>
+      <div className="bg-gradient-to-l from-navy-950 to-navy-800 p-5 text-white sm:p-7"><div className="flex flex-wrap items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10"><UserRound size={30}/></div><div className="min-w-0 flex-1"><p className="text-[11px] font-bold text-white/60">ملف العميل</p><h1 className="mt-1 text-2xl font-black">{client.name}</h1><p className="mt-1 text-xs text-white/60">ملف شامل للبيانات والقضايا والتاريخ والأرشيف</p></div><div className="rounded-2xl bg-white/10 px-5 py-3 text-center"><div className="text-2xl font-black">{cases.length}</div><div className="text-[10px] font-bold text-white/60">قضية</div></div></div><ClientProfileEditor client={client} lawyers={lawyers}/></div>
       <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4"><Info icon={<Phone size={15}/>} label="الهاتف" value={client.phone}/><Info icon={<Mail size={15}/>} label="البريد الإلكتروني" value={client.email}/><Info icon={<FileText size={15}/>} label="الرقم القومي" value={client.nationalId}/><Info icon={<MapPin size={15}/>} label="العنوان" value={client.address}/></div>
       {client.notes&&<div className="mx-5 mb-5 rounded-2xl border border-gold-200 bg-gold-50/50 p-4"><div className="mb-1 text-[11px] font-extrabold text-gold-700">ملاحظات العميل</div><p className="whitespace-pre-wrap text-sm font-semibold text-navy-700">{client.notes}</p></div>}
     </section>
