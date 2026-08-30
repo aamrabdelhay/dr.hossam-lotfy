@@ -64,7 +64,7 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
   const isAdmin = Boolean(session && (session.role === 'admin' || session.isAdmin));
 
   return (
-    <header ref={wrapRef} className="site-floating-nav glass-light fixed left-1/2 top-2 z-50 w-[calc(100%-1rem)] max-w-[1440px] -translate-x-1/2 overflow-visible border border-white/70 text-navy-950 sm:top-3 sm:w-[calc(100%-2rem)] lg:top-4 lg:w-[calc(100%-3rem)]">
+    <header ref={wrapRef} className="site-floating-nav glass-light fixed inset-x-0 top-2 z-50 mx-auto w-[calc(100%-1rem)] max-w-[1440px] overflow-visible border border-white/70 text-navy-950 sm:top-3 sm:w-[calc(100%-2rem)] lg:top-4 lg:w-[calc(100%-3rem)]">
       <span aria-hidden className="gold-hairline pointer-events-none absolute inset-x-5 bottom-0 opacity-50 sm:inset-x-8" />
       <div className="relative mx-auto flex min-h-[58px] w-full items-center gap-1 px-2.5 py-2 sm:min-h-[64px] sm:gap-2 sm:px-4 sm:py-0 lg:gap-3 lg:px-6">
         <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-navy-400 lg:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="القائمة">{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
