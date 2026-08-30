@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 
 const routes: Record<string, string> = {
-  'تكليفات': '/admin?tab=tasks&standalone=1',
+  'تكليفات': '/tasks',
+  'تكليف': '/tasks',
   'إضافة محامي': '/admin?tab=lawyers&standalone=1',
   'إضافة محكمة أو جهة': '/admin?tab=locations&standalone=1',
   'أرشيف القضايا': '/admin?tab=cases&standalone=1',
@@ -21,7 +22,6 @@ function wire() {
       window.location.href = target;
     }, true);
   }
-
   for (const link of Array.from(document.querySelectorAll('a'))) {
     const label = link.textContent?.replace(/\s+/g, ' ').trim() ?? '';
     const target = label.includes('أرشيف القضايا') ? routes['أرشيف القضايا'] : null;
@@ -43,10 +43,7 @@ export function QuickNavigationFix() {
   useEffect(() => {
     wire();
     hideAdminChrome();
-    const observer = new MutationObserver(() => {
-      wire();
-      hideAdminChrome();
-    });
+    const observer = new MutationObserver(() => { wire(); hideAdminChrome(); });
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
