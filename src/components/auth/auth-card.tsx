@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Scale, UserRoundPlus, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Scale, UserRoundPlus, ShieldCheck, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { LawyerLoginForm } from './lawyer-login-form';
 import { LawyerRegisterForm } from './lawyer-register-form';
 import { AdminLoginForm } from './admin-login-form';
 
-type Mode = 'login' | 'register' | 'admin';
+type Mode = 'login' | 'register' | 'admin' | 'trainee';
 
 const MODES: Array<{
   id: Mode;
@@ -37,12 +38,15 @@ const MODES: Array<{
     heading: 'دخول الإدارة',
     sub: 'لفريق إدارة المكتب فقط — أدخل كود الإدارة.',
   },
+  {
+    id: 'trainee',
+    label: 'تقديم كمتدرب',
+    icon: <GraduationCap size={16} />,
+    heading: 'التقديم كمتدرب',
+    sub: 'المتدرب لا يحتاج إلى حساب أو تسجيل دخول. أرسل طلبك فقط، وستراجعه الإدارة.',
+  },
 ];
 
-/**
- * One premium, centered card with three selectable modes (login / register /
- * admin) — a single card, not three separate pages.
- */
 export function AuthCard() {
   const [mode, setMode] = React.useState<Mode>('login');
   const active = MODES.find((m) => m.id === mode)!;
@@ -55,7 +59,6 @@ export function AuthCard() {
       />
 
       <div className="overflow-hidden rounded-3xl border border-navy-100/80 bg-white/95 shadow-lift ring-1 ring-navy-950/5 backdrop-blur-sm">
-        {/* Header */}
         <div className="relative bg-navy-950 px-6 py-7 text-center">
           <div className="mesh-gold absolute inset-0" aria-hidden />
           <div className="relative">
@@ -70,8 +73,7 @@ export function AuthCard() {
           <span className="gold-hairline absolute inset-x-0 bottom-0" aria-hidden />
         </div>
 
-        {/* Tabs */}
-        <div className="grid grid-cols-3 gap-1 border-b border-navy-100 bg-ivory-50 px-2 pt-2" role="tablist" aria-label="طرق الدخول">
+        <div className="grid grid-cols-2 gap-1 border-b border-navy-100 bg-ivory-50 px-2 pt-2 sm:grid-cols-4" role="tablist" aria-label="طرق الدخول والتقديم">
           {MODES.map((m) => (
             <button
               key={m.id}
@@ -79,18 +81,17 @@ export function AuthCard() {
               aria-selected={mode === m.id}
               onClick={() => setMode(m.id)}
               className={cn(
-                'relative flex flex-col items-center gap-1 rounded-t-xl px-2 py-2.5 text-[11.5px] font-bold transition-colors duration-200 sm:flex-row sm:justify-center sm:gap-1.5',
+                'relative flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-t-xl px-2 py-2 text-[10.5px] font-bold transition-colors duration-200 sm:flex-row sm:gap-1.5 sm:text-[11px]',
                 mode === m.id ? 'bg-white text-navy-950' : 'text-navy-400 hover:text-navy-700',
               )}
             >
               <span className={cn('transition-colors', mode === m.id ? 'text-gold-600' : 'text-navy-300')}>{m.icon}</span>
               <span>{m.label}</span>
-              {mode === m.id && <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-gradient-to-l from-gold-400 to-gold-600" aria-hidden />}
+              {mode === m.id && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-gradient-to-l from-gold-400 to-gold-600" aria-hidden />}
             </button>
           ))}
         </div>
 
-        {/* Active panel */}
         <div className="px-6 py-6">
           <div className="mb-4 text-center">
             <h2 className="text-[15px] font-extrabold text-navy-950">{active.heading}</h2>
@@ -99,6 +100,20 @@ export function AuthCard() {
           {mode === 'login' && <LawyerLoginForm />}
           {mode === 'register' && <LawyerRegisterForm />}
           {mode === 'admin' && <AdminLoginForm />}
+          {mode === 'trainee' && (
+            <div className="rounded-2xl border border-gold-200/70 bg-gold-50/50 p-5 text-center">
+              <GraduationCap className="mx-auto mb-3 text-gold-600" size={30} />
+              <p className="text-[12px] font-medium leading-6 text-navy-500">
+                التقديم متاح بدون إنشاء حساب وبدون تسجيل دخول. املأ نموذج طلب التدريب فقط، وسيظهر الطلب للإدارة لمراجعته.
+              </p>
+              <Link
+                href="/training"
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-navy-950 px-5 py-2.5 text-[12px] font-bold text-white shadow-soft transition hover:bg-navy-900"
+              >
+                فتح نموذج التقديم
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
