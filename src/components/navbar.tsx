@@ -63,82 +63,43 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
   };
 
   const navLinkStyle = (active: boolean) => cn(
-    'relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold transition-all duration-200',
+    'relative inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold whitespace-nowrap transition-all duration-200',
     'font-["IBM_Plex_Sans_Arabic",sans-serif]',
     active ? 'bg-white/65 text-navy-950 shadow-sm ring-1 ring-white/80 backdrop-blur-xl' : 'text-navy-600 hover:bg-white/55 hover:text-navy-950'
   );
 
   const locationList = (
-    <div className="w-72 overflow-hidden rounded-2xl border border-white/70 bg-white/75 shadow-xl ring-1 ring-white/70 backdrop-blur-2xl">
+    <div className="w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/70 bg-white/75 shadow-xl ring-1 ring-white/70 backdrop-blur-2xl">
       <p className="bg-[#0A101D]/90 px-4 py-2.5 text-[10px] font-bold tracking-[1.5px] uppercase text-gold-300">المحاكم والجهات الحكومية</p>
-      <ul className="max-h-64 overflow-y-auto overscroll-contain py-1.5">
-        {courts.map((l) => (
-          <li key={l.id}><Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#1D2433] transition-colors hover:bg-white/70"><Landmark size={14} className="text-gold-600" />{l.name}</Link></li>
-        ))}
-      </ul>
+      <ul className="max-h-64 overflow-y-auto overscroll-contain py-1.5">{courts.map((l) => <li key={l.id}><Link href={`/locations/${l.slug}`} className="flex items-center gap-2.5 px-4 py-2 text-[13px] font-medium text-[#1D2433] transition-colors hover:bg-white/70"><Landmark size={14} className="text-gold-600" />{l.name}</Link></li>)}</ul>
       <p className="bg-white/50 px-4 py-2 text-[9px] font-bold tracking-[1.5px] uppercase text-[#5B6B84]">الجهات الأخرى</p>
-      <ul className="max-h-48 overflow-y-auto overscroll-contain py-1.5">
-        {otherLocations.map((l) => (
-          <li key={l.id}><Link href={`/locations/${l.slug}`} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#1D2433] transition-colors hover:bg-white/70"><Scale size={14} className="text-[#5B6B84]" />{l.name}<span className="ms-auto rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold text-[#5B6B84]">{LOCATION_TYPE_LABEL[l.type]}</span></Link></li>
-        ))}
-      </ul>
+      <ul className="max-h-48 overflow-y-auto overscroll-contain py-1.5">{otherLocations.map((l) => <li key={l.id}><Link href={`/locations/${l.slug}`} className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#1D2433] transition-colors hover:bg-white/70"><Scale size={14} className="text-[#5B6B84]" />{l.name}<span className="ms-auto rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold text-[#5B6B84]">{LOCATION_TYPE_LABEL[l.type]}</span></Link></li>)}</ul>
       <Link href="/locations" className="block border-t border-white/70 bg-white/45 px-4 py-2.5 text-center text-[11px] font-bold text-gold-700">عرض كل المحاكم والجهات الحكومية</Link>
     </div>
   );
 
   const lawyerList = (
-    <div className="w-72 overflow-hidden rounded-2xl border border-white/70 bg-white/75 shadow-xl ring-1 ring-white/70 backdrop-blur-2xl">
-      <ul className="max-h-80 overflow-y-auto overscroll-contain py-1.5">
-        {[...lawyers].sort((a, b) => Number(b.isPrincipal) - Number(a.isPrincipal)).map((l) => (
-          <li key={l.id} className={cn(l.isPrincipal && 'bg-gold-500/[0.07]')}>
-            <Link href={`/lawyers/${l.slug}`} className="flex items-center gap-3 px-4 py-2">
-              <Avatar name={l.name} src={l.photo} size={28} />
-              <span className="min-w-0"><span className="block truncate text-[13px] font-medium text-[#1D2433]">{l.isPrincipal ? 'Dr.Hossam Loutfi' : l.name}</span><span className="block text-[10px] font-semibold tracking-[0.5px] uppercase text-[#5B6B84]">{TITLE_LABEL[l.title]}</span></span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <div className="w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/70 bg-white/75 shadow-xl ring-1 ring-white/70 backdrop-blur-2xl">
+      <ul className="max-h-80 overflow-y-auto overscroll-contain py-1.5">{[...lawyers].sort((a, b) => Number(b.isPrincipal) - Number(a.isPrincipal)).map((l) => <li key={l.id} className={cn(l.isPrincipal && 'bg-gold-500/[0.07]')}><Link href={`/lawyers/${l.slug}`} className="flex items-center gap-3 px-4 py-2"><Avatar name={l.name} src={l.photo} size={28} /><span className="min-w-0"><span className="block truncate text-[13px] font-medium text-[#1D2433]">{l.isPrincipal ? 'Dr.Hossam Loutfi' : l.name}</span><span className="block text-[10px] font-semibold tracking-[0.5px] uppercase text-[#5B6B84]">{TITLE_LABEL[l.title]}</span></span></Link></li>)}</ul>
       <Link href="/lawyers" className="block border-t border-white/70 bg-white/45 px-4 py-2.5 text-center text-[11px] font-bold text-gold-700">عرض كل المحامين</Link>
     </div>
   );
 
-  const loginLink = <Link href="/auth" prefetch={false} className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] font-bold tracking-[1.5px] uppercase text-navy-400" title="تسجيل الدخول"><KeyRound size={12} /><span className="hidden sm:inline">تسجيل دخول</span></Link>;
+  const loginLink = <Link href="/auth" prefetch={false} className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[10px] font-bold tracking-[1.5px] uppercase text-navy-400" title="تسجيل الدخول"><KeyRound size={12} /><span className="hidden sm:inline">تسجيل دخول</span></Link>;
   const isAdmin = Boolean(session && (session.role === 'admin' || session.isAdmin));
 
   return (
-    <header ref={wrapRef} className="site-floating-nav glass-light fixed inset-x-3 top-3 z-50 border border-white/70 text-navy-950 sm:inset-x-5 lg:inset-x-8">
-      <span aria-hidden className="gold-hairline absolute inset-x-8 bottom-0 opacity-50" />
-      <div className="relative mx-auto flex h-[64px] max-w-[1440px] items-center gap-3 px-4 sm:px-6">
-        <button className="rounded-full p-2 text-navy-400 lg:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="القائمة">{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
-        <Link href="/" className="group flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-[15px] font-semibold text-white shadow-glow-gold">HL</span><span className="flex min-w-0 flex-col items-center text-center"><span className="block truncate text-[14px] tracking-[2px] text-navy-950 md:text-[15px]">Dr.Hossam Loutfi</span><span className="hidden text-[9px] font-bold tracking-[3px] text-gold-600 uppercase md:block">LAW FIRM</span></span></Link>
-        <form onSubmit={doSearch} className="mx-auto hidden w-full max-w-[340px] items-center gap-1.5 lg:flex"><div className="group relative flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن محكمة، مكان، محامٍ…" className="h-9 w-full rounded-full border border-white/80 bg-white/60 ps-9 pe-3.5 text-[12px] text-navy-900 shadow-soft backdrop-blur-md" /></div></form>
-        <nav className="hidden items-center gap-1 lg:flex">
-          <div className="relative"><button onClick={() => setDropdown((d) => d === 'locations' ? null : 'locations')} className={navLinkStyle(isActive('/locations'))}>المحاكم والجهات الحكومية<ChevronDown size={10} /></button>{dropdown === 'locations' && <div className="absolute end-0 top-full pt-3">{locationList}</div>}</div>
-          <div className="relative"><button onClick={() => setDropdown((d) => d === 'lawyers' ? null : 'lawyers')} className={navLinkStyle(isActive('/lawyers'))}>المحامون<ChevronDown size={10} /></button>{dropdown === 'lawyers' && <div className="absolute end-0 top-full pt-3">{lawyerList}</div>}</div>
-          <Link href="/calendar" className={navLinkStyle(isActive('/calendar'))}>التقويم</Link>
-          <Link href="/search" className={navLinkStyle(isActive('/search'))}>البحث</Link>
-        </nav>
-        <div className="ms-auto flex items-center gap-2 lg:ms-4">
-          {session && <NotificationBell unread={unread} />}
-          {!session ? loginLink : isAdmin ? (
-            <div className="flex items-center gap-2">
-              <Link href="/admin" className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-navy-600"><LayoutDashboard size={14} className="text-gold-600" /><span className="hidden sm:inline">الإدارة</span></Link>
-              <Link href="/cases/archive" className="hidden items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-navy-600 sm:flex"><Archive size={14} className="text-gold-600" />أرشيف القضايا</Link>
-              <button onClick={logout} className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-bold text-navy-400" aria-label="تسجيل الخروج" title="تسجيل الخروج"><LogOut size={14} /><span className="hidden sm:inline">تسجيل الخروج</span></button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2"><Link href={`/lawyers/${session.slug}`} className="flex items-center gap-2 rounded-full px-2.5 py-1.5 text-[11px] font-semibold text-navy-600"><UserCircle2 size={14} className="text-gold-600" /><span className="hidden sm:inline">{session.name}</span></Link><button onClick={logout} className="rounded-full p-2 text-navy-300" aria-label="تسجيل الخروج"><LogOut size={14} /></button></div>
-          )}
+    <header ref={wrapRef} className="site-floating-nav glass-light fixed inset-x-2 top-2 z-50 w-auto max-w-[calc(100vw-1rem)] overflow-visible border border-white/70 text-navy-950 sm:inset-x-4 sm:top-3 sm:max-w-[calc(100vw-2rem)] lg:inset-x-6 lg:max-w-none">
+      <span aria-hidden className="gold-hairline pointer-events-none absolute inset-x-5 bottom-0 opacity-50 sm:inset-x-8" />
+      <div className="relative mx-auto flex min-h-[58px] w-full max-w-[1440px] items-center gap-1.5 px-2.5 py-2 sm:h-[64px] sm:gap-3 sm:px-4 sm:py-0 lg:px-6">
+        <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-navy-400 lg:hidden" onClick={() => setMobileOpen((v) => !v)} aria-label="القائمة">{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
+        <Link href="/" className="group flex min-w-0 shrink-0 items-center gap-2 sm:gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-600 text-[13px] font-semibold text-white shadow-glow-gold sm:h-10 sm:w-10 sm:text-[15px]">HL</span><span className="hidden min-w-0 flex-col items-center text-center xs:flex sm:flex"><span className="block max-w-[125px] truncate text-[12px] tracking-[1.2px] text-navy-950 sm:max-w-none sm:text-[15px] sm:tracking-[2px]">Dr.Hossam Loutfi</span><span className="hidden text-[9px] font-bold tracking-[3px] text-gold-600 uppercase md:block">LAW FIRM</span></span></Link>
+        <form onSubmit={doSearch} className="mx-auto hidden min-w-0 w-full max-w-[300px] items-center gap-1.5 xl:flex"><div className="group relative min-w-0 flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن محكمة، مكان، محامٍ…" className="h-9 w-full rounded-full border border-white/80 bg-white/60 ps-9 pe-3.5 text-[12px] text-navy-900 shadow-soft backdrop-blur-md" /></div></form>
+        <nav className="hidden min-w-0 items-center gap-0.5 lg:flex xl:gap-1"><div className="relative"><button onClick={() => setDropdown((d) => d === 'locations' ? null : 'locations')} className={navLinkStyle(isActive('/locations'))}>المحاكم والجهات الحكومية<ChevronDown size={10} /></button>{dropdown === 'locations' && <div className="absolute end-0 top-full pt-3">{locationList}</div>}</div><div className="relative"><button onClick={() => setDropdown((d) => d === 'lawyers' ? null : 'lawyers')} className={navLinkStyle(isActive('/lawyers'))}>المحامون<ChevronDown size={10} /></button>{dropdown === 'lawyers' && <div className="absolute end-0 top-full pt-3">{lawyerList}</div>}</div><Link href="/calendar" className={navLinkStyle(isActive('/calendar'))}>التقويم</Link><Link href="/search" className={navLinkStyle(isActive('/search'))}>البحث</Link></nav>
+        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2 lg:ms-2">{session && <NotificationBell unread={unread} />}{!session ? loginLink : isAdmin ? <div className="flex items-center gap-1 sm:gap-2"><Link href="/admin" className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1.5 text-[11px] font-semibold text-navy-600"><LayoutDashboard size={14} className="text-gold-600" /><span className="hidden sm:inline">الإدارة</span></Link><Link href="/cases/archive" className="hidden shrink-0 items-center gap-1.5 rounded-full px-2 py-1.5 text-[11px] font-semibold text-navy-600 sm:flex"><Archive size={14} className="text-gold-600" />أرشيف القضايا</Link><button onClick={logout} className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1.5 text-[11px] font-bold text-navy-400" aria-label="تسجيل الخروج" title="تسجيل الخروج"><LogOut size={14} /><span className="hidden sm:inline">تسجيل الخروج</span></button></div> : <div className="flex items-center gap-1"><Link href={`/lawyers/${session.slug}`} className="flex min-w-0 items-center gap-2 rounded-full px-2 py-1.5 text-[11px] font-semibold text-navy-600"><UserCircle2 size={14} className="shrink-0 text-gold-600" /><span className="hidden max-w-[120px] truncate sm:inline">{session.name}</span></Link><button onClick={logout} className="rounded-full p-2 text-navy-300" aria-label="تسجيل الخروج"><LogOut size={14} /></button></div>}
         </div>
       </div>
-      {mobileOpen && (
-        <div className="max-h-[calc(100dvh-80px)] overflow-y-auto border-t border-white/50 bg-white/60 backdrop-blur-2xl lg:hidden">
-          <div className="space-y-4 px-5 py-5">
-            <form onSubmit={doSearch} className="flex items-center gap-2"><div className="relative flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث..." className="h-10 w-full rounded-full border border-white/70 bg-white/70 ps-9 pe-3 text-[12px] backdrop-blur-xl" /></div></form>
-            <div className="grid gap-2"><Link href="/locations" className={navLinkStyle(isActive('/locations'))}>المحاكم والجهات الحكومية</Link><Link href="/lawyers" className={navLinkStyle(isActive('/lawyers'))}>المحامون</Link><Link href="/calendar" className={navLinkStyle(isActive('/calendar'))}>التقويم</Link><Link href="/search" className={navLinkStyle(isActive('/search'))}>البحث</Link>{isAdmin && <><Link href="/admin" className={navLinkStyle(isActive('/admin'))}>الإدارة</Link><Link href="/cases/archive" className={navLinkStyle(isActive('/cases/archive'))}>أرشيف القضايا</Link></>}{!session ? loginLink : <button onClick={logout} className={cn(navLinkStyle(false), 'w-full justify-center text-red-600')}>تسجيل الخروج</button>}</div>
-          </div>
-        </div>
-      )}
+      {mobileOpen && <div className="max-h-[calc(100dvh-74px)] overflow-y-auto border-t border-white/50 bg-white/60 backdrop-blur-2xl lg:hidden"><div className="space-y-4 px-3 py-4 sm:px-5 sm:py-5"><form onSubmit={doSearch} className="flex items-center gap-2"><div className="relative min-w-0 flex-1"><Search size={13} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث..." className="h-10 w-full rounded-full border border-white/70 bg-white/70 ps-9 pe-3 text-[12px] backdrop-blur-xl" /></div></form><div className="grid gap-2"><Link href="/locations" className={navLinkStyle(isActive('/locations'))}>المحاكم والجهات الحكومية</Link><Link href="/lawyers" className={navLinkStyle(isActive('/lawyers'))}>المحامون</Link><Link href="/calendar" className={navLinkStyle(isActive('/calendar'))}>التقويم</Link><Link href="/search" className={navLinkStyle(isActive('/search'))}>البحث</Link>{isAdmin && <><Link href="/admin" className={navLinkStyle(isActive('/admin'))}>الإدارة</Link><Link href="/cases/archive" className={navLinkStyle(isActive('/cases/archive'))}>أرشيف القضايا</Link></>}{!session ? loginLink : <button onClick={logout} className={cn(navLinkStyle(false), 'w-full justify-center text-red-600')}>تسجيل الخروج</button>}</div></div></div>}
     </header>
   );
 }
