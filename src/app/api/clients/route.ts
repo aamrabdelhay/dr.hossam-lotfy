@@ -1,15 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { handle, json, readJson, requirePermission, user } from '@/lib/api';
-
-const schema = z.object({ name: z.string().trim().min(1, 'اسم العميل مطلوب').max(300), phone: z.string().trim().max(100).optional(), email: z.string().trim().max(200).optional(), nationalId: z.string().trim().max(50).optional(), address: z.string().trim().max(500).optional(), notes: z.string().trim().max(4000).optional() });
-export const GET = handle(async () => {
-  const session = await user(); if (!session) return json({ error: 'يجب تسجيل الدخول' }, { status: 401 });
-  const clients = await prisma.$queryRawUnsafe<Array<{ id: string; name: string; phone: string | null; email: string | null; nationalId: string | null; address: string | null; notes: string | null; caseCount: number }>>(`SELECT c."id",c."name",c."phone",c."email",c."nationalId",c."address",c."notes",COUNT(cr."id")::int AS "caseCount" FROM "clients" c LEFT JOIN "case_records" cr ON cr."clientId"=c."id" GROUP BY c."id" ORDER BY lower(c."name") ASC LIMIT 500`);
-  return json({ clients });
-});
-export const POST = handle(async (req: Request) => {
-  await requirePermission('writeTasks'); const data = await readJson(req as never, schema); const id = `cl_${crypto.randomUUID().replaceAll('-', '')}`;
-  await prisma.$executeRawUnsafe(`INSERT INTO "clients" ("id","name","phone","email","nationalId","address","notes") VALUES ($1,$2,$3,$4,$5,$6,$7)`, id, data.name, data.phone || null, data.email || null, data.nationalId || null, data.address || null, data.notes || null);
-  return json({ ok: true, client: { id, ...data } }, { status: 201 });
-});
+import { handle, json, readJson, requirePermission } from '@/lib/api';
+const schema=z.object({name:z.string().trim().min(1,'اسم العميل مطلوب').max(300),phone:z.string().trim().max(100).optional(),email:z.string().trim().max(200).optional(),nationalId:z.string().trim().max(50).optional(),address:z.string().trim().max(500).optional(),notes:z.string().trim().max(4000).optional()});
+export const GET=handle(async()=>{await requirePermission('viewAdmin');const clients=await prisma.$queryRawUnsafe<Array<{id:string;name:string;phone:string|null;email:string|null;nationalId:string|null;address:string|null;notes:string|null;caseCount:number}>>(`SELECT c."id",c."name",c."phone",c."email",c."nationalId",c."address",c."notes",COUNT(cr."id")::int AS "caseCount" FROM "clients" c LEFT JOIN "case_records" cr ON cr."clientId"=c."id" GROUP BY c."id" ORDER BY lower(c."name") ASC LIMIT 500`);return json({clients});});
+export const POST=handle(async(req:Request)=>{await requirePermission('viewAdmin');const data=await readJson(req as never,schema);const id=`cl_${crypto.randomUUID().replaceAll('-','')}`;await prisma.$executeRawUnsafe(`INSERT INTO "clients" ("id","name","phone","email","nationalId","address","notes") VALUES ($1,$2,$3,$4,$5,$6,$7)`,id,data.name,data.phone||null,data.email||null,data.nationalId||null,data.address||null,data.notes||null);return json({ok:true,client:{id,...data}},{status:201});});
