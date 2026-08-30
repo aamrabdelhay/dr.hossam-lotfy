@@ -1,0 +1,29 @@
+'use client';
+import * as React from 'react';
+import { Pencil, Save, X } from 'lucide-react';
+import { Button, Card, Field, Input, Select } from '../ui';
+import { toastError, toastSuccess } from '../toasts';
+
+type Lawyer = { id: string; name: string };
+type Client = { id: string; name: string; phone: string | null; email: string | null; nationalId: string | null; address: string | null; notes: string | null; assignedLawyerId: string | null };
+
+export function ClientProfileEditor({ client, lawyers }: { client: Client; lawyers: Lawyer[] }) {
+  const [editing, setEditing] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [form, setForm] = React.useState({ name: client.name, phone: client.phone ?? '', email: client.email ?? '', nationalId: client.nationalId ?? '', address: client.address ?? '', notes: client.notes ?? '', assignedLawyerId: client.assignedLawyerId ?? '' });
+  const set = (key: keyof typeof form, value: string) => setForm(v => ({ ...v, [key]: value }));
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return toastError('اسم العميل مطلوب');
+    setBusy(true);
+    try {
+      const r = await fetch(`/api/clients/${client.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, assignedLawyerId: form.assignedLawyerId || null }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'تعذر حفظ التعديلات');
+      toastSuccess('تم تحديث ملف العميل ✓');
+      window.location.reload();
+    } catch (e) { toastError(e instanceof Error ? e.message : 'تعذر الحفظ'); } finally { setBusy(false); }
+  };
+  if (!editing) return <div className="flex flex-wrap items-center gap-2"><Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil size={14}/> تعديل ملف العميل</Button>{client.assignedLawyerId && <span className="rounded-full bg-gold-500/10 px-3 py-1.5 text-[10px] font-extrabold text-gold-700">المحامي المسؤول: {lawyers.find(l => l.id === client.assignedLawyerId)?.name ?? 'محامٍ محدد'}</span>}</div>;
+  return <Card className="mt-4 border-gold-200 bg-gold-50/20 p-4 text-right"><form onSubmit={save} className="space-y-4"><div className="grid gap-4 sm:grid-cols-2"><Field label="اسم العميل" required><Input value={form.name} onChange={e => set('name', e.target.value)} /></Field><Field label="الهاتف"><Input value={form.phone} onChange={e => set('phone', e.target.value)} /></Field><Field label="البريد الإلكتروني"><Input type="email" value={form.email} onChange={e => set('email', e.target.value)} /></Field><Field label="الرقم القومي"><Input value={form.nationalId} onChange={e => set('nationalId', e.target.value)} /></Field><Field label="العنوان"><Input value={form.address} onChange={e => set('address', e.target.value)} /></Field><Field label="المحامي المسؤول (اختياري)"><Select value={form.assignedLawyerId} onChange={e => set('assignedLawyerId', e.target.value)}><option value="">بدون محامٍ محدد</option>{lawyers.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</Select></Field></div><Field label="ملاحظات"><Input value={form.notes} onChange={e => set('notes', e.target.value)} /></Field><div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setEditing(false)}><X size={14}/> إلغاء</Button><Button type="submit" disabled={busy}><Save size={14}/> {busy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}</Button></div></form></Card>;
+}
