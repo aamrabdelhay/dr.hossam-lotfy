@@ -12,15 +12,15 @@ const schema = z.object({
   assignedLawyerId: z.string().trim().optional().nullable(),
 });
 
-export const PUT = handle(async (req: Request, ctx?: { params?: Promise<{ id: string }> }) => {
+export const PUT = handle(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   await requirePermission('viewAdmin');
-  const id = (await ctx?.params)?.id;
-  if (!id) return json({ error: 'معرّف العميل مطلوب' }, { status: 400 });
+  const { id } = await params;
   const data = await readJson(req as never, schema);
   if (data.assignedLawyerId) {
     const lawyers = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "lawyers" WHERE "id"=$1 AND "active"=true LIMIT 1', data.assignedLawyerId);
     if (!lawyers[0]) return json({ error: 'المحامي المحدد غير موجود أو غير نشط' }, { status: 400 });
   }
-  await prisma.$executeRawUnsafe(`UPDATE "clients" SET "name"=$1,"phone"=$2,"email"=$3,"nationalId"=$4,"address"=$5,"notes"=$6,"assignedLawyerId"=$7,"updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$8`, data.name, data.phone || null, data.email || null, data.nationalId || null, data.address || null, data.notes || null, data.assignedLawyerId || null, id);
+  const result = await prisma.$executeRawUnsafe(`UPDATE "clients" SET "name"=$1,"phone"=$2,"email"=$3,"nationalId"=$4,"address"=$5,"notes"=$6,"assignedLawyerId"=$7,"updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$8`, data.name, data.phone || null, data.email || null, data.nationalId || null, data.address || null, data.notes || null, data.assignedLawyerId || null, id);
+  if (!result) return json({ error: 'العميل غير موجود' }, { status: 404 });
   return json({ ok: true });
 });
