@@ -1,41 +1,5 @@
-import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/api';
-
-const NVIDIA_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const NVIDIA_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
-
-export async function POST() {
-  try {
-    await requireAdmin();
-    const key = process.env.NVIDIA_API_KEY;
-    if (!key) {
-      return NextResponse.json({ ok: false, error: 'NVIDIA_API_KEY غير مضبوط في Vercel Environment Variables.' }, { status: 503 });
-    }
-
-    const response = await fetch(NVIDIA_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: NVIDIA_MODEL,
-        messages: [{ role: 'user', content: 'Reply with exactly: NVIDIA connection OK' }],
-        temperature: 1,
-        top_p: 0.95,
-        max_tokens: 64,
-        stream: false,
-        extra_body: { chat_template_kwargs: { enable_thinking: true } },
-      }),
-      cache: 'no-store',
-    });
-
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json({ ok: false, error: `NVIDIA API returned HTTP ${response.status}`, details: typeof payload?.error?.message === 'string' ? payload.error.message : undefined }, { status: 502 });
-    }
-
-    const content = payload?.choices?.[0]?.message?.content;
-    return NextResponse.json({ ok: true, model: NVIDIA_MODEL, response: typeof content === 'string' ? content : 'Connection succeeded.' });
-  } catch (error) {
-    console.error('[assistant-test]', error);
-    return NextResponse.json({ ok: false, error: 'تعذر اختبار اتصال NVIDIA.' }, { status: 500 });
-  }
-}
+import {NextResponse} from 'next/server';
+import {requireAdmin} from '@/lib/api';
+const NVIDIA_URL='https://integrate.api.nvidia.com/v1/chat/completions';const NVIDIA_MODEL='nvidia/nemotron-3-ultra-550b-a55b';
+export async function GET(){try{await requireAdmin();const configured=Boolean(process.env.NVIDIA_API_KEY);return NextResponse.json({configured,source:configured?'environment':'none',model:NVIDIA_MODEL,baseUrl:'https://integrate.api.nvidia.com/v1'})}catch{return NextResponse.json({error:'غير مصرح'},{status:403})}}
+export async function POST(req:Request){try{await requireAdmin();const key=process.env.NVIDIA_API_KEY;if(!key)return NextResponse.json({ok:false,error:'NVIDIA_API_KEY غير مضبوط في Vercel Environment Variables.'},{status:503});const r=await fetch(NVIDIA_URL,{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({model:NVIDIA_MODEL,messages:[{role:'user',content:'Reply with exactly: NVIDIA connection OK'}],temperature:1,top_p:.95,max_tokens:64,stream:false,extra_body:{chat_template_kwargs:{enable_thinking:true}}}),cache:'no-store'});const d=await r.json().catch(()=>null);if(!r.ok)return NextResponse.json({ok:false,error:`NVIDIA API returned HTTP ${r.status}`,details:typeof d?.error?.message==='string'?d.error.message:undefined},{status:502});return NextResponse.json({ok:true,model:NVIDIA_MODEL,response:typeof d?.choices?.[0]?.message?.content==='string'?d.choices[0].message.content:'Connection succeeded.'})}catch(e){console.error('[assistant-test]',e);return NextResponse.json({ok:false,error:'تعذر اختبار اتصال NVIDIA.'},{status:500})}}
