@@ -1,0 +1,34 @@
+name: temporary-final-ui-verify
+on:
+  push:
+    branches:
+      - fix/gemini-3-5-flash
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify assistant task UX changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -RIl --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' --include='*.js' 'cleanAssistantText' src | wc -l)" -ge 1
+          grep -RIn --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' --include='*.js' 'GEMINI_API_KEY غير مضبوط' src/components/admin/office-assistant.tsx
+          grep -RIn --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' --include='*.js' 'confirm:finalize' src/components/admin/office-assistant.tsx
+          grep -RIn --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' --include='*.js' 'cases:c.cases.map' src/app/api/assistant/route.ts
+          if grep -RIn --exclude-dir=node_modules --exclude-dir=.git --include='*.ts' --include='*.tsx' --include='*.js' 'gemini-2.5-flash\|gemini-3.8-flash' src; then
+            echo 'Unexpected old Gemini model remains.'
+            exit 1
+          fi
+          git diff --check HEAD^ HEAD
+      - name: Remove verification workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/_final_ui_verify.yml
+          git add .github/workflows/_final_ui_verify.yml
+          git commit -m "chore: remove temporary assistant UI verification workflow"
+          git push origin HEAD:fix/gemini-3-5-flash
