@@ -1,2 +1,2 @@
-import {NextResponse} from 'next/server';import {requireAdmin} from '@/lib/api';const MODEL='nvidia/nemotron-3-ultra-550b-a55b';
-export async function GET(){try{await requireAdmin();const configured=Boolean(process.env.NVIDIA_API_KEY);return NextResponse.json({configured,source:configured?'environment':'none',model:MODEL,baseUrl:'https://integrate.api.nvidia.com/v1',keyName:'NVIDIA_API_KEY'})}catch{return NextResponse.json({error:'غير مصرح'},{status:403})}}
+import {NextResponse} from 'next/server';import {requireAdmin} from '@/lib/api';const MODEL='gemini-2.5-flash';
+export async function GET(){try{await requireAdmin();const configured=Boolean(process.env.GEMINI_API_KEY);return NextResponse.json({configured,source:configured?'environment':'none',model:MODEL,baseUrl:'https://generativelanguage.googleapis.com/v1beta/openai',keyName:'GEMINI_API_KEY'})}catch{return NextResponse.json({error:'غير مصرح'},{status:403})}}
