@@ -32,3 +32,4 @@ jobs:
           git diff --cached --check
           git commit -m "fix: use Gemini 3.5 Flash for supported production access"
           git push origin HEAD:fix/gemini-3-5-flash
+# trigger replacement
