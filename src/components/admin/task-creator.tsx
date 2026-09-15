@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CheckCircle2, Edit3, Loader2, Plus, RotateCcw } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Edit3, Loader2 } from 'lucide-react';
 import { Button, Field, Input, Modal, Textarea } from '../ui';
 import { ComboboxWithAdd } from '../combobox-with-add';
 import { MultiLawyerSelector } from './multi-lawyer-selector';
@@ -22,16 +22,7 @@ type Props = {
   ownPost?: boolean;
 };
 
-export function TaskCreator({
-  open,
-  onClose,
-  locations,
-  lawyers,
-  cases,
-  defaultDate,
-  onCreated,
-  ownPost = false,
-}: Props) {
+export function TaskCreator({ open, onClose, locations, lawyers, cases, defaultDate, onCreated, ownPost = false }: Props) {
   const router = useRouter();
   const [step, setStep] = React.useState<Step>('form');
   const [locationId, setLocationId] = React.useState('');
@@ -64,12 +55,12 @@ export function TaskCreator({
     }
   }, [open, resetForm]);
 
-  const selectedCase = cases.find((c) => c.id === caseId);
-  const selectedLocation = locations.find((l) => l.id === locationId);
+  const selectedCase = cases.find((item) => item.id === caseId);
+  const selectedLocation = locations.find((item) => item.id === locationId);
   const selectedLawyers = lawyers.filter((lawyer) => lawyerIds.includes(lawyer.id));
 
-  const continueToReview = (e: React.FormEvent) => {
-    e.preventDefault();
+  const continueToReview = (event: React.FormEvent) => {
+    event.preventDefault();
     if (!description.trim()) return toastError('اسم التكليف مطلوب.');
     setStep('review');
   };
@@ -142,9 +133,7 @@ export function TaskCreator({
     }
   };
 
-  const summaryValue = (value: React.ReactNode) => (
-    <span className="text-[12px] font-extrabold text-navy-900">{value || 'غير محدد'}</span>
-  );
+  const summaryValue = (value: React.ReactNode) => <span className="text-[12px] font-extrabold text-navy-900">{value || 'غير محدد'}</span>;
 
   return (
     <Modal
@@ -189,21 +178,12 @@ export function TaskCreator({
       {step === 'form' ? (
         <form id="task-creator-form" onSubmit={continueToReview} className="space-y-4">
           <Field label="اسم التكليف" required status={!!description.trim()}>
-            <Textarea
-              name="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="مثال: مراجعة ملف القضية أو إعداد مذكرة دفاع"
-            />
+            <Textarea name="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="مثال: مراجعة ملف القضية أو إعداد مذكرة دفاع" />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="المحامي / المحامون" status={lawyerIds.length > 0}>
-              <MultiLawyerSelector
-                lawyers={lawyers}
-                selected={lawyerIds}
-                onChange={setLawyerIds}
-              />
+              <MultiLawyerSelector lawyers={lawyers} selected={lawyerIds} onChange={setLawyerIds} />
             </Field>
 
             <Field label="المحكمة / جهة حكومية" status={!!locationId}>
@@ -233,11 +213,7 @@ export function TaskCreator({
             </Field>
 
             <Field label="اسم العميل" status={!!clientName.trim()}>
-              <Input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="اختياري"
-              />
+              <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="اختياري" />
               <span className="text-[9px] font-semibold text-navy-300">اختياري — لا يحول التكليف إلى قضية.</span>
             </Field>
 
@@ -251,13 +227,7 @@ export function TaskCreator({
           </div>
 
           <Field label="ملاحظات" status={!!notes.trim()}>
-            <Textarea
-              name="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[60px]"
-              placeholder="اختياري"
-            />
+            <Textarea name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[60px]" placeholder="اختياري" />
           </Field>
         </form>
       ) : (
@@ -274,10 +244,7 @@ export function TaskCreator({
 
           <div className="grid gap-3 sm:grid-cols-2">
             <ReviewItem label="اسم التكليف" value={summaryValue(description.trim())} full />
-            <ReviewItem
-              label="المحامي / المحامون"
-              value={summaryValue(selectedLawyers.length ? selectedLawyers.map((l) => l.name).join('، ') : 'غير مسند')}
-            />
+            <ReviewItem label="المحامي / المحامون" value={summaryValue(selectedLawyers.length ? selectedLawyers.map((lawyer) => lawyer.name).join('، ') : 'غير مسند')} />
             <ReviewItem label="المحكمة / الجهة" value={summaryValue(selectedLocation?.name)} />
             <ReviewItem label="القضية" value={summaryValue(selectedCase ? `${selectedCase.name} — ${selectedCase.number}` : '')} />
             <ReviewItem label="اسم العميل" value={summaryValue(clientName.trim())} />
@@ -291,15 +258,7 @@ export function TaskCreator({
   );
 }
 
-function ReviewItem({
-  label,
-  value,
-  full = false,
-}: {
-  label: string;
-  value: React.ReactNode;
-  full?: boolean;
-}) {
+function ReviewItem({ label, value, full = false }: { label: string; value: React.ReactNode; full?: boolean }) {
   return (
     <div className={full ? 'sm:col-span-2 rounded-xl border border-navy-100 bg-white p-3.5' : 'rounded-xl border border-navy-100 bg-white p-3.5'}>
       <div className="mb-1 text-[10px] font-bold text-navy-300">{label}</div>
