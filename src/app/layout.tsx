@@ -16,7 +16,8 @@ import { getCurrentUser, type SessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import type { NavLawyer, NavLocation } from '@/lib/constants';
 import { isFrameworkError, redact } from '@/lib/health';
-import { copyFor, getSiteLanguage } from '@/lib/i18n';
+import { copyFor } from '@/lib/i18n';
+import { getSiteLanguage } from '@/lib/i18n-server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
