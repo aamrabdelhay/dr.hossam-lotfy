@@ -1,0 +1,55 @@
+name: temporary-assistant-task-ui-fix
+on:
+  push:
+    branches:
+      - fix/gemini-3-5-flash
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update assistant task choices and clean markdown
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/admin/office-assistant.tsx')
+          s = p.read_text()
+          s = s.replace("type Choice={id:string;name:string};type Action={type:string;description?:string;scheduledDate?:string;scheduledTime?:string;lawyerIds?:string[];locationId?:string;notes?:string;caseName?:string;caseNumber?:string;clientName?:string;missing?:string[];choices?:{lawyers:Choice[];locations:Choice[]}};",
+                        "type Choice={id:string;name:string};type Action={type:string;description?:string;scheduledDate?:string;scheduledTime?:string;lawyerIds?:string[];locationId?:string;notes?:string;caseName?:string;caseNumber?:string;clientName?:string;missing?:string[];choices?:{lawyers:Choice[];locations:Choice[];cases?:Choice[]}};")
+          start=s.index('function ActionForm(')
+          end=s.index('export function OfficeAssistant()')
+          action_form="""function ActionForm({action,onDone,busy}:{action:Action;onDone:(a:Action)=>void;busy:boolean}){const[v,setV]=React.useState<Action>(action);React.useEffect(()=>setV(action),[action]);const change=(k:keyof Action,x:unknown)=>setV(s=>({...s,[k]:x}));const selectedLawyers=v.lawyerIds||[];return <div className=\"mt-3 space-y-3 rounded-2xl border border-gold-200 bg-gold-50/70 p-3\"><div className=\"flex items-center gap-2 text-xs font-extrabold text-navy-950\"><ClipboardList size={15} className=\"text-gold-600\"/>مراجعة بيانات التنفيذ</div><p className=\"text-[10px] leading-5 text-navy-500\">اختار القيم مباشرة. ويمكنك كتابة الطلب بالعربي الطبيعي في خانة الدردشة، والمساعد يصححه ويفهم المقصود ثم يعبّي البيانات هنا.</p><label className=\"block text-[11px] font-bold text-navy-700\">وصف المهمة<input value={v.description||''} onChange={e=>change('description',e.target.value)} placeholder=\"مثال: مراجعة مذكرة الدفاع وتجهيز المستندات\" className=\"mt-1 h-10 w-full rounded-xl border border-navy-200 bg-white px-3 text-xs\"/></label><div className=\"grid gap-3 sm:grid-cols-2\"><label className=\"block text-[11px] font-bold text-navy-700\">المحامي / المحامون<select multiple value={selectedLawyers} onChange={e=>change('lawyerIds',Array.from(e.currentTarget.selectedOptions).map(o=>o.value))} className=\"mt-1 min-h-24 w-full rounded-xl border border-navy-200 bg-white px-3 py-2 text-xs\">{v.choices?.lawyers.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label className=\"block text-[11px] font-bold text-navy-700\">المحكمة / الجهة<select value={v.locationId||''} onChange={e=>change('locationId',e.target.value||undefined)} className=\"mt-1 h-10 w-full rounded-xl border border-navy-200 bg-white px-3 text-xs\"><option value=\"\">بدون تحديد</option>{v.choices?.locations.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label className=\"block text-[11px] font-bold text-navy-700\">القضية<select value={v.caseNumber||''} onChange={e=>{const c=v.choices?.cases?.find(x=>x.id===e.target.value);change('caseNumber',c?.id||undefined);if(c){change('caseName',c.name)}}} className=\"mt-1 h-10 w-full rounded-xl border border-navy-200 bg-white px-3 text-xs\"><option value=\"\">بدون قضية</option>{v.choices?.cases?.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label><label className=\"block text-[11px] font-bold text-navy-700\">التاريخ<input type=\"date\" value={v.scheduledDate||''} onChange={e=>change('scheduledDate',e.target.value||undefined)} className=\"mt-1 h-10 w-full rounded-xl border border-navy-200 bg-white px-3 text-xs\"/></label><label className=\"block text-[11px] font-bold text-navy-700\">الوقت<input type=\"time\" value={v.scheduledTime||''} onChange={e=>change('scheduledTime',e.target.value||undefined)} className=\"mt-1 h-10 w-full rounded-xl border border-navy-200 bg-white px-3 text-xs\"/></label><label className=\"block text-[11px] font-bold text-navy-700\">اسم العميل<input value={v.clientName||''} onChange={e=>change('clientName',e.target.value)} placeholder=\"اختياري\" className=\"mt-1 h-10 w-full rounded-xl border border-navy-200 bg-white px-3 text-xs\"/></label></div><label className=\"block text-[11px] font-bold text-navy-700\">ملاحظات<textarea value={v.notes||''} onChange={e=>change('notes',e.target.value)} placeholder=\"اختياري\" className=\"mt-1 min-h-20 w-full rounded-xl border border-navy-200 bg-white px-3 py-2 text-xs\"/></label><button type=\"button\" disabled={busy} onClick={()=>onDone({...v,missing:undefined,choices:undefined})} className=\"inline-flex items-center gap-2 rounded-xl bg-gold-500 px-4 py-2.5 text-xs font-extrabold text-navy-950\">{busy?<Loader2 size={14} className=\"animate-spin\"/>:<CheckCircle2 size={14}/>} مراجعة واعتماد</button></div>}\nfunction cleanAssistantText(text:string){return text.replace(/\\*\\*/g,'').replace(/__/g,'').replace(/^\\s*[#*_]+\\s*/gm,'').replace(/^\\s*[-•]\\s+/gm,'').trim()}\n"""
+          s=s[:start]+action_form+s[end:]
+          s=s.replace("<div className=\"whitespace-pre-wrap\">{m.text}</div>","<div className=\"whitespace-pre-wrap\">{cleanAssistantText(m.text)}</div>")
+          p.write_text(s)
+
+          p = Path('src/app/api/assistant/route.ts')
+          s = p.read_text()
+          s = s.replace("type Session={role:'admin'|'lawyer';userId?:string;lawyerId?:string;name:string};type Choice={id:string;name:string};type Action={type:string;description?:string;scheduledDate?:string;scheduledTime?:string;lawyerIds?:string[];locationId?:string;notes?:string;caseName?:string;caseNumber?:string;clientName?:string;taskId?:string;missing?:string[];choices?:{lawyers:Choice[];locations:Choice[]}};",
+                        "type Session={role:'admin'|'lawyer';userId?:string;lawyerId?:string;name:string};type Choice={id:string;name:string};type Action={type:string;description?:string;scheduledDate?:string;scheduledTime?:string;lawyerIds?:string[];locationId?:string;notes?:string;caseName?:string;caseNumber?:string;clientName?:string;taskId?:string;missing?:string[];choices?:{lawyers:Choice[];locations:Choice[];cases:Choice[]}};")
+          s=s.replace("return{tasks:tasks.map", "return{tasks:tasks.map")
+          s=s.replace("candidateLocations:locs.map(x=>({x,s:score(q,x.name)})).sort((a,b)=>b.s-a.s).slice(0,16).map(x=>x.x)}}",
+                      "candidateLocations:locs.map(x=>({x,s:score(q,x.name)})).sort((a,b)=>b.s-a.s).slice(0,16).map(x=>x.x)}}")
+          old="choices:{lawyers:c.lawyers,locations:c.locations}"
+          s=s.replace(old,"choices:{lawyers:c.lawyers,locations:c.locations,cases:c.cases.map((x:any)=>({id:x.id,name:`${x.name} — ${x.number}`}))}")
+          s=s.replace("const system=`أنت مساعد تشغيل داخلي لمكتب محاماة. افهم العربية المصرية والفصحى والإنجليزية والفرنسية والأخطاء الإملائية. لا تعرض reasoning ولا خطوات التفكير الداخلية؛ أجب بالنتيجة النهائية فقط. لا تخترع بيانات. استخدم البيانات المرفقة فقط عند ذكر أسماء أو أرقام أو مواعيد. تعامل مع الطلب الطبيعي حتى لو به أخطاء. قدّم جوابًا عمليًا مباشرًا.`",
+                      "const system=`أنت مساعد تشغيل داخلي لمكتب محاماة. افهم العربية المصرية والفصحى والإنجليزية والفرنسية والأخطاء الإملائية. لا تعرض reasoning ولا خطوات التفكير الداخلية؛ أجب بالنتيجة النهائية فقط. لا تستخدم Markdown أو نجوم أو عناوين مزخرفة. لا تخترع بيانات. استخدم البيانات المرفقة فقط عند ذكر أسماء أو أرقام أو مواعيد. تعامل مع الطلب الطبيعي حتى لو به أخطاء، وصحح الصياغة داخليًا وافهم المقصود ثم ساعد في تنفيذ الإجراء. قدّم جوابًا عمليًا مباشرًا.`")
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- src/components/admin/office-assistant.tsx src/app/api/assistant/route.ts
+      - name: Commit and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/_assistant_task_ui_fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/admin/office-assistant.tsx src/app/api/assistant/route.ts .github/workflows/_assistant_task_ui_fix.yml
+          git diff --cached --check
+          git commit -m "feat: improve assistant task review choices and plain Arabic responses"
+          git push origin HEAD:fix/gemini-3-5-flash
