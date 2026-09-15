@@ -39,7 +39,6 @@ export default async function TasksPage() {
 
       <TaskCreator
         open
-        onClose={() => undefined}
         locations={locations.map((l) => ({ ...l, type: l.type as string }))}
         lawyers={lawyers.map((l) => ({ id: l.id, name: l.fullName, isPrincipal: l.isPrincipal }))}
         cases={cases}
