@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { TaskCreator } from '@/components/admin/task-creator';
 import type { NavLocation } from '@/lib/constants';
 
@@ -11,5 +12,6 @@ type Props = {
 };
 
 export function TasksPageClient({ locations, lawyers, cases, ownPost }: Props) {
-  return <TaskCreator open locations={locations} lawyers={lawyers} cases={cases} ownPost={ownPost} />;
+  const router = useRouter();
+  return <TaskCreator open locations={locations} lawyers={lawyers} cases={cases} ownPost={ownPost} onClose={() => router.back()} />;
 }
