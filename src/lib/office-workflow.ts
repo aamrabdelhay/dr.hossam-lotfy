@@ -18,6 +18,17 @@ export async function isSeniorManagement(session: SessionUser | null): Promise<b
   return rows.length > 0;
 }
 
+export async function isFinanceManagement(session: SessionUser | null): Promise<boolean> {
+  if (!session) return false;
+  if (await isSeniorManagement(session)) return true;
+  const lawyerId = session.role === 'lawyer' ? session.lawyerId : null;
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT "id" FROM "office_finance_members" WHERE "lawyer_id"=$1 LIMIT 1`,
+    lawyerId,
+  ).catch(() => []);
+  return rows.length > 0;
+}
+
 export async function createOfficeRequest(input: {
   type: string;
   title: string;
@@ -50,13 +61,7 @@ export async function notifySenior(title: string, body: string, link?: string) {
   for (const member of members) {
     await prisma.$executeRawUnsafe(
       `INSERT INTO "notifications" ("id","userId","lawyerId","type","title","body","link","createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())`,
-      officeId('ntf'),
-      member.user_id,
-      member.lawyer_id,
-      'OFFICE_REQUEST',
-      title,
-      body,
-      link ?? null,
+      officeId('ntf'), member.user_id, member.lawyer_id, 'OFFICE_REQUEST', title, body, link ?? null,
     ).catch(() => undefined);
   }
 }
