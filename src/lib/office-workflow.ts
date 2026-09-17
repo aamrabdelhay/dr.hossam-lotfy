@@ -2,6 +2,7 @@ import 'server-only';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import type { SessionUser } from '@/lib/auth';
+import { sendTelegramGroupNotification } from '@/lib/telegram';
 
 export const officeId = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`;
 
@@ -53,7 +54,32 @@ export async function createOfficeRequest(input: {
     input.targetEntityType ?? null,
     input.targetEntityId ?? null,
   );
+
+  const requester = input.session.name || (lawyerId ? `Lawyer ${lawyerId}` : `User ${userId ?? 'unknown'}`);
+  const telegramMessage = [
+    '<b>🏛️ Loutfi Law Firm</b>',
+    '<b>طلب إداري جديد</b>',
+    '',
+    `<b>النوع:</b> ${escapeTelegramHtml(input.type)}`,
+    `<b>العنوان:</b> ${escapeTelegramHtml(input.title)}`,
+    `<b>مقدم الطلب:</b> ${escapeTelegramHtml(requester)}`,
+    input.reason ? `<b>السبب:</b> ${escapeTelegramHtml(input.reason)}` : '',
+    '',
+    `<a href="https://dr-hossam-lotfy-hw88.vercel.app/admin/office">فتح طلبات الإدارة</a>`,
+  ].filter(Boolean).join('\n');
+
+  await sendTelegramGroupNotification(telegramMessage).catch((error) => {
+    console.error('Telegram office request notification failed:', error);
+  });
+
   return id;
+}
+
+function escapeTelegramHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
 }
 
 export async function notifySenior(title: string, body: string, link?: string) {
