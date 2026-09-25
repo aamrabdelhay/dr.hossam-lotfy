@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
+import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
 const APPOINTMENT_TYPE_LABELS: Record<string,string> = { LEGAL_CONSULTATION:'استشارة قانونية', CASE_FOLLOW_UP:'متابعة ملف', OTHER:'أخرى', 'استشارة قانونية':'استشارة قانونية', 'متابعة ملف':'متابعة ملف', 'أخرى':'أخرى' };
