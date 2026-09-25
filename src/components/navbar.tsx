@@ -11,7 +11,7 @@ import type { NavLawyer, NavLocation } from '@/lib/constants';
 import { LOCATION_TYPE_LABEL, TITLE_LABEL } from '@/lib/constants';
 import { LanguageSwitcher } from './language-switcher';
 import { useSiteLanguage } from './site-language';
-import { copyFor } from '@/lib/i18n';
+
 
 type NavbarProps = {
   lawyers: NavLawyer[];
@@ -19,6 +19,8 @@ type NavbarProps = {
   session: { role:'admin'|'lawyer'; name:string; slug?:string; photo?:string|null; isAdmin?:boolean; isFinance?:boolean; isSenior?:boolean } | null;
   unread: number;
 };
+
+const COPY={ar:{courts:'أماكن العمل',lawyers:'زملاء العمل',calendar:'التقويم',search:'البحث',quick:'تنقّل سريع',clients:'العملاء',assign:'تكليف',addLawyer:'إضافة زميل عمل',addLocation:'إضافة مكان عمل',archive:'الأرشيف',allCourts:'عرض كل أماكن العمل',allLawyers:'عرض كل زملاء العمل',otherLocations:'أماكن العمل الأخرى',searchPlaceholder:'ابحث عن عميل، قضية، مكان، زميل…',searchShort:'ابحث...',menu:'القائمة',logout:'تسجيل الخروج'},en:{courts:'Work Locations',lawyers:'Colleagues',calendar:'Calendar',search:'Search',quick:'Quick navigation',clients:'Clients',assign:'Assign task',addLawyer:'Add colleague',addLocation:'Add work location',archive:'Archive',allCourts:'View all work locations',allLawyers:'View all colleagues',otherLocations:'Other work locations',searchPlaceholder:'Search for a client, case, location, or colleague…',searchShort:'Search…',menu:'Menu',logout:'Sign out'},fr:{courts:'Lieux de travail',lawyers:'Collègues',calendar:'Calendrier',search:'Recherche',quick:'Navigation rapide',clients:'Clients',assign:'Attribuer une tâche',addLawyer:'Ajouter un collègue',addLocation:'Ajouter un lieu de travail',archive:'Archives',allCourts:'Voir tous les lieux de travail',allLawyers:'Voir tous les collègues',otherLocations:'Autres lieux de travail',searchPlaceholder:'Rechercher un client, dossier, lieu ou collègue…',searchShort:'Rechercher…',menu:'Menu',logout:'Déconnexion'}} as const;
 
 const EXTRA = {
   managementPage: { ar:'صفحة الإدارة', en:'Administration', fr:'Administration' },
