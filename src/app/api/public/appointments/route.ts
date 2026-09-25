@@ -29,7 +29,7 @@ function escapeHtml(value: string) {
 
 export async function POST(req: Request) {
   try {
-    const expectedSecret = process.env.PUBLIC_APPOINTMENT_INGEST_SECRET?.trim();
+    const expectedSecret = process.env.APPOINTMENT_INGEST_SECRET?.trim();
     const receivedSecret = req.headers.get('x-appointment-secret')?.trim() || '';
     if (!expectedSecret || !receivedSecret || !safeEqual(receivedSecret, expectedSecret)) {
       return Response.json({ ok: false, error: 'غير مصرح' }, { status: 401 });
