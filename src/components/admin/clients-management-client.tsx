@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Check, X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock } from 'lucide-react';
+import { Check, X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
 const APPOINTMENT_TYPE_LABELS: Record<string,string> = { LEGAL_CONSULTATION:'استشارة قانونية', CASE_FOLLOW_UP:'متابعة ملف', OTHER:'أخرى', 'استشارة قانونية':'استشارة قانونية', 'متابعة ملف':'متابعة ملف', 'أخرى':'أخرى' };
@@ -48,6 +48,14 @@ export function ClientsManagementClient({
   const setStatus=async(id:string,status:string)=>{
     const r=await fetch(`/api/clients/${id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
     if(r.ok)setClients(x=>x.map(c=>c.id===id?{...c,status}:c));
+  };
+
+  const deleteClient=async(id:string)=>{
+    if(!window.confirm('هل تريد حذف هذا العميل؟ سيتم نقله إلى الأرشيف ويمكن استرجاعه لاحقًا.'))return;
+    const r=await fetch(`/api/clients/${id}`,{method:'DELETE'});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok)setClients(x=>x.filter(c=>c.id!==id));
+    else alert(j.error||'تعذر حذف العميل');
   };
 
   const loadFiles=async(id:string)=>{
@@ -113,6 +121,7 @@ export function ClientsManagementClient({
             open={open===c.id}
             onOpen={()=>void loadFiles(c.id)}
             onStatus={setStatus}
+            onDelete={deleteClient}
             onPreview={setPreview}
             onUpload={upload}
           />
@@ -130,6 +139,7 @@ function ClientRow({
   open,
   onOpen,
   onStatus,
+  onDelete,
   onPreview,
   onUpload,
 }: {
@@ -138,6 +148,7 @@ function ClientRow({
   open:boolean;
   onOpen:()=>void;
   onStatus:(id:string,status:string)=>void;
+  onDelete:(id:string)=>void;
   onPreview:(x:any)=>void;
   onUpload:(id:string,mode:'file'|'link'|'note',v:any)=>Promise<boolean>;
 }) {
@@ -172,12 +183,15 @@ function ClientRow({
             </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {client.status==='POTENTIAL'&&<>
-            <button onClick={()=>onStatus(client.id,'MAIN')} title="قبول" className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Check size={15}/></button>
-            <button onClick={()=>onStatus(client.id,'REJECTED')} title="رفض" className="rounded-lg bg-red-50 p-2 text-red-700"><X size={15}/></button>
-          </>}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded-full bg-navy-50 px-2.5 py-1 text-[10px] font-extrabold text-navy-600">
+            {client.status==='MAIN'?'عميل':client.status==='FOLLOW_UP'?'تحت المتابعة':'عميل محتمل'}
+          </span>
+          <button onClick={()=>onStatus(client.id,'POTENTIAL')} title="تصنيف كعميل محتمل" className={`rounded-lg p-2 ${client.status==='POTENTIAL'?'bg-gold-50 text-gold-700':'border text-navy-500'}`}>محتمل</button>
+          <button onClick={()=>onStatus(client.id,'MAIN')} title="تصنيف كعميل" className={`rounded-lg p-2 ${client.status==='MAIN'?'bg-emerald-50 text-emerald-700':'border text-navy-500'}`}>عميل</button>
+          <button onClick={()=>onStatus(client.id,'FOLLOW_UP')} title="وضع تحت المتابعة" className={`rounded-lg p-2 ${client.status==='FOLLOW_UP'?'bg-amber-50 text-amber-700':'border text-navy-500'}`}>متابعة</button>
           <button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="ملفات العميل"><FileText size={15}/></button>
+          <button onClick={()=>void onDelete(client.id)} title="حذف ونقل إلى الأرشيف" className="rounded-lg border border-red-200 p-2 text-red-600"><Trash2 size={15}/></button>
         </div>
       </div>
 
