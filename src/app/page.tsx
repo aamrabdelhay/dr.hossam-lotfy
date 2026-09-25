@@ -23,7 +23,8 @@ export default async function HomePage() {
   const branchTaskIds = !branchScope.allBranches && branchScope.officeManager
     ? await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "tasks" WHERE "branch_id"=ANY($1::text[])', branchScope.officeManagerBranchIds)
     : undefined;
-  const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([getSidebarData(branchTaskIds), getFeed({ taskIds: branchTaskIds, limit: 1000 }), getSiteNav(), getAdminStats(), getRecentLawyerStatusPosts()]);
+  const navBranchId = !branchScope.allBranches && branchScope.officeManager ? branchScope.officeManagerBranchIds[0] : undefined;
+  const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([getSidebarData(branchTaskIds), getFeed({ taskIds: branchTaskIds, limit: 1000 }), getSiteNav(navBranchId), getAdminStats(), getRecentLawyerStatusPosts()]);
   const lawyerSession = session?.role === 'lawyer' ? session : null;
   const isAdmin = session?.role === 'admin' || (session?.role === 'lawyer' && session.isAdmin);
   const canWriteTasks = session ? (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin) : false;
