@@ -39,7 +39,7 @@ function applyGoogleLanguage(language:'en'|'fr'){
 
 export function GoogleTranslateBridge(){
  React.useEffect(()=>{
-  const language=getLanguage(); protectNames();
+  const language=getLanguage(); document.documentElement.lang='ar'; protectNames();
   if(language==='ar'){hideGoogleUi();return;}
   document.cookie=GT_COOKIE+'=/ar/'+language+'; Path=/; Max-Age=31536000; SameSite=Lax';
   let stopped=false; let tries=0; let timer:number|undefined;
@@ -54,7 +54,7 @@ export function GoogleTranslateBridge(){
   };
   window.googleTranslateElementInit=()=>{
    if(window.google?.translate?.TranslateElement){
-    new window.google.translate.TranslateElement({pageLanguage:'ar',includedLanguages:'en,fr',autoDisplay:false,multilanguagePage:false},'google_translate_element');
+    new window.google.translate.TranslateElement({pageLanguage:'ar',includedLanguages:'en,fr',autoDisplay:false,multilanguagePage:true,'google_translate_element');
    }
    finish();
   };
