@@ -195,3 +195,5 @@ npm run dev
 npm run smoke
 npm run smoke -- https://dr-hossam-lotfy-hw88-aamrabdelhays-projects.vercel.app
 ```
+
+<!-- production rebuild trigger: multilingual admin fix -->
