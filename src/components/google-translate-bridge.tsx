@@ -54,7 +54,7 @@ export function GoogleTranslateBridge(){
   };
   window.googleTranslateElementInit=()=>{
    if(window.google?.translate?.TranslateElement){
-    new window.google.translate.TranslateElement({pageLanguage:'ar',includedLanguages:'en,fr',autoDisplay:false,multilanguagePage:true,'google_translate_element');
+    new window.google.translate.TranslateElement({pageLanguage:'ar',includedLanguages:'en,fr',autoDisplay:false,multilanguagePage:true},'google_translate_element');
    }
    finish();
   };
