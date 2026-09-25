@@ -58,7 +58,7 @@ export function ArchiveManagement({initialEntries}:{initialEntries:Entry[]}) {
       {filtered.length?filtered.map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-navy-100 bg-white p-4 shadow-sm">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><b className="truncate text-sm text-navy-950">{x.label||x.entity_id}</b><span className="rounded-full bg-navy-50 px-2 py-1 text-[10px] font-extrabold text-navy-500">{LABELS[x.entity_type]||x.entity_type}</span>{x.restored_at&&<span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-extrabold text-emerald-700">تم الاسترجاع</span>}</div>
-          <div className="mt-1 text-[11px] text-navy-400">حُذف في {new Date(x.deleted_at).toLocaleString('ar-EG',{hour12:false})} {x.deleted_by_user_name||x.deleted_by_lawyer_name ? ` • بواسطة \${x.deleted_by_user_name||x.deleted_by_lawyer_name}` : ''}</div>
+          <div className="mt-1 text-[11px] text-navy-400">حُذف في {new Date(x.deleted_at).toLocaleString('ar-EG',{hour12:false})} {x.deleted_by_user_name||x.deleted_by_lawyer_name ? ` • بواسطة ${x.deleted_by_user_name||x.deleted_by_lawyer_name}` : ''}</div>
         </div>
         {!x.restored_at && x.entity_type!=='request_rejected' && <button disabled={busy===x.id} onClick={()=>void restore(x.id)} className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-extrabold text-emerald-700 disabled:opacity-50"><RotateCcw size={14}/>{busy===x.id?'جارٍ الاسترجاع…':'استرجاع'}</button>}
       </div>):<div className="rounded-2xl border border-dashed p-10 text-center text-sm font-bold text-navy-400">لا توجد عناصر مطابقة.</div>}
