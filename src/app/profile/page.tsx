@@ -6,7 +6,6 @@ import { getCurrentUser } from '@/lib/auth';
 import { isSeniorManagement } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
 import { ROLE_LABEL } from '@/lib/constants';
-import { ProfileRequests } from '@/components/profile-requests';
 import { Card } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'ملفي الشخصي' };
@@ -48,6 +47,5 @@ export default async function ProfilePage() {
         <Link href="/lawyers" className="inline-flex items-center gap-2 rounded-xl border border-navy-200 bg-white px-4 py-2.5 text-xs font-extrabold text-navy-700">زملاء العمل</Link>
       </div>
     </Card>
-    <div className="mt-6"><ProfileRequests/></div>
   </main>;
 }
