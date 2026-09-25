@@ -56,6 +56,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       const adminAccount = await prisma.user.findUnique({ where: { email: identityEmail }, select: { role: true } });
       isAdmin = adminAccount?.role === 'SUPER_ADMIN' || adminAccount?.role === 'ADMIN';
     }
+    if (!isAdmin) {
+      const senior = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "office_senior_members" WHERE "lawyer_id"=$1 LIMIT 1', lawyer.id).catch(() => []);
+      isAdmin = senior.length > 0;
+    }
+    }
     return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug, isAdmin };
   }
   return null;
