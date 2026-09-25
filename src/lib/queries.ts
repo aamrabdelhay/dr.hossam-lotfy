@@ -113,11 +113,12 @@ function byDateAsc(a: TaskVM, b: TaskVM): number {
 }
 
 /** Upcoming sessions grouped into the five sidebar sections. */
-export async function getSidebarData(): Promise<SidebarData> {
+export async function getSidebarData(taskIds?: string[]): Promise<SidebarData> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const rows = await prisma.task.findMany({
     where: {
+      ...(taskIds ? { id: { in: taskIds } } : {}),
       OR: [
         { scheduledDate: { gte: today } },
         // dateless tasks also appear in "all"
