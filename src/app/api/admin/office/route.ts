@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { user } from '@/lib/api';
 import { isSeniorManagement, isFinanceManagement, officeId } from '@/lib/office-workflow';
@@ -109,6 +111,14 @@ export async function POST(req: Request) {
     await prisma.$executeRawUnsafe('DELETE FROM "office_branch_managers" WHERE ("lawyer_id"=$1 AND "manager_type"=\'OFFICE_MANAGER\') OR ("branch_id"=$2 AND "manager_type"=\'OFFICE_MANAGER\')',data.lawyerId,data.branchId);
     await prisma.$executeRawUnsafe('INSERT INTO "office_branch_lawyers" ("branch_id","lawyer_id") VALUES ($1,$2) ON CONFLICT DO NOTHING',data.branchId,data.lawyerId);
     await prisma.$executeRawUnsafe('INSERT INTO "office_branch_managers" ("id","branch_id","manager_type","lawyer_id") VALUES ($1,$2,\'OFFICE_MANAGER\',$3)',officeId('manager'),data.branchId,data.lawyerId);
+    const identity = await prisma.$queryRawUnsafe<Array<{id:string;role:string}>>('SELECT "id","role" FROM "users" WHERE lower("email")=lower((SELECT COALESCE("googleEmail","email") FROM "lawyers" WHERE "id"=$1)) LIMIT 1',data.lawyerId);
+    if(!identity[0]){
+      const lawyerEmail = await prisma.$queryRawUnsafe<Array<{email:string|null;googleEmail:string|null;fullName:string}>>('SELECT "email","googleEmail","fullName" FROM "lawyers" WHERE "id"=$1 LIMIT 1',data.lawyerId);
+      const email=(lawyerEmail[0]?.googleEmail||lawyerEmail[0]?.email||'').trim().toLowerCase();
+      if(email) await prisma.user.create({data:{name:lawyerEmail[0].fullName,email,passwordHash:bcrypt.hashSync(crypto.randomBytes(32).toString('base64url'),10),role:'OFFICE_MANAGER'}}).catch(()=>undefined);
+    } else if(identity[0].role!=='ADMIN'&&identity[0].role!=='SUPER_ADMIN') {
+      await prisma.user.update({where:{id:identity[0].id},data:{role:'OFFICE_MANAGER'}}).catch(()=>undefined);
+    }
     return NextResponse.json({ok:true});
   }
   if (body.action === 'office_manager_remove') {
@@ -130,6 +140,12 @@ export async function POST(req: Request) {
     await prisma.$executeRawUnsafe('INSERT INTO "office_branch_lawyers" ("branch_id","lawyer_id") VALUES ($1,$2) ON CONFLICT DO NOTHING',data.branchId,data.lawyerId);
     await prisma.$executeRawUnsafe('INSERT INTO "office_branch_managers" ("id","branch_id","manager_type","lawyer_id") VALUES ($1,$2,\'FINANCE_MANAGER\',$3)',officeId('finance_admin'),data.branchId,data.lawyerId);
     await prisma.$executeRawUnsafe('INSERT INTO "office_finance_members" ("id","lawyer_id") VALUES ($1,$2) ON CONFLICT ("lawyer_id") DO NOTHING',officeId('finance_legacy'),data.lawyerId);
+    const identity = await prisma.$queryRawUnsafe<Array<{id:string;role:string}>>('SELECT u."id",u."role" FROM "users" u JOIN "lawyers" l ON lower(u."email")=lower(COALESCE(l."googleEmail",l."email")) WHERE l."id"=$1 LIMIT 1',data.lawyerId);
+    if(!identity[0]){
+      const lawyerEmail = await prisma.$queryRawUnsafe<Array<{email:string|null;googleEmail:string|null;fullName:string}>>('SELECT "email","googleEmail","fullName" FROM "lawyers" WHERE "id"=$1 LIMIT 1',data.lawyerId);
+      const email=(lawyerEmail[0]?.googleEmail||lawyerEmail[0]?.email||'').trim().toLowerCase();
+      if(email) await prisma.user.create({data:{name:lawyerEmail[0].fullName,email,passwordHash:bcrypt.hashSync(crypto.randomBytes(32).toString('base64url'),10),role:'VIEWER'}}).catch(()=>undefined);
+    }
     return NextResponse.json({ ok: true });
   }
   if (body.action === 'finance_admin_remove') {
