@@ -153,12 +153,15 @@ export async function getFeed(params: {
   to?: string;
   /** Free-text search across client name, case name/number and the description. */
   q?: string;
+  /** Optional pre-filter for branch-scoped office management. */
+  taskIds?: string[];
   limit?: number;
   offset?: number;
 } = {}): Promise<{ items: TaskVM[]; total: number }> {
-  const { lawyerId, locationId, status, from, to, q, limit = 30, offset = 0 } = params;
+  const { lawyerId, locationId, status, from, to, q, taskIds, limit = 30, offset = 0 } = params;
   const term = q?.trim();
   const where: Prisma.TaskWhereInput = {
+    ...(taskIds ? { id: { in: taskIds } } : {}),
     ...(locationId ? { locationId } : {}),
     ...(lawyerId ? { assignees: { some: { lawyerId } } } : {}),
     ...(status ? { status: status as Task['status'] } : {}),
