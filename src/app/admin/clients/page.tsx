@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: 'العملاء — الإدارة' }
 
 type AppointmentRow = {
   clientId: string;
-  date: string;
-  time: string;
+  date: string | null;
+  time: string | null;
   type: string;
   status: string;
 };
@@ -36,7 +36,7 @@ export default async function ClientsPage() {
     }>>(`SELECT c."id",c."name",c."phone",c."email",c."nationalId",c."address",c."notes",c."assignedLawyerId",c."status",COUNT(cr."id")::int AS "caseCount" FROM "clients" c LEFT JOIN "case_records" cr ON cr."clientId"=c."id" WHERE COALESCE(c."status",'MAIN') <> 'DELETED' GROUP BY c."id" ORDER BY lower(c."name") ASC LIMIT 500`),
     prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;clientId:string|null}>>(`SELECT "id","name","number","clientId" FROM "case_records" WHERE COALESCE("archived_at",NULL) IS NULL ORDER BY "id" DESC LIMIT 500`),
     prisma.$queryRawUnsafe<Array<{id:string;name:string}>>(`SELECT "id","fullName" AS "name" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" ASC`),
-    prisma.$queryRawUnsafe<AppointmentRow[]>(`SELECT "client_id" AS "clientId","appointment_date"::text AS "date","appointment_time" AS "time","appointment_type" AS "type","status" FROM "client_appointments" WHERE "status" <> 'CANCELLED' AND "appointment_date" >= CURRENT_DATE ORDER BY "appointment_date" ASC, "appointment_time" ASC LIMIT 2000`),
+    prisma.$queryRawUnsafe<AppointmentRow[]>(`SELECT "client_id" AS "clientId","appointment_date"::text AS "date","appointment_time" AS "time","appointment_type" AS "type","status" FROM "client_appointments" WHERE "status" <> 'CANCELLED' ORDER BY ("appointment_date" IS NULL) DESC, "appointment_date" ASC NULLS LAST, "appointment_time" ASC NULLS LAST LIMIT 2000`),
   ]);
 
   const nextAppointments = new Map<string, AppointmentRow>();
