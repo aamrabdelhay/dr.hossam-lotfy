@@ -27,10 +27,12 @@ export async function GET(req: Request) {
   if (!senior && !selectedBranchId) return NextResponse.json({ error: 'لم يتم ربط حسابك بفرع.' }, { status: 403 });
   const summary = selectedBranchId ? await branchSummary(selectedBranchId) : null;
   const availableLawyers = selectedBranchId
-    ? await prisma.$queryRawUnsafe<any[]>(
-        'SELECT l."id",l."fullName",l."title" FROM "lawyers" l LEFT JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE l."active"=true AND (bl."branch_id" IS NULL OR bl."branch_id"=$1) ORDER BY l."fullName" LIMIT 500',
-        selectedBranchId,
-      )
+    ? senior
+      ? await prisma.$queryRawUnsafe<any[]>('SELECT "id","fullName","title" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" LIMIT 500')
+      : await prisma.$queryRawUnsafe<any[]>(
+          'SELECT l."id",l."fullName",l."title" FROM "lawyers" l LEFT JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE l."active"=true AND (bl."branch_id" IS NULL OR bl."branch_id"=$1) ORDER BY l."fullName" LIMIT 500',
+          selectedBranchId,
+        )
     : await prisma.$queryRawUnsafe<any[]>('SELECT "id","fullName","title" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" LIMIT 500');
   if (!senior && finance && !isOffice) {
     const branchId = selectedBranchId as string;
