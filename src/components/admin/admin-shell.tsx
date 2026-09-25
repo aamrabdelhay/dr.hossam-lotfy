@@ -23,6 +23,9 @@ import {
   FilePlus2,
   Archive,
   ShieldCheck,
+  FolderTree,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, Select, Tabs} from '../ui';
 import { cn } from '@/lib/cn';
@@ -96,6 +99,7 @@ type AdminShellProps = {
     summary: string;
     createdAt: string;
   }>;
+  categories: Array<{ id:string; name_ar:string; name_en:string; sort_order:number; active:boolean }>;
   notifications: Array<{
     id: string;
     type: string;
@@ -139,17 +143,21 @@ export function AdminShell(props: AdminShellProps) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <QuickAction icon={<CalendarPlus size={14} />} label="إضافة جلسة" onClick={() => setModal({ kind: 'task', data: { session: true } })} gold />
-              <QuickAction icon={<FilePlus2 size={14} />} label="تكليفات" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
-              <QuickAction icon={<UserPlus size={14} />} label="إضافة محامي" onClick={() => setModal({ kind: 'lawyer' })} />
-              <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
-              <Link
-                href="/cases/archive"
-                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-ivory-100 transition hover:border-gold-500/50 hover:bg-white/10"
-              >
-                <Archive size={14} />
-                أرشيف القضايا
-              </Link>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2">
+                <span className="px-2 text-[10px] font-extrabold text-gold-300">التشغيل اليومي</span>
+                <QuickAction icon={<CalendarPlus size={14} />} label="إضافة جلسة" onClick={() => setModal({ kind: 'task', data: { session: true } })} gold />
+                <QuickAction icon={<FilePlus2 size={14} />} label="تكليفات" onClick={() => setModal({ kind: 'task', data: { multi: true } })} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2">
+                <span className="px-2 text-[10px] font-extrabold text-gold-300">المكتب</span>
+                <QuickAction icon={<UserPlus size={14} />} label="إضافة محامي" onClick={() => setModal({ kind: 'lawyer' })} />
+                <QuickAction icon={<Landmark size={14} />} label="إضافة محكمة أو جهة" onClick={() => setModal({ kind: 'location' })} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-2">
+                <span className="px-2 text-[10px] font-extrabold text-gold-300">القضايا</span>
+                <button type="button" onClick={() => setTabAndSync('case-sections')} className="flex items-center gap-2 rounded-lg bg-gold-500 px-3 py-2 text-[12px] font-extrabold text-navy-950"><FolderTree size={14} /> أقسام القضايا</button>
+                <Link href="/cases/archive" className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[12px] font-bold text-ivory-100"><Archive size={14} /> أرشيف القضايا</Link>
+              </div>
             </div>
           </div>
 
@@ -173,6 +181,7 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
           { id: 'locations', label: 'الجهات الحكومية', count: props.stats.locations },
           { id: 'cases', label: 'القضايا', count: props.stats.cases },
+          { id: 'case-sections', label: 'أقسام القضايا' },
           ...(props.permissions.manageUsers ? [{ id: 'users', label: 'الادمن' }] : []),
           { id: 'activity', label: 'النشاط' },
           { id: 'notifications', label: 'الإشعارات' },
@@ -185,6 +194,7 @@ export function AdminShell(props: AdminShellProps) {
       {tab === 'lawyers' && <LawyersTab lawyers={props.lawyers} onAdd={() => setModal({ kind: 'lawyer' })} onEdit={(l) => setModal({ kind: 'lawyer', data: l })} />}
       {tab === 'locations' && <LocationsTab locations={props.locations} onAdd={() => setModal({ kind: 'location' })} onEdit={(l) => setModal({ kind: 'location', data: l })} />}
       {tab === 'cases' && <CasesTab cases={props.cases} />}
+      {tab === 'case-sections' && <CaseSectionsTab categories={props.categories} cases={props.cases} />}
       {tab === 'users' && props.permissions.manageUsers && <UsersTab currentUserId={props.session.userId} />}
       {tab === 'activity' && <ActivityTab initial={props.activity} />}
       {tab === 'notifications' && <NotificationsTab notifications={props.notifications} />}
@@ -804,6 +814,15 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
       </Modal>
     </div>
   );
+}
+
+/* ─────────────────────────── Case sections ─────────────────────────── */
+function CaseSectionsTab({categories:initialCategories,cases}:{categories:AdminShellProps['categories'];cases:AdminShellProps['cases']}) {
+  const router=useRouter(); const [categories,setCategories]=React.useState(initialCategories);
+  const [active,setActive]=React.useState(initialCategories.find(c=>c.active)?.id||''); const [name,setName]=React.useState(''); const [busy,setBusy]=React.useState(false);
+  const save=async(body:any)=>{setBusy(true);try{const r=await fetch('/api/admin/office',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw new Error(j.error||'تعذر حفظ القسم');const fresh=await fetch('/api/admin/office',{cache:'no-store'});const d=await fresh.json();if(fresh.ok){setCategories(d.categories||[]);if(body.action==='category_delete'&&body.id===active)setActive((d.categories||[]).find((x:any)=>x.active)?.id||'');}router.refresh()}catch(e){alert(e instanceof Error?e.message:'تعذر حفظ القسم')}finally{setBusy(false)}};
+  const current=categories.find(c=>c.id===active); const rows=cases.filter((c:any)=>(c as any).category_id===active);
+  return <div dir="rtl" className="space-y-4"><Card className="p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 text-base font-extrabold text-navy-950"><FolderTree size={18} className="text-gold-600"/>أقسام القضايا</h2><p className="mt-1 text-[11px] font-semibold text-navy-400">كل قسم مستقل، ويمكنك إضافة أقسام جديدة في أي وقت.</p></div><div className="flex gap-2"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="اسم قسم جديد"/><Button size="sm" variant="gold" disabled={busy||!name.trim()} onClick={()=>{void save({action:'category_save',nameAr:name.trim(),nameEn:name.trim(),sortOrder:(categories.length+1)*10,active:true});setName('')}}>إضافة قسم</Button></div></div><div className="flex flex-wrap gap-2 border-t border-navy-100 pt-3">{categories.filter(c=>c.active).map(c=><button key={c.id} type="button" onClick={()=>setActive(c.id)} className={cn('rounded-full px-4 py-2 text-xs font-extrabold transition',active===c.id?'bg-navy-950 text-white':'bg-ivory-50 text-navy-600 hover:bg-gold-50')}>{c.name_ar}<span className="ms-2 opacity-60">{cases.filter((x:any)=>(x as any).category_id===c.id).length}</span></button>)}</div></Card>{current&&<Card className="overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 px-4 py-3"><h3 className="text-sm font-extrabold text-navy-900">{current.name_ar}</h3><div className="flex gap-1"><button disabled={busy} onClick={()=>void save({action:'category_move',id:current.id,direction:'up'})} className="rounded-lg border p-2 text-navy-500"><ArrowUp size={14}/></button><button disabled={busy} onClick={()=>void save({action:'category_move',id:current.id,direction:'down'})} className="rounded-lg border p-2 text-navy-500"><ArrowDown size={14}/></button><button disabled={busy} onClick={()=>void save({action:'category_delete',id:current.id})} className="rounded-lg border p-2 text-red-600">تعطيل</button></div></div>{rows.length?<div className="divide-y divide-navy-100">{rows.map(c=><Link key={c.id} href={`/cases/${c.id}`} className="block px-4 py-3 hover:bg-ivory-50"><div className="text-xs font-extrabold text-navy-900">{c.name}</div><div className="mt-1 text-[10px] text-navy-400">{c.number}{c.clientName?` — ${c.clientName}`:''}</div></Link>)}</div>:<div className="p-8 text-center text-xs text-navy-400">لا توجد قضايا في هذا القسم حالياً.</div>}</Card>}</div>;
 }
 
 /* ─────────────────────────── Activity ─────────────────────────── */
