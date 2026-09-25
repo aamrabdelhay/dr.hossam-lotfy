@@ -84,6 +84,7 @@ type AdminShellProps = {
     name: string;
     number: string;
     clientName: string | null;
+    category_id: string | null;
     events: Array<{
       id: string;
       description: string;
