@@ -26,6 +26,12 @@ export async function GET(req: Request) {
     : (requestedBranchId && allowed.some((b) => b.id === requestedBranchId) ? requestedBranchId : (allowed[0]?.id ?? null));
   if (!senior && !selectedBranchId) return NextResponse.json({ error: 'لم يتم ربط حسابك بفرع.' }, { status: 403 });
   const summary = selectedBranchId ? await branchSummary(selectedBranchId) : null;
+  const availableLawyers = selectedBranchId
+    ? await prisma.$queryRawUnsafe<any[]>(
+        'SELECT l."id",l."fullName",l."title" FROM "lawyers" l LEFT JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE l."active"=true AND (bl."branch_id" IS NULL OR bl."branch_id"=$1) ORDER BY l."fullName" LIMIT 500',
+        selectedBranchId,
+      )
+    : await prisma.$queryRawUnsafe<any[]>('SELECT "id","fullName","title" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" LIMIT 500');
   if (!senior && finance && !isOffice) {
     const branchId = selectedBranchId as string;
     const [requests, dues, expenses, branchManagers] = await Promise.all([
@@ -34,7 +40,7 @@ export async function GET(req: Request) {
       prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "created_at" DESC LIMIT 500', branchId),
       prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" WHERE m."branch_id"=$1 AND m."manager_type"=\'FINANCE_MANAGER\'', branchId),
     ]);
-    return NextResponse.json({ financeOnly:true, branches:allowed, selectedBranchId, summary, requests, dues, expenses, members:[], users:[], lawyers:summary?.lawyers??[], logins:[], clicks:[], archive:[], categories:[], financeMembers:branchManagers, branchManagers });
+    return NextResponse.json({ financeOnly:true, branches:allowed, selectedBranchId, summary, requests, dues, expenses, members:[], users:[], lawyers:summary?.lawyers??[], logins:[], clicks:[], archive:[], categories:[], financeMembers:branchManagers, branchManagers, availableLawyers });
   }
   const cases = selectedBranchId
     ? await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."branch_id",cr."archived_at",cr."category_id" FROM "case_records" cr WHERE COALESCE(cr."branch_id",$1)=$1 ORDER BY cr."id" DESC LIMIT 500', selectedBranchId)
@@ -53,7 +59,7 @@ export async function GET(req: Request) {
     selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "created_at" DESC LIMIT 500', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500'),
     selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" WHERE m."branch_id"=$1 ORDER BY m."manager_type"', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."branch_id",m."manager_type"'),
   ]);
-  return NextResponse.json({ financeOnly:false, branches:allowed, selectedBranchId, summary, members, users, lawyers, cases, requests, logins, clicks, archive, categories, dues, financeMembers, expenses, branchManagers });
+  return NextResponse.json({ financeOnly:false, branches:allowed, selectedBranchId, summary, members, users, lawyers, cases, requests, logins, clicks, archive, categories, dues, financeMembers, expenses, branchManagers, availableLawyers });
 }
 export async function POST(req: Request) {
   const session = await user();
