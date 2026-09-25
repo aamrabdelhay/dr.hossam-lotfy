@@ -8,8 +8,8 @@ const schema = z.object({
   name: z.string().trim().min(2).max(300),
   phone: z.string().trim().min(3).max(100),
   email: z.string().trim().email().max(200).optional().or(z.literal('')),
-  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/),
-  time: z.string().trim().regex(/^\d{2}:\d{2}$/),
+  date: z.string().optional().or(z.literal('')),
+  time: z.string().optional().or(z.literal('')),
   type: z.string().trim().min(1).max(200),
   notes: z.string().trim().max(4000).optional(),
 });
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
           data.name,
           data.phone,
           data.email || null,
-          data.notes || 'تم إنشاء العميل من الموقع العام وحجز موعد.'
+          data.notes || 'تم إنشاء الطلب من الموقع العام.'
         );
       } else {
         await tx.$executeRawUnsafe(
@@ -75,8 +75,8 @@ export async function POST(req: Request) {
         appointmentId,
         clientId,
         data.submissionId,
-        data.date,
-        data.time,
+        data.date || null,
+        data.time || null,
         data.type,
         data.notes || null
       );
@@ -90,9 +90,7 @@ export async function POST(req: Request) {
         '👤 <b>الاسم:</b> ' + escapeHtml(data.name),
         '📱 <b>الهاتف:</b> ' + escapeHtml(data.phone),
         data.email ? '📧 <b>البريد:</b> ' + escapeHtml(data.email) : null,
-        '📅 <b>التاريخ:</b> ' + escapeHtml(data.date),
-        '🕕 <b>الوقت:</b> ' + escapeHtml(data.time),
-        '⚖️ <b>نوع الموعد:</b> ' + escapeHtml(data.type),
+        '⚖️ <b>نوع الطلب:</b> ' + escapeHtml(data.type),
         data.notes ? '📝 <b>الملاحظات:</b> ' + escapeHtml(data.notes) : null,
       ].filter(Boolean).join('\n');
       await sendTelegramGroupNotification(telegramMessage).catch((error) => {
