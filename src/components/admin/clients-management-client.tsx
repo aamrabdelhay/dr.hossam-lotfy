@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Check, X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
+const APPOINTMENT_TYPE_LABELS: Record<string,string> = { LEGAL_CONSULTATION:'استشارة قانونية', CASE_FOLLOW_UP:'متابعة ملف', OTHER:'أخرى', 'استشارة قانونية':'استشارة قانونية', 'متابعة ملف':'متابعة ملف', 'أخرى':'أخرى' };
 type Client = {
   id:string;
   name:string;
@@ -28,7 +29,6 @@ export function ClientsManagementClient({
   lawyers:Array<{id:string;name:string}>;
 }) {
   const [clients,setClients]=React.useState(initialClients);
-  const [tab,setTab]=React.useState('POTENTIAL');
   const [files,setFiles]=React.useState<Record<string,any[]>>({});
   const [open,setOpen]=React.useState<string|null>(null);
   const [preview,setPreview]=React.useState<{name:string;url:string;kind:string;text?:string}|null>(null);
@@ -86,10 +86,9 @@ export function ClientsManagementClient({
     return false;
   };
 
-  const typeLabels: Record<string,string> = { LEGAL_CONSULTATION:'استشارة قانونية', CASE_FOLLOW_UP:'متابعة ملف', OTHER:'أخرى', 'استشارة قانونية':'استشارة قانونية', 'متابعة ملف':'متابعة ملف', 'أخرى':'أخرى' };
-  const appointmentType = (c: Client) => c.nextAppointment ? (typeLabels[c.nextAppointment.type] || c.nextAppointment.type) : 'OTHER';
+  const appointmentType = (c: Client) => c.nextAppointment ? (APPOINTMENT_TYPE_LABELS[c.nextAppointment.type] || c.nextAppointment.type) : 'OTHER';
   const sections=[['ALL','كل طلبات المواعيد'],['LEGAL_CONSULTATION','استشارة قانونية'],['CASE_FOLLOW_UP','متابعة ملف'],['OTHER','أخرى']];
-  const current=clients.filter(c=>typeTab==='ALL' || appointmentType(c)===typeLabels[typeTab] || (typeTab==='OTHER' && appointmentType(c)==='أخرى'));
+  const current=clients.filter(c=>typeTab==='ALL' || appointmentType(c)===APPOINTMENT_TYPE_LABELS[typeTab] || (typeTab==='OTHER' && appointmentType(c)==='أخرى'));
 
 
   return (
@@ -97,7 +96,7 @@ export function ClientsManagementClient({
       <div className="flex flex-wrap gap-2">
         {sections.map(([id,label])=>
           <button key={id} onClick={()=>setTypeTab(id)} className={`rounded-full px-4 py-2 text-xs font-extrabold ${typeTab===id?'bg-navy-950 text-white':'border border-navy-200 bg-white text-navy-600'}`}>
-            {label} ({clients.filter(c=>typeTab==='ALL' ? !!c.nextAppointment : appointmentType(c)===typeLabels[id]).length})
+            {label} ({clients.filter(c=>typeTab==='ALL' ? !!c.nextAppointment : appointmentType(c)===APPOINTMENT_TYPE_LABELS[id]).length})
           </button>
         )}
       </div>
@@ -162,7 +161,7 @@ function ClientRow({
             <div className="mt-2 rounded-xl border border-gold-200 bg-gold-50/50 p-3 text-[11px] font-bold text-navy-700">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="inline-flex items-center gap-1.5 text-gold-700"><CalendarDays size={13}/>طلب موعد</span>
-                <span className="text-navy-500">{typeLabels[client.nextAppointment.type] || client.nextAppointment.type}</span>
+                <span className="text-navy-500">{APPOINTMENT_TYPE_LABELS[client.nextAppointment.type] || client.nextAppointment.type}</span>
                 {client.nextAppointment.date && <span>{client.nextAppointment.date}</span>}
                 {client.nextAppointment.time && <span className="inline-flex items-center gap-1"><Clock size={12}/>{client.nextAppointment.time}</span>}
                 {!client.nextAppointment.date && <span className="text-amber-700">بانتظار تحديد الموعد</span>}
