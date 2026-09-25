@@ -17,19 +17,16 @@ const HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
 
 export function CalendarClient({ isAdmin = false, locations = [], lawyers = [], cases = [] }: { isAdmin?: boolean; locations?: NavLocation[]; lawyers?: Array<{ id: string; name: string; isPrincipal?: boolean }>; cases?: Array<{ id: string; name: string; number: string }> }) {
   const UI = (k: string) => {
-    const lang = typeof document !== 'undefined'
-      ? (document.cookie.match(/(?:^|; )dr-hossam-site-language=([^;]*)/)?.[1] || 'ar')
-      : 'ar';
-    const d: Record<string, Record<string, string>> = {
-      month: { ar: 'شهر', en: 'Month', fr: 'Mois' },
-      week: { ar: 'أسبوع', en: 'Week', fr: 'Semaine' },
-      day: { ar: 'يوم', en: 'Day', fr: 'Jour' },
-      previous: { ar: 'السابق', en: 'Previous', fr: 'Précédent' },
-      today: { ar: 'اليوم', en: 'Today', fr: 'Aujourd’hui' },
-      next: { ar: 'التالي', en: 'Next', fr: 'Suivant' },
-      add: { ar: 'إضافة موعد', en: 'Add appointment', fr: 'Ajouter un rendez-vous' },
+    const d: Record<string, string> = {
+      month: 'شهر',
+      week: 'أسبوع',
+      day: 'يوم',
+      previous: 'السابق',
+      today: 'اليوم',
+      next: 'التالي',
+      add: 'إضافة موعد',
     };
-    return d[k]?.[lang] || d[k]?.ar || k;
+    return d[k] || k;
   };
 
   const [cursor, setCursor] = React.useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
