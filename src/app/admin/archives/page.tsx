@@ -1,0 +1,17 @@
+import type {Metadata} from 'next';
+import Link from 'next/link';
+import {redirect} from 'next/navigation';
+import {getCurrentUser} from '@/lib/auth';
+import {isSeniorManagement,isFinanceManagement} from '@/lib/office-workflow';
+import {prisma} from '@/lib/prisma';
+export const metadata:Metadata={title:'الأرشيف العام'};
+export default async function GeneralArchivePage(){
+ const session=await getCurrentUser();if(!session)redirect('/auth');
+ const senior=await isSeniorManagement(session);const finance=await isFinanceManagement(session);if(!senior&&!finance)redirect('/');
+ const [lawyers,cases,clients]=await Promise.all([
+  prisma.lawyer.findMany({where:{active:false},select:{id:true,fullName:true,email:true},orderBy:{updatedAt:'desc'},take:200}),
+  prisma.$queryRawUnsafe<any[]>('SELECT "id","name","number","clientName","archived_at" FROM "case_records" WHERE "archived_at" IS NOT NULL ORDER BY "archived_at" DESC LIMIT 200'),
+  prisma.$queryRawUnsafe<any[]>('SELECT "id","name","phone","email","archived_at","status" FROM "clients" WHERE "archived_at" IS NOT NULL OR "status" IN (\'ARCHIVED\',\'REJECTED\') ORDER BY "archived_at" DESC NULLS LAST LIMIT 200')
+ ]);
+ return <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6" dir="rtl"><Link href="/admin/office" className="text-xs font-bold text-navy-500">← العودة إلى صفحة الإدارة</Link><h1 className="mt-4 text-2xl font-extrabold text-navy-950">الأرشيف العام</h1><p className="mt-1 text-sm text-navy-400">العناصر القديمة المؤرشفة وليست المحذوفات. أرشيف المحذوفات موجود بشكل منفصل داخل صفحة الإدارة.</p><div className="mt-6 grid gap-5 lg:grid-cols-3"><section className="rounded-2xl border border-navy-100 bg-white p-5"><h2 className="mb-3 font-extrabold">زملاء العمل السابقون</h2>{lawyers.length?<div className="space-y-2">{lawyers.map(l=><div key={l.id} className="rounded-xl bg-ivory-50 p-3 text-sm"><b>{l.fullName}</b><div className="text-xs text-navy-400">{l.email||'—'}</div></div>)}</div>:<p className="text-sm text-navy-400">لا توجد عناصر.</p>}</section><section className="rounded-2xl border border-navy-100 bg-white p-5"><h2 className="mb-3 font-extrabold">القضايا المغلقة</h2>{cases.length?<div className="space-y-2">{cases.map(c=><div key={c.id} className="rounded-xl bg-ivory-50 p-3 text-sm"><b>{c.name}</b><div className="text-xs text-navy-400">رقم {c.number} · {c.clientName||'بدون عميل'}</div></div>)}</div>:<p className="text-sm text-navy-400">لا توجد عناصر.</p>}</section><section className="rounded-2xl border border-navy-100 bg-white p-5"><h2 className="mb-3 font-extrabold">العملاء السابقون</h2>{clients.length?<div className="space-y-2">{clients.map(c=><div key={c.id} className="rounded-xl bg-ivory-50 p-3 text-sm"><b>{c.name}</b><div className="text-xs text-navy-400">{c.phone||c.email||'—'}</div></div>)}</div>:<p className="text-sm text-navy-400">لا توجد عناصر.</p>}</section></div><div className="mt-6 rounded-2xl border border-gold-200 bg-gold-50/30 p-5"><h2 className="font-extrabold text-navy-950">أرشيف المحذوفات</h2><p className="mt-1 text-sm text-navy-500">يحتوي على ما حُذف أو رُفض ويمكن استرجاع العناصر القابلة للاسترجاع من مركز الإدارة.</p><Link href="/admin/office" className="mt-3 inline-flex rounded-xl bg-navy-950 px-4 py-2 text-xs font-bold text-white">فتح أرشيف المحذوفات</Link></div></main>
+}
