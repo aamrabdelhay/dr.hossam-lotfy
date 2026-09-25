@@ -96,7 +96,7 @@ export function ClientsManagementClient({
       <div className="flex flex-wrap gap-2">
         {sections.map(([id,label])=>
           <button key={id} onClick={()=>setTypeTab(id)} className={`rounded-full px-4 py-2 text-xs font-extrabold ${typeTab===id?'bg-navy-950 text-white':'border border-navy-200 bg-white text-navy-600'}`}>
-            {label} ({clients.filter(c=>typeTab==='ALL' ? !!c.nextAppointment : appointmentType(c)===APPOINTMENT_TYPE_LABELS[id]).length})
+            {label} ({clients.filter(c=>id==='ALL' ? !!c.nextAppointment : appointmentType(c)===APPOINTMENT_TYPE_LABELS[id]).length})
           </button>
         )}
       </div>
