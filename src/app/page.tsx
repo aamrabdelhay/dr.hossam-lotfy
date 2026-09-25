@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CalendarClock, Landmark, Scale, Search, BriefcaseBusiness, ClipboardList, AlertTriangle, Users, MapPinned } from 'lucide-react';
 import { getSidebarData, getFeed, getAdminStats } from '@/lib/queries';
 import { getRecentLawyerStatusPosts } from '@/lib/lawyer-status';
+import { prisma } from '@/lib/prisma';
 import { can } from '@/lib/rbac';
 import { getCurrentUser } from '@/lib/auth';
 import { getSiteNav } from '@/lib/site-data';
@@ -11,13 +12,18 @@ import { Composer } from '@/components/composer';
 import { Card, EmptyState } from '@/components/ui';
 import { FeedWindow } from '@/components/feed-window';
 import { copyFor, getSiteLanguage } from '@/lib/i18n';
+import { getBranchScope } from '@/lib/branch-access';
 import styles from './page-transition.module.css';
 
 export default async function HomePage() {
   const language = await getSiteLanguage();
   const copy = copyFor(language);
-  const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([getSidebarData(), getFeed({ limit: 1000 }), getSiteNav(), getAdminStats(), getRecentLawyerStatusPosts()]);
   const session = await getCurrentUser();
+  const branchScope = await getBranchScope(session);
+  const branchTaskIds = !branchScope.allBranches && branchScope.officeManager
+    ? await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "tasks" WHERE "branch_id"=ANY($1::text[])', branchScope.officeManagerBranchIds)
+    : undefined;
+  const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([getSidebarData(branchTaskIds), getFeed({ taskIds: branchTaskIds, limit: 1000 }), getSiteNav(), getAdminStats(), getRecentLawyerStatusPosts()]);
   const lawyerSession = session?.role === 'lawyer' ? session : null;
   const isAdmin = session?.role === 'admin' || (session?.role === 'lawyer' && session.isAdmin);
   const canWriteTasks = session ? (session.role === 'admin' ? can(session.userRole, 'writeTasks') : session.isAdmin) : false;
