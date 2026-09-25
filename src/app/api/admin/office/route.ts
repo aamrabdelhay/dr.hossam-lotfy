@@ -130,7 +130,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ok:true});
   }
   if (body.action === 'office_manager_remove') {
-    const id=z.string().parse(body.id); await prisma.$executeRawUnsafe('DELETE FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"=\'OFFICE_MANAGER\'',id); return NextResponse.json({ok:true});
+    const id=z.string().parse(body.id);
+    const rows=await prisma.$queryRawUnsafe<Array<{lawyer_id:string|null}>>('SELECT "lawyer_id" FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"=\'OFFICE_MANAGER\' LIMIT 1',id);
+    await prisma.$executeRawUnsafe('DELETE FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"=\'OFFICE_MANAGER\'',id);
+    if(rows[0]?.lawyer_id){
+      const identity=await prisma.$queryRawUnsafe<Array<{id:string;role:string}>>('SELECT u."id",u."role" FROM "users" u JOIN "lawyers" l ON lower(u."email")=lower(COALESCE(l."googleEmail",l."email")) WHERE l."id"=$1 LIMIT 1',rows[0].lawyer_id);
+      if(identity[0]?.role==='OFFICE_MANAGER') await prisma.user.update({where:{id:identity[0].id},data:{role:'VIEWER'}}).catch(()=>undefined);
+    }
+    return NextResponse.json({ok:true});
   }
   if (body.action === 'senior_add') {
     const data = z.object({ userId: z.string().optional(), lawyerId: z.string().optional(), title: z.string().max(120).optional() }).refine((v) => v.userId || v.lawyerId, 'اختر حساباً أو محامياً').parse(body);
@@ -157,7 +164,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
   if (body.action === 'finance_admin_remove') {
-    const id = z.string().parse(body.id); await prisma.$executeRawUnsafe(`DELETE FROM "office_finance_members" WHERE "id"=$1`, id); return NextResponse.json({ ok: true });
+    const id = z.string().parse(body.id);
+    const rows = await prisma.$queryRawUnsafe<Array<{lawyer_id:string|null}>>('SELECT "lawyer_id" FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"=\'FINANCE_MANAGER\' LIMIT 1', id);
+    await prisma.$executeRawUnsafe(`DELETE FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"='FINANCE_MANAGER'`, id);
+    if(rows[0]?.lawyer_id) await prisma.$executeRawUnsafe(`DELETE FROM "office_finance_members" WHERE "lawyer_id"=$1`, rows[0].lawyer_id);
+    return NextResponse.json({ ok: true });
   }
   if (body.action === 'lawyer_add') {
     const data = z.object({ fullName:z.string().min(3).max(120), title:z.enum(['DOCTOR','ADVOCATE']), phone:z.string().min(6).max(20), email:z.string().email().max(120).optional(), specialization:z.string().max(200).optional(), bio:z.string().max(2000).optional(), position:z.string().max(120).optional() }).parse(body);
