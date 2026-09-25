@@ -11,6 +11,7 @@ type Entry = {
 const TYPES:Record<string,{label:string;icon:React.ReactNode}> = {
   ALL:{label:'الكل',icon:<Archive size={15}/>},
   client:{label:'العملاء',icon:<UserRound size={15}/>},
+  expense:{label:'المصروفات',icon:<FileText size={15}/>},
   case:{label:'القضايا',icon:<BriefcaseBusiness size={15}/>},
   lawyer:{label:'المحامون',icon:<Users size={15}/>},
   task:{label:'المهام والجلسات',icon:<ListChecks size={15}/>},
