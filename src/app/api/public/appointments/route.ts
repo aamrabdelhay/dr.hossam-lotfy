@@ -15,6 +15,7 @@ const schema = z.object({
 });
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function safeEqual(a: string, b: string) {
   const left = Buffer.from(a);
