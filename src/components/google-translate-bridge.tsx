@@ -30,7 +30,6 @@ export function GoogleTranslateBridge(){
   setLanguage(read());
   protectNames();
   if(read()==='ar') return;
-  const current=read();
   const existing=document.getElementById('google-translate-script');
   const init=()=>{
    window.googleTranslateElementInit=()=>{
