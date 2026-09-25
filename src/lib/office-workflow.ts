@@ -56,16 +56,35 @@ export async function createOfficeRequest(input: {
   );
 
   const requester = input.session.name || (lawyerId ? `Lawyer ${lawyerId}` : `User ${userId ?? 'unknown'}`);
+  const payload = (input.payload && typeof input.payload === 'object') ? input.payload as Record<string, unknown> : {};
+  const taskType = typeof payload.taskType === 'string' ? payload.taskType : '';
+  const locationId = typeof payload.locationId === 'string' ? payload.locationId : '';
+  const caseId = typeof payload.caseId === 'string' ? payload.caseId : '';
+  const scheduledDate = typeof payload.scheduledDate === 'string' ? payload.scheduledDate : '';
+  const scheduledTime = typeof payload.scheduledTime === 'string' ? payload.scheduledTime : '';
+  const clientName = typeof payload.clientName === 'string' ? payload.clientName : '';
+  const notes = typeof payload.notes === 'string' ? payload.notes : '';
+  const lawyerIds = Array.isArray(payload.lawyerIds) ? payload.lawyerIds.filter((x): x is string => typeof x === 'string') : [];
+  const [assignedLawyers, location, caseRow] = await Promise.all([
+    lawyerIds.length ? prisma.lawyer.findMany({ where: { id: { in: lawyerIds } }, select: { fullName: true } }) : [],
+    locationId ? prisma.location.findUnique({ where: { id: locationId }, select: { name: true } }) : null,
+    caseId ? prisma.caseRecord.findUnique({ where: { id: caseId }, select: { name: true, number: true } }) : null,
+  ]);
   const telegramMessage = [
-    '<b>🏛️ Loutfi Law Firm</b>',
-    '<b>طلب إداري جديد</b>',
-    '',
+    '<b>🏛️ Loutfi Law Firm</b>', '<b>طلب إداري جديد</b>', '',
     `<b>النوع:</b> ${escapeTelegramHtml(input.type)}`,
     `<b>العنوان:</b> ${escapeTelegramHtml(input.title)}`,
     `<b>مقدم الطلب:</b> ${escapeTelegramHtml(requester)}`,
+    taskType ? `<b>نوع المهمة:</b> ${escapeTelegramHtml(taskType)}` : '',
     input.reason ? `<b>السبب:</b> ${escapeTelegramHtml(input.reason)}` : '',
-    '',
-    `<a href="https://dr-hossam-lotfy-hw88.vercel.app/admin/office">فتح طلبات الإدارة</a>`,
+    assignedLawyers.length ? `<b>المحامي / المحامون:</b> ${escapeTelegramHtml(assignedLawyers.map(x => x.fullName).join('، '))}` : '',
+    location?.name ? `<b>المحكمة / الجهة:</b> ${escapeTelegramHtml(location.name)}` : '',
+    caseRow ? `<b>القضية:</b> ${escapeTelegramHtml(caseRow.name + (caseRow.number ? ' — ' + caseRow.number : ''))}` : '',
+    clientName ? `<b>العميل:</b> ${escapeTelegramHtml(clientName)}` : '',
+    scheduledDate ? `<b>التاريخ:</b> ${escapeTelegramHtml(scheduledDate)}` : '',
+    scheduledTime ? `<b>الوقت:</b> ${escapeTelegramHtml(scheduledTime)}` : '',
+    notes ? `<b>الملاحظات:</b> ${escapeTelegramHtml(notes)}` : '',
+    '', '<a href="https://dr-hossam-lotfy-hw88.vercel.app/admin/office">فتح طلبات الإدارة</a>',
   ].filter(Boolean).join('\n');
 
   await sendTelegramGroupNotification(telegramMessage).catch((error) => {
