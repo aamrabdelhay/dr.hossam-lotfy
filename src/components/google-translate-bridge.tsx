@@ -45,7 +45,7 @@ export function GoogleTranslateBridge(){
   let stopped=false; let tries=0; let timer:number|undefined;
   const finish=()=>{
    if(stopped)return; protectNames(); hideGoogleUi();
-   if(applyGoogleLanguage(language)){
+   if(applyGoogleLanguage(language)){ document.documentElement.lang=language;
     window.setTimeout(()=>{protectNames();hideGoogleUi();},300);
     window.setTimeout(()=>{protectNames();hideGoogleUi();},1000);
     window.setTimeout(()=>{protectNames();hideGoogleUi();},2500);

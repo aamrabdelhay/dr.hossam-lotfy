@@ -113,11 +113,12 @@ function byDateAsc(a: TaskVM, b: TaskVM): number {
 }
 
 /** Upcoming sessions grouped into the five sidebar sections. */
-export async function getSidebarData(): Promise<SidebarData> {
+export async function getSidebarData(taskIds?: string[]): Promise<SidebarData> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const rows = await prisma.task.findMany({
     where: {
+      ...(taskIds ? { id: { in: taskIds } } : {}),
       OR: [
         { scheduledDate: { gte: today } },
         // dateless tasks also appear in "all"
@@ -153,12 +154,15 @@ export async function getFeed(params: {
   to?: string;
   /** Free-text search across client name, case name/number and the description. */
   q?: string;
+  /** Optional pre-filter for branch-scoped office management. */
+  taskIds?: string[];
   limit?: number;
   offset?: number;
 } = {}): Promise<{ items: TaskVM[]; total: number }> {
-  const { lawyerId, locationId, status, from, to, q, limit = 30, offset = 0 } = params;
+  const { lawyerId, locationId, status, from, to, q, taskIds, limit = 30, offset = 0 } = params;
   const term = q?.trim();
   const where: Prisma.TaskWhereInput = {
+    ...(taskIds ? { id: { in: taskIds } } : {}),
     ...(locationId ? { locationId } : {}),
     ...(lawyerId ? { assignees: { some: { lawyerId } } } : {}),
     ...(status ? { status: status as Task['status'] } : {}),

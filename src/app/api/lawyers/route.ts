@@ -4,100 +4,43 @@ import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 import { logActivity } from '@/lib/activity';
 import { slugify, uniqueSlug } from '@/lib/slug';
 import { isDemoMode, DEMO_TAG } from '@/lib/demo-mode';
+import { getBranchScope } from '@/lib/branch-access';
 
 export async function GET() {
   const session = await user();
+  const isAdmin = session?.role === 'admin' || (session?.role === 'lawyer' && session.isAdmin);
+  const scope = await getBranchScope(session);
+  const branchId = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds[0] : null;
 
-  const isAdmin =
-    session?.role === 'admin' ||
-    (session?.role === 'lawyer' && session.isAdmin);
-
-  const lawyers = await prisma.lawyer.findMany({
-    where: isAdmin
-      ? {}
-      : {
-          active: true,
-          approvedAt: { not: null },
-        },
-    orderBy: [
-      { sortOrder: 'asc' },
-      { fullName: 'asc' },
-    ],
-    select: {
-      id: true,
-      slug: true,
-      fullName: true,
-      title: true,
-      phone: true,
-      email: true,
-      specialization: true,
-      isPrincipal: true,
-      active: true,
-      approvedAt: true,
-      googleEmail: true,
-    },
-  });
+  const lawyers = branchId
+    ? await prisma.$queryRawUnsafe<any[]>(
+        'SELECT l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."specialization",l."isPrincipal",l."active",l."approvedAt",l."googleEmail",l."sortOrder" FROM "lawyers" l JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE bl."branch_id"=$1 ORDER BY l."sortOrder",l."fullName"',
+        branchId,
+      )
+    : await prisma.lawyer.findMany({
+        where: isAdmin ? {} : { active: true, approvedAt: { not: null } },
+        orderBy: [{ sortOrder: 'asc' }, { fullName: 'asc' }],
+        select: { id:true, slug:true, fullName:true, title:true, phone:true, email:true, specialization:true, isPrincipal:true, active:true, approvedAt:true, googleEmail:true },
+      });
 
   if (!isAdmin) {
-    return json({
-      lawyers: lawyers.map(
-        ({ email, googleEmail, approvedAt, active, ...publicProfile }) =>
-          publicProfile
-      ),
-    });
+    return json({ lawyers: lawyers.map(({ email, googleEmail, approvedAt, active, ...publicProfile }) => publicProfile) });
   }
 
-  const counts = await prisma.$queryRaw<
-    { lawyerId: string; upcoming: number }[]
-  >`
-    SELECT
-      "lawyerId",
-      COUNT(*)::int AS "upcoming"
+  const counts = await prisma.$queryRaw<{ lawyerId:string; upcoming:number }[]>`
+    SELECT "lawyerId", COUNT(*)::int AS "upcoming"
     FROM "task_assignments" ta
-    JOIN "tasks" t
-      ON t.id = ta."taskId"
-    WHERE
-      ta."completedAt" IS NULL
+    JOIN "tasks" t ON t.id=ta."taskId"
+    WHERE ta."completedAt" IS NULL
       AND t."status" NOT IN ('CANCELLED')
-      AND (
-        t."scheduledDate" >= CURRENT_DATE
-        OR t."scheduledDate" IS NULL
-      )
+      AND (t."scheduledDate" >= CURRENT_DATE OR t."scheduledDate" IS NULL)
     GROUP BY "lawyerId"
   `;
-
-  const countMap = new Map(
-    counts.map((c) => [c.lawyerId, c.upcoming])
-  );
-
-  const adminEmails = await prisma.user.findMany({
-    where: {
-      role: {
-        in: ['SUPER_ADMIN', 'ADMIN'],
-      },
-    },
-    select: {
-      email: true,
-    },
-  });
-
-  const adminSet = new Set(
-    adminEmails.map((a) => a.email.toLowerCase())
-  );
-
-  return json({
-    lawyers: lawyers.map((l) => ({
-      ...l,
-      approved: l.approvedAt != null,
-      googleEmail: l.googleEmail ?? null,
-      upcoming: countMap.get(l.id) ?? 0,
-      isAdmin: adminSet.has(
-        (l.googleEmail || l.email || '').toLowerCase()
-      ),
-    })),
-  });
+  const countMap = new Map(counts.map((x)=>[x.lawyerId,x.upcoming]));
+  const adminEmails = await prisma.user.findMany({ where:{role:{in:['SUPER_ADMIN','ADMIN']}}, select:{email:true} });
+  const adminSet = new Set(adminEmails.map((x)=>x.email.toLowerCase()));
+  return json({ lawyers: lawyers.map((l:any)=>({ ...l, approved:l.approvedAt!=null, googleEmail:l.googleEmail??null, upcoming:countMap.get(l.id)??0, isAdmin:adminSet.has((l.googleEmail||l.email||'').toLowerCase()) })) });
 }
-
 const createSchema = z.object({
   fullName: z
     .string()
