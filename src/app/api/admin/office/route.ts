@@ -4,38 +4,53 @@ import { prisma } from '@/lib/prisma';
 import { user } from '@/lib/api';
 import { isSeniorManagement, isFinanceManagement, officeId } from '@/lib/office-workflow';
 import { slugify, uniqueSlug } from '@/lib/slug';
+import { getAllBranches, getBranchScope, branchSummary } from '@/lib/branch-access';
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await user();
+  const scope = await getBranchScope(session);
   const senior = await isSeniorManagement(session);
   const finance = await isFinanceManagement(session);
-  if (!session || (!senior && !finance)) return NextResponse.json({ error: 'صلاحية الإدارة المطلوبة غير متاحة' }, { status: 403 });
-
-  if (!senior) {
-    const [requests, dues, expenses] = await Promise.all([
-      prisma.$queryRawUnsafe<any[]>(`SELECT r.*,u."name" AS requester_user_name,l."fullName" AS requester_lawyer_name FROM "office_requests" r LEFT JOIN "users" u ON u."id"=r."requested_by_user_id" LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id" WHERE r."type"='FINANCE' ORDER BY r."created_at" DESC LIMIT 300`),
-      prisma.$queryRawUnsafe<any[]>(`SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" ORDER BY d."created_at" DESC LIMIT 300`),
-      prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500`),
+  const isOffice = scope.officeManager;
+  if (!session || (!senior && !finance && !isOffice)) return NextResponse.json({ error: 'صلاحية الإدارة المطلوبة غير متاحة' }, { status: 403 });
+  const url = new URL(req.url);
+  const requestedBranchId = url.searchParams.get('branchId');
+  const allBranches = await getAllBranches();
+  const allowed = senior ? allBranches : allBranches.filter((b) => scope.branchIds.includes(b.id));
+  const selectedBranchId = senior
+    ? (requestedBranchId && allowed.some((b) => b.id === requestedBranchId) ? requestedBranchId : null)
+    : (requestedBranchId && allowed.some((b) => b.id === requestedBranchId) ? requestedBranchId : (allowed[0]?.id ?? null));
+  if (!senior && !selectedBranchId) return NextResponse.json({ error: 'لم يتم ربط حسابك بفرع.' }, { status: 403 });
+  const summary = selectedBranchId ? await branchSummary(selectedBranchId) : null;
+  if (!senior && finance && !isOffice) {
+    const branchId = selectedBranchId as string;
+    const [requests, dues, expenses, branchManagers] = await Promise.all([
+      prisma.$queryRawUnsafe<any[]>('SELECT r.*,u."name" AS requester_user_name,l."fullName" AS requester_lawyer_name FROM "office_requests" r LEFT JOIN "users" u ON u."id"=r."requested_by_user_id" LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id" WHERE r."type"=\'FINANCE\' AND COALESCE(r."branch_id",$1)=$1 ORDER BY r."created_at" DESC LIMIT 300', branchId),
+      prisma.$queryRawUnsafe<any[]>('SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" WHERE COALESCE(d."branch_id",$1)=$1 ORDER BY d."created_at" DESC LIMIT 300', branchId),
+      prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "created_at" DESC LIMIT 500', branchId),
+      prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" WHERE m."branch_id"=$1 AND m."manager_type"=\'FINANCE_MANAGER\'', branchId),
     ]);
-    return NextResponse.json({ financeOnly: true, requests, dues, expenses, members: [], users: [], lawyers: [], logins: [], clicks: [], archive: [], categories: [], financeMembers: [] });
+    return NextResponse.json({ financeOnly:true, branches:allowed, selectedBranchId, summary, requests, dues, expenses, members:[], users:[], lawyers:summary?.lawyers??[], logins:[], clicks:[], archive:[], categories:[], financeMembers:branchManagers, branchManagers });
   }
-
-  const [members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers, expenses] = await Promise.all([
-    prisma.$queryRawUnsafe<any[]>(`SELECT m.*,u."name" AS user_name,u."email" AS user_email,l."fullName" AS lawyer_name FROM "office_senior_members" m LEFT JOIN "users" u ON u."id"=m."user_id" LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."created_at" DESC`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","email","role" FROM "users" ORDER BY "name" LIMIT 500`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT "id","fullName","email","googleEmail","active" FROM "lawyers" ORDER BY "fullName" LIMIT 500`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT r.*,u."name" AS requester_user_name,l."fullName" AS requester_lawyer_name FROM "office_requests" r LEFT JOIN "users" u ON u."id"=r."requested_by_user_id" LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id" ORDER BY r."created_at" DESC LIMIT 300`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT s.*,u."name" AS user_name,l."fullName" AS lawyer_name FROM "office_login_logs" s LEFT JOIN "users" u ON u."id"=s."user_id" LEFT JOIN "lawyers" l ON l."id"=s."lawyer_id" ORDER BY s."login_at" DESC LIMIT 300`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT c.*,u."name" AS user_name,l."fullName" AS lawyer_name FROM "office_click_logs" c LEFT JOIN "users" u ON u."id"=c."user_id" LEFT JOIN "lawyers" l ON l."id"=c."lawyer_id" ORDER BY c."created_at" DESC LIMIT 500`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT a.*,u."name" AS deleted_by_user_name,l."fullName" AS deleted_by_lawyer_name FROM "office_archive" a LEFT JOIN "users" u ON u."id"=a."deleted_by_user_id" LEFT JOIN "lawyers" l ON l."id"=a."deleted_by_lawyer_id" ORDER BY a."deleted_at" DESC LIMIT 500`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "office_case_categories" ORDER BY "sort_order","name_ar"`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" ORDER BY d."created_at" DESC LIMIT 300`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT f.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email,l."googleEmail" AS lawyer_google_email FROM "office_finance_members" f JOIN "lawyers" l ON l."id"=f."lawyer_id" ORDER BY l."fullName"`),
-    prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500`),
+  const cases = selectedBranchId
+    ? await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."branch_id",cr."archived_at",cr."category_id" FROM "case_records" cr WHERE COALESCE(cr."branch_id",$1)=$1 ORDER BY cr."id" DESC LIMIT 500', selectedBranchId)
+    : await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."branch_id",cr."archived_at",cr."category_id" FROM "case_records" cr ORDER BY cr."id" DESC LIMIT 500');
+  const [members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers, expenses, branchManagers] = await Promise.all([
+    prisma.$queryRawUnsafe<any[]>('SELECT m.*,u."name" AS user_name,u."email" AS user_email,l."fullName" AS lawyer_name FROM "office_senior_members" m LEFT JOIN "users" u ON u."id"=m."user_id" LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."created_at" DESC'),
+    prisma.$queryRawUnsafe<any[]>('SELECT "id","name","email","role" FROM "users" ORDER BY "name" LIMIT 500'),
+    selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT l."id",l."fullName",l."email",l."googleEmail",l."active",l."title" FROM "office_branch_lawyers" bl JOIN "lawyers" l ON l."id"=bl."lawyer_id" WHERE bl."branch_id"=$1 ORDER BY l."fullName" LIMIT 500', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT "id","fullName","email","googleEmail","active","title" FROM "lawyers" ORDER BY "fullName" LIMIT 500'),
+    selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT r.*,u."name" AS requester_user_name,l."fullName" AS requester_lawyer_name FROM "office_requests" r LEFT JOIN "users" u ON u."id"=r."requested_by_user_id" LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id" WHERE COALESCE(r."branch_id",$1)=$1 ORDER BY r."created_at" DESC LIMIT 300', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT r.*,u."name" AS requester_user_name,l."fullName" AS requester_lawyer_name FROM "office_requests" r LEFT JOIN "users" u ON u."id"=r."requested_by_user_id" LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id" ORDER BY r."created_at" DESC LIMIT 300'),
+    senior ? prisma.$queryRawUnsafe<any[]>('SELECT s.*,u."name" AS user_name,l."fullName" AS lawyer_name FROM "office_login_logs" s LEFT JOIN "users" u ON u."id"=s."user_id" LEFT JOIN "lawyers" l ON l."id"=s."lawyer_id" ORDER BY s."login_at" DESC LIMIT 300') : [],
+    senior ? prisma.$queryRawUnsafe<any[]>('SELECT c.*,u."name" AS user_name,l."fullName" AS lawyer_name FROM "office_click_logs" c LEFT JOIN "users" u ON u."id"=c."user_id" LEFT JOIN "lawyers" l ON l."id"=c."lawyer_id" ORDER BY c."created_at" DESC LIMIT 500') : [],
+    senior ? prisma.$queryRawUnsafe<any[]>('SELECT a.*,u."name" AS deleted_by_user_name,l."fullName" AS deleted_by_lawyer_name FROM "office_archive" a LEFT JOIN "users" u ON u."id"=a."deleted_by_user_id" LEFT JOIN "lawyers" l ON l."id"=a."deleted_by_lawyer_id" ORDER BY a."deleted_at" DESC LIMIT 500') : [],
+    prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_case_categories" ORDER BY "sort_order","name_ar"'),
+    selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" WHERE COALESCE(d."branch_id",$1)=$1 ORDER BY d."created_at" DESC LIMIT 300', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" ORDER BY d."created_at" DESC LIMIT 300'),
+    selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email,l."googleEmail" AS lawyer_google_email FROM "office_branch_managers" m JOIN "lawyers" l ON l."id"=m."lawyer_id" WHERE m."branch_id"=$1 ORDER BY m."manager_type",l."fullName"', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email,l."googleEmail" AS lawyer_google_email FROM "office_branch_managers" m JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."manager_type",l."fullName"'),
+    selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "created_at" DESC LIMIT 500', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500'),
+    selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" WHERE m."branch_id"=$1 ORDER BY m."manager_type"', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."branch_id",m."manager_type"'),
   ]);
-  return NextResponse.json({ financeOnly: false, members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers, expenses });
+  return NextResponse.json({ financeOnly:false, branches:allowed, selectedBranchId, summary, members, users, lawyers, cases, requests, logins, clicks, archive, categories, dues, financeMembers, expenses, branchManagers });
 }
-
 export async function POST(req: Request) {
   const session = await user();
   const senior = await isSeniorManagement(session);
