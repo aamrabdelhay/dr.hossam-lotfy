@@ -4,6 +4,7 @@ import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 import { logActivity } from '@/lib/activity';
 import { slugify, uniqueSlug } from '@/lib/slug';
 import { isDemoMode, DEMO_TAG } from '@/lib/demo-mode';
+import { getBranchScope } from '@/lib/branch-access';
 
 export async function GET() {
   const session = await user();
@@ -11,14 +12,21 @@ export async function GET() {
   const isAdmin =
     session?.role === 'admin' ||
     (session?.role === 'lawyer' && session.isAdmin);
+  const scope = await getBranchScope(session);
+  const branchId = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds[0] : null;
 
-  const lawyers = await prisma.lawyer.findMany({
-    where: isAdmin
-      ? {}
-      : {
-          active: true,
-          approvedAt: { not: null },
-        },
+  const lawyers = branchId
+    ? await prisma.$queryRawUnsafe<any[]>(
+        'SELECT l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."specialization",l."isPrincipal",l."active",l."approvedAt",l."googleEmail",l."sortOrder" FROM "lawyers" l JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE bl."branch_id"=$1 ORDER BY l."sortOrder",l."fullName"',
+        branchId,
+      )
+    : await prisma.lawyer.findMany({
+        where: isAdmin
+          ? {}
+          : {
+              active: true,
+              approvedAt: { not: null },
+            },
     orderBy: [
       { sortOrder: 'asc' },
       { fullName: 'asc' },
