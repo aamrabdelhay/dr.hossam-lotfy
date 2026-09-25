@@ -9,14 +9,21 @@ import type { Task } from './prisma';
  * they have no session records, so the archive can serve as the office's
  * historical register.
  */
-export async function getOfficeCaseArchive(params: { q?: string; limit?: number } = {}): Promise<ArchivedCase[]> {
+export async function getOfficeCaseArchive(params: { q?: string; limit?: number; caseIds?: string[] } = {}): Promise<ArchivedCase[]> {
   const term = params.q?.trim();
   const limit = params.limit ?? 500;
+  const caseIds = params.caseIds;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const cases = await prisma.caseRecord.findMany({
-    where: term
+    where: caseIds
+      ? { id: { in: caseIds }, ...(term ? { OR: [
+          { clientName: { contains: term, mode: 'insensitive' } },
+          { name: { contains: term, mode: 'insensitive' } },
+          { number: { contains: term, mode: 'insensitive' } },
+        ] } : {}) }
+      : term
       ? {
           OR: [
             { clientName: { contains: term, mode: 'insensitive' } },
