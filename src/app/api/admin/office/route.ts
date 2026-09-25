@@ -67,6 +67,16 @@ export async function POST(req: Request) {
   if (financeActions.includes(action) && !senior && !finance) return NextResponse.json({ error: 'تحتاج إلى صلاحية الإدارة المالية' }, { status: 403 });
   if (managerActions.includes(action) && !senior && !officeManager) return NextResponse.json({ error: 'تحتاج إلى صلاحية مدير المكتب' }, { status: 403 });
 
+  if (body.action === 'case_branch_assign') {
+    const data = z.object({ caseId:z.string(), branchId:z.string() }).parse(body);
+    const scope = await getBranchScope(session);
+    if (!senior && !scope.officeManagerBranchIds.includes(data.branchId)) return NextResponse.json({error:'لا تملك صلاحية هذا الفرع'},{status:403});
+    const ok = await prisma.$queryRawUnsafe<Array<{id:string}>>('SELECT "id" FROM "office_branches" WHERE "id"=$1 AND "active"=true LIMIT 1',data.branchId);
+    if (!ok[0]) return NextResponse.json({error:'الفرع غير موجود أو غير نشط'},{status:404});
+    await prisma.$executeRawUnsafe('UPDATE "case_records" SET "branch_id"=$2 WHERE "id"=$1',data.caseId,data.branchId);
+    await prisma.$executeRawUnsafe('UPDATE "clients" SET "branch_id"=$2 WHERE "id" IN (SELECT DISTINCT "clientId" FROM "case_records" WHERE "id"=$1 AND "clientId" IS NOT NULL)',data.caseId,data.branchId);
+    return NextResponse.json({ok:true});
+  }
   if (body.action === 'branch_add') {
     const data = z.object({ code:z.string().trim().min(2).max(30), nameAr:z.string().trim().min(2).max(120), nameEn:z.string().trim().max(120).optional(), address:z.string().trim().min(5).max(300), isMain:z.boolean().optional() }).parse(body);
     if (data.isMain) return NextResponse.json({ error: 'الفرع الرئيسي ثابت ولا يمكن إنشاء فرع رئيسي آخر' }, { status: 400 });
@@ -130,6 +140,10 @@ export async function POST(req: Request) {
     const slug = await uniqueSlug(slugify(data.fullName));
     const email = data.email?.trim().toLowerCase() || null;
     const lawyer = await prisma.lawyer.create({ data:{ slug, fullName:data.fullName.trim(), title:data.title, phone:data.phone.trim(), email, googleEmail:email, specialization:data.specialization?.trim()||null, bio:data.bio?.trim()||null, position:data.position?.trim()||null, profilePhotoUrl:null, coverPhotoUrl:null, approvedAt:new Date(), active:true } });
+    const scope = await getBranchScope(session);
+    const requestedBranch = typeof body.branchId==='string' ? body.branchId : null;
+    const branchId = (scope.allBranches ? (requestedBranch||'branch_main') : scope.officeManagerBranchIds[0]) || null;
+    if (branchId) await prisma.$executeRawUnsafe('INSERT INTO "office_branch_lawyers" ("branch_id","lawyer_id") VALUES ($1,$2) ON CONFLICT DO NOTHING',branchId,lawyer.id);
     return NextResponse.json({ ok:true, lawyer:{id:lawyer.id,slug:lawyer.slug} }, {status:201});
   }
   if (body.action === 'location_add') {
