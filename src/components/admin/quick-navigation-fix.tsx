@@ -5,9 +5,9 @@ import { useEffect } from 'react';
 const routes: Record<string, string> = {
   'تكليفات': '/tasks',
   'تكليف': '/tasks',
-  'إضافة محامي': '/admin?tab=lawyers&standalone=1',
-  'إضافة محكمة أو جهة': '/admin?tab=locations&standalone=1',
-  'أرشيف القضايا': '/admin?tab=cases&standalone=1',
+  'إضافة محامي': '/admin?tab=lawyers',
+  'إضافة محكمة أو جهة': '/admin?tab=locations',
+  'أرشيف القضايا': '/admin?tab=cases',
 };
 
 function wire() {
