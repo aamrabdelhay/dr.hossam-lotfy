@@ -3,6 +3,7 @@ import type { ZodType } from 'zod';
 import { getCurrentUser, type SessionUser } from './auth';
 import { can, permissionsOf, type Permissions } from './rbac';
 import { prisma } from './prisma';
+import { getBranchScope } from './branch-access';
 
 export function json(data: unknown, init?: { status?: number; headers?: Record<string, string> }) { return NextResponse.json(data, init); }
 export function httpError(status: number, message: string) { return NextResponse.json({ error: message }, { status }); }
@@ -18,8 +19,14 @@ async function asAdminSession(u: SessionUser | null): Promise<AdminSession | nul
   const email = (lawyer?.googleEmail || lawyer?.email || '').trim().toLowerCase();
   if (!email) return null;
   const account = await prisma.user.findUnique({ where: { email }, select: { id: true, name: true, role: true } });
-  if (!account || (account.role !== 'SUPER_ADMIN' && account.role !== 'ADMIN')) return null;
-  return { role: 'admin', userId: account.id, name: account.name, userRole: account.role === 'ADMIN' ? 'ADMIN' : 'SUPER_ADMIN' };
+  if (account && (account.role === 'SUPER_ADMIN' || account.role === 'ADMIN')) {
+    return { role: 'admin', userId: account.id, name: account.name, userRole: account.role === 'ADMIN' ? 'ADMIN' : 'SUPER_ADMIN' };
+  }
+  const scope = await getBranchScope(u);
+  if (scope.officeManager && account) {
+    return { role: 'admin', userId: account.id, name: account.name, userRole: 'OFFICE_MANAGER' };
+  }
+  return null;
 }
 export async function requireStaff(): Promise<AdminSession> { const u = await asAdminSession(await user()); if (!u) throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية إدارية'); return u; }
 export async function requirePermission(permission: keyof Permissions): Promise<AdminSession> { const u = await requireStaff(); if (!can(u.userRole, permission)) throw new ApiError(403, 'لا تملك صلاحية تنفيذ هذا الإجراء'); return u; }

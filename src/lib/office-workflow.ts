@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import type { SessionUser } from '@/lib/auth';
 import { sendTelegramGroupNotification } from '@/lib/telegram';
+import { getBranchScope } from '@/lib/branch-access';
 
 export const officeId = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '')}`;
 
@@ -19,9 +20,17 @@ export async function isSeniorManagement(session: SessionUser | null): Promise<b
   return rows.length > 0;
 }
 
+export async function isOfficeManager(session: SessionUser | null): Promise<boolean> {
+  if (!session) return false;
+  if (await isSeniorManagement(session)) return true;
+  return (await getBranchScope(session)).officeManager;
+}
+
 export async function isFinanceManagement(session: SessionUser | null): Promise<boolean> {
   if (!session) return false;
   if (await isSeniorManagement(session)) return true;
+  const scope = await getBranchScope(session);
+  if (scope.financeManager) return true;
   const lawyerId = session.role === 'lawyer' ? session.lawyerId : null;
   const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
     `SELECT "id" FROM "office_finance_members" WHERE "lawyer_id"=$1 LIMIT 1`,

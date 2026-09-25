@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getBranchScope } from '@/lib/branch-access';
 import { ClientsManagementClient } from '@/components/admin/clients-management-client';
 
 export const metadata: Metadata = { title: 'العملاء — الإدارة' };
@@ -21,6 +22,8 @@ export default async function ClientsPage() {
   const session = await getCurrentUser();
   const admin = !!session && (session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin));
   if (!admin) redirect('/auth');
+  const scope = await getBranchScope(session);
+  const branchId = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds[0] : null;
 
   const [clients, cases, lawyers, appointments] = await Promise.all([
     prisma.$queryRawUnsafe<Array<{
@@ -34,10 +37,10 @@ export default async function ClientsPage() {
       assignedLawyerId: string | null;
       caseCount: number;
       status: string;
-    }>>(`SELECT c."id",c."name",c."phone",c."email",c."nationalId",c."address",c."notes",c."assignedLawyerId",c."status",COUNT(cr."id")::int AS "caseCount" FROM "clients" c LEFT JOIN "case_records" cr ON cr."clientId"=c."id" WHERE COALESCE(c."status",'MAIN') <> 'DELETED' GROUP BY c."id" ORDER BY lower(c."name") ASC LIMIT 500`),
-    prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;clientId:string|null}>>(`SELECT "id","name","number","clientId" FROM "case_records" WHERE COALESCE("archived_at",NULL) IS NULL ORDER BY "id" DESC LIMIT 500`),
-    prisma.$queryRawUnsafe<Array<{id:string;name:string}>>(`SELECT "id","fullName" AS "name" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" ASC`),
-    prisma.$queryRawUnsafe<AppointmentRow[]>(`SELECT "id","client_id" AS "clientId","appointment_date"::text AS "date","appointment_time" AS "time","appointment_type" AS "type","status" FROM "client_appointments" WHERE "status" <> 'CANCELLED' ORDER BY ("appointment_date" IS NULL) DESC, "appointment_date" ASC NULLS LAST, "appointment_time" ASC NULLS LAST LIMIT 2000`),
+    }>>(`SELECT c."id",c."name",c."phone",c."email",c."nationalId",c."address",c."notes",c."assignedLawyerId",c."status",COUNT(cr."id")::int AS "caseCount" FROM "clients" c LEFT JOIN "case_records" cr ON cr."clientId"=c."id" WHERE COALESCE(c."status",'MAIN') <> 'DELETED' AND ($1::text IS NULL OR COALESCE(c."branch_id",'branch_main')=$1) GROUP BY c."id" ORDER BY lower(c."name") ASC LIMIT 500`,branchId),
+    prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;clientId:string|null}>>(`SELECT "id","name","number","clientId" FROM "case_records" WHERE COALESCE("archived_at",NULL) IS NULL AND ($1::text IS NULL OR COALESCE("branch_id",'branch_main')=$1) ORDER BY "id" DESC LIMIT 500`,branchId),
+    prisma.$queryRawUnsafe<Array<{id:string;name:string}>>(`SELECT l."id",l."fullName" AS "name" FROM "lawyers" l WHERE l."active"=true AND ($1::text IS NULL OR EXISTS (SELECT 1 FROM "office_branch_lawyers" bl WHERE bl."lawyer_id"=l."id" AND bl."branch_id"=$1)) ORDER BY l."fullName" ASC`,branchId),
+    prisma.$queryRawUnsafe<AppointmentRow[]>(`SELECT a."id",a."client_id" AS "clientId",a."appointment_date"::text AS "date",a."appointment_time" AS "time",a."appointment_type" AS "type",a."status" FROM "client_appointments" a JOIN "clients" c ON c."id"=a."client_id" WHERE a."status" <> 'CANCELLED' AND ($1::text IS NULL OR COALESCE(c."branch_id",'branch_main')=$1) ORDER BY ("appointment_date" IS NULL) DESC, "appointment_date" ASC NULLS LAST, "appointment_time" ASC NULLS LAST LIMIT 2000`,branchId),
   ]);
 
   const nextAppointments = new Map<string, AppointmentRow>();
