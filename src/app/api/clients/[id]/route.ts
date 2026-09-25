@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { handle, json, readJson } from '@/lib/api';
+import { handle, json, readJson, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { isSeniorManagement, officeId } from '@/lib/office-workflow';
 
 const schema = z.object({
   name: z.string().trim().min(1).max(300),
@@ -30,5 +31,33 @@ export const PUT = handle(async (req: Request, { params }: { params: Promise<{ i
   }
   const assigned = isAdmin ? (data.assignedLawyerId || null) : existing[0].assignedLawyerId;
   await prisma.$executeRawUnsafe(`UPDATE "clients" SET "name"=$1,"phone"=$2,"email"=$3,"nationalId"=$4,"address"=$5,"notes"=$6,"assignedLawyerId"=$7,"updatedAt"=CURRENT_TIMESTAMP WHERE "id"=$8`, data.name, data.phone || null, data.email || null, data.nationalId || null, data.address || null, data.notes || null, assigned, id);
+  return json({ ok: true });
+});
+
+export const DELETE = handle(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لحذف العميل' }, { status: 401 });
+  const senior = await isSeniorManagement(session);
+  if (!senior) return json({ error: 'حذف العملاء متاح للإدارة العليا فقط' }, { status: 403 });
+  const { id } = await params;
+  const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "clients" WHERE "id"=$1 LIMIT 1`, id);
+  const client = rows[0];
+  if (!client) return json({ error: 'العميل غير موجود' }, { status: 404 });
+  if (client.status === 'DELETED' || client.archived_at) return json({ error: 'العميل موجود بالفعل في الأرشيف' }, { status: 409 });
+
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "office_archive" ("id","entity_type","entity_id","label","snapshot_json","deleted_by_user_id","deleted_by_lawyer_id")
+     VALUES ($1,'client',$2,$3,$4::jsonb,$5,$6)`,
+    officeId('archive'),
+    id,
+    client.name,
+    JSON.stringify(client),
+    session.role === 'admin' ? session.userId : null,
+    session.role === 'lawyer' ? session.lawyerId : null
+  );
+  await prisma.$executeRawUnsafe(
+    `UPDATE "clients" SET "status"='DELETED',"archived_at"=NOW(),"updatedAt"=NOW() WHERE "id"=$1`,
+    id
+  );
   return json({ ok: true });
 });
