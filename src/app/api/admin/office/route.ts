@@ -12,14 +12,15 @@ export async function GET() {
   if (!session || (!senior && !finance)) return NextResponse.json({ error: 'صلاحية الإدارة المطلوبة غير متاحة' }, { status: 403 });
 
   if (!senior) {
-    const [requests, dues] = await Promise.all([
+    const [requests, dues, expenses] = await Promise.all([
       prisma.$queryRawUnsafe<any[]>(`SELECT r.*,u."name" AS requester_user_name,l."fullName" AS requester_lawyer_name FROM "office_requests" r LEFT JOIN "users" u ON u."id"=r."requested_by_user_id" LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id" WHERE r."type"='FINANCE' ORDER BY r."created_at" DESC LIMIT 300`),
       prisma.$queryRawUnsafe<any[]>(`SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" ORDER BY d."created_at" DESC LIMIT 300`),
+      prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500`),
     ]);
-    return NextResponse.json({ financeOnly: true, requests, dues, members: [], users: [], lawyers: [], logins: [], clicks: [], archive: [], categories: [], financeMembers: [] });
+    return NextResponse.json({ financeOnly: true, requests, dues, expenses, members: [], users: [], lawyers: [], logins: [], clicks: [], archive: [], categories: [], financeMembers: [] });
   }
 
-  const [members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers] = await Promise.all([
+  const [members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers, expenses] = await Promise.all([
     prisma.$queryRawUnsafe<any[]>(`SELECT m.*,u."name" AS user_name,u."email" AS user_email,l."fullName" AS lawyer_name FROM "office_senior_members" m LEFT JOIN "users" u ON u."id"=m."user_id" LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."created_at" DESC`),
     prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","email","role" FROM "users" ORDER BY "name" LIMIT 500`),
     prisma.$queryRawUnsafe<any[]>(`SELECT "id","fullName","email","googleEmail","active" FROM "lawyers" ORDER BY "fullName" LIMIT 500`),
@@ -30,15 +31,18 @@ export async function GET() {
     prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "office_case_categories" ORDER BY "sort_order","name_ar"`),
     prisma.$queryRawUnsafe<any[]>(`SELECT d.*,l."fullName" AS lawyer_name FROM "financial_dues" d LEFT JOIN "lawyers" l ON l."id"=d."lawyer_id" ORDER BY d."created_at" DESC LIMIT 300`),
     prisma.$queryRawUnsafe<any[]>(`SELECT f.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email,l."googleEmail" AS lawyer_google_email FROM "office_finance_members" f JOIN "lawyers" l ON l."id"=f."lawyer_id" ORDER BY l."fullName"`),
+    prisma.$queryRawUnsafe<any[]>(`SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500`),
   ]);
-  return NextResponse.json({ financeOnly: false, members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers });
+  return NextResponse.json({ financeOnly: false, members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers, expenses });
 }
 
 export async function POST(req: Request) {
   const session = await user();
   const senior = await isSeniorManagement(session);
-  if (!session || !senior) return NextResponse.json({ error: 'صلاحية الإدارة العليا مطلوبة' }, { status: 403 });
+  const finance = await isFinanceManagement(session);
+  if (!session || (!senior && !finance)) return NextResponse.json({ error: 'صلاحية الإدارة المطلوبة غير متاحة' }, { status: 403 });
   const body = await req.json();
+  if (!senior && !['expense_add','expense_mark_paid','expense_delete'].includes(body.action)) return NextResponse.json({ error: 'هذا الإجراء متاح للإدارة العليا فقط' }, { status: 403 });
 
   if (body.action === 'senior_add') {
     const data = z.object({ userId: z.string().optional(), lawyerId: z.string().optional(), title: z.string().max(120).optional() }).refine((v) => v.userId || v.lawyerId, 'اختر حساباً أو محامياً').parse(body);
@@ -90,6 +94,9 @@ export async function POST(req: Request) {
     if(entry.entity_type==='client')await prisma.$executeRawUnsafe(`UPDATE "clients" SET "status"='MAIN',"archived_at"=NULL,"rejection_reason"=NULL WHERE "id"=$1`,entry.entity_id); else if(entry.entity_type==='lawyer')await prisma.$executeRawUnsafe(`UPDATE "lawyers" SET "active"=true,"updatedAt"=NOW() WHERE "id"=$1`,entry.entity_id); else if(entry.entity_type==='case')await prisma.$executeRawUnsafe(`UPDATE "case_records" SET "archived_at"=NULL WHERE "id"=$1`,entry.entity_id); else if(entry.entity_type==='file')await prisma.$executeRawUnsafe(`UPDATE "client_files" SET "deleted_at"=NULL WHERE "id"=$1`,entry.entity_id); else if(entry.entity_type==='task')await prisma.$executeRawUnsafe(`UPDATE "tasks" SET "status"=COALESCE(NULLIF($2,''),'PENDING'),"updatedAt"=NOW() WHERE "id"=$1`,entry.entity_id,String(entry.snapshot_json?.status||'PENDING'));
     await prisma.$executeRawUnsafe(`UPDATE "office_archive" SET "restored_at"=NOW(),"restored_by_user_id"=$2 WHERE "id"=$1`,id,session.role==='admin'?session.userId:null); return NextResponse.json({ok:true});
   }
+  if (body.action === 'expense_add') { const data=z.object({description:z.string().min(2).max(500),category:z.string().max(120).optional(),amount:z.number().nonnegative()}).parse(body); await prisma.$executeRawUnsafe(`INSERT INTO "office_expenses" ("id","description","category","amount","status","created_by_user_id","created_by_lawyer_id") VALUES ($1,$2,$3,$4,'PENDING',$5,$6)`,officeId('expense'),data.description,data.category??null,data.amount,session.role==='admin'?session.userId:null,session.role==='lawyer'?session.lawyerId:null); return NextResponse.json({ok:true}); }
+  if (body.action === 'expense_mark_paid') { const id=z.string().parse(body.id); await prisma.$executeRawUnsafe(`UPDATE "office_expenses" SET "status"='PAID',"paid_at"=NOW() WHERE "id"=$1`); return NextResponse.json({ok:true}); }
+  if (body.action === 'expense_delete') { const id=z.string().parse(body.id); await prisma.$executeRawUnsafe(`DELETE FROM "office_expenses" WHERE "id"=$1`,id); return NextResponse.json({ok:true}); }
   if (body.action === 'due_add') { const data=z.object({lawyerId:z.string().optional(),description:z.string().min(2),amount:z.number().nonnegative()}).parse(body); await prisma.$executeRawUnsafe(`INSERT INTO "financial_dues" ("id","lawyer_id","description","amount") VALUES ($1,$2,$3,$4)`,officeId('due'),data.lawyerId??null,data.description,data.amount); return NextResponse.json({ok:true}); }
   return NextResponse.json({error:'إجراء غير معروف'},{status:400});
 }
