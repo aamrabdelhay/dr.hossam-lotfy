@@ -84,13 +84,15 @@ export async function POST(req: Request) {
     });
 
     if (result.created) {
+      const typeLabels: Record<string, string> = { LEGAL_CONSULTATION: 'استشارة قانونية', CASE_FOLLOW_UP: 'متابعة ملف', OTHER: 'أخرى' };
+      const appointmentType = typeLabels[data.type] || data.type;
       const telegramMessage = [
         '🔔 <b>طلب موعد جديد</b>',
         '',
         '👤 <b>الاسم:</b> ' + escapeHtml(data.name),
         '📱 <b>الهاتف:</b> ' + escapeHtml(data.phone),
         data.email ? '📧 <b>البريد:</b> ' + escapeHtml(data.email) : null,
-        '⚖️ <b>نوع الطلب:</b> ' + escapeHtml(data.type),
+        '⚖️ <b>نوع الطلب:</b> ' + escapeHtml(appointmentType),
         data.notes ? '📝 <b>الملاحظات:</b> ' + escapeHtml(data.notes) : null,
       ].filter(Boolean).join('\n');
       await sendTelegramGroupNotification(telegramMessage).catch((error) => {
