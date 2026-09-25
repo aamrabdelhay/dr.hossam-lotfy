@@ -50,8 +50,8 @@ export function Navbar({ lawyers, locations, session, unread }: NavbarProps) {
   const logout=()=>{setMobileOpen(false);window.location.replace('/api/auth/logout');};
   const courts=locations.filter(l=>l.type==='COURT');
   const other=locations.filter(l=>l.type!=='COURT');
-  const isAdmin=Boolean(session&&(session.role==='admin'||session.isAdmin));
-  const isManagement=Boolean(session?.isFinance||session?.isSenior||session?.role==='admin');
+  const isAdmin=Boolean(session&&(session.role==='admin'||session.isSenior));
+  const isManagement=Boolean(session?.isFinance||session?.isSenior||session?.isOffice||session?.role==='admin');
   const navClass=(active:boolean)=>cn('inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-semibold whitespace-nowrap transition',active?'bg-navy-950 text-white':'text-navy-700 hover:bg-navy-900/5 hover:text-navy-950');
 
   const locationList=<div className="w-[min(19rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-xl">
