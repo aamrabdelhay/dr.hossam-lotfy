@@ -15,19 +15,19 @@ let lawyerBranches:any[]=[];
 
 if(requestedBranchId){
   const branchId=requestedBranchId;
-  const taskIds=await prisma.$queryRawUnsafe<string[]>(\`SELECT "id" FROM "tasks" WHERE "branch_id"=\\$1 ORDER BY "createdAt" DESC LIMIT 1000\`,branchId);
+  const taskIds=await prisma.$queryRawUnsafe<string[]>(`SELECT "id" FROM "tasks" WHERE "branch_id"=$1 ORDER BY "createdAt" DESC LIMIT 1000`,branchId);
   [stats,lawyers,locations,cases,categories,activity,notifications,feed]=await Promise.all([
     getBranchAdminStats(branchId),
-    prisma.$queryRawUnsafe<any[]>(\`SELECT l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."googleEmail",l."specialization",l."bio",l."position",l."profilePhotoUrl" AS "photo",l."isPrincipal",l."active",l."approvedAt",COUNT(ta."id") FILTER (WHERE ta."completedAt" IS NULL AND t."status" NOT IN ('CANCELLED') AND (t."scheduledDate" >= CURRENT_DATE OR t."scheduledDate" IS NULL))::int AS "upcoming" FROM "office_branch_lawyers" bl INNER JOIN "lawyers" l ON l."id"=bl."lawyer_id" LEFT JOIN "task_assignments" ta ON ta."lawyerId"=l."id" LEFT JOIN "tasks" t ON t."id"=ta."taskId" AND t."branch_id"=\\$1 WHERE bl."branch_id"=\\$1 GROUP BY l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."googleEmail",l."specialization",l."bio",l."position",l."profilePhotoUrl",l."isPrincipal",l."active",l."approvedAt" ORDER BY l."sortOrder",l."fullName"\`,branchId),
+    prisma.$queryRawUnsafe<any[]>(`SELECT l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."googleEmail",l."specialization",l."bio",l."position",l."profilePhotoUrl" AS "photo",l."isPrincipal",l."active",l."approvedAt",COUNT(ta."id") FILTER (WHERE ta."completedAt" IS NULL AND t."status" NOT IN ('CANCELLED') AND (t."scheduledDate" >= CURRENT_DATE OR t."scheduledDate" IS NULL))::int AS "upcoming" FROM "office_branch_lawyers" bl INNER JOIN "lawyers" l ON l."id"=bl."lawyer_id" LEFT JOIN "task_assignments" ta ON ta."lawyerId"=l."id" LEFT JOIN "tasks" t ON t."id"=ta."taskId" AND t."branch_id"=$1 WHERE bl."branch_id"=$1 GROUP BY l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."googleEmail",l."specialization",l."bio",l."position",l."profilePhotoUrl",l."isPrincipal",l."active",l."approvedAt" ORDER BY l."sortOrder",l."fullName"`,branchId),
     prisma.location.findMany({select:{id:true,slug:true,name:true,nameEn:true,type:true,subType:true,governorate:true,city:true,district:true,workingHours:true,jurisdiction:true,distanceBucket:true,services:true,description:true},orderBy:[{type:'asc'},{name:'asc'}]}),
-    prisma.$queryRawUnsafe<any[]>(\`SELECT c."id",c."name",c."number",c."clientName",c."category_id",c."branch_id" FROM "case_records" c WHERE c."branch_id"=\\$1 ORDER BY c."id" DESC LIMIT 100\`,branchId),
-    prisma.$queryRawUnsafe<any[]>(\`SELECT "id","name_ar","name_en","sort_order","active" FROM "office_case_categories" ORDER BY "sort_order","name_ar"\`),
+    prisma.$queryRawUnsafe<any[]>(`SELECT c."id",c."name",c."number",c."clientName",c."category_id",c."branch_id" FROM "case_records" c WHERE c."branch_id"=$1 ORDER BY c."id" DESC LIMIT 100`,branchId),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name_ar","name_en","sort_order","active" FROM "office_case_categories" ORDER BY "sort_order","name_ar"`),
     prisma.activityLog.findMany({where:taskIds.length?{OR:[{taskId:{in:taskIds}},{lawyerId:{in:lawyers.map((l:any)=>l.id)}}]}:undefined,orderBy:{createdAt:'desc'},take:12}),
     prisma.notification.findMany({where:{userId:adminIdentity.userId},orderBy:{createdAt:'desc'},take:30}),
     getFeed({taskIds,limit:15}),
   ]);
   const caseIds=cases.map((c:any)=>c.id);
-  const eventRows=caseIds.length?await prisma.$queryRawUnsafe<any[]>(\`SELECT "id","caseId","description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=ANY(\\$1::text[]) ORDER BY "createdAt" DESC\`,caseIds):[];
+  const eventRows=caseIds.length?await prisma.$queryRawUnsafe<any[]>(`SELECT "id","caseId","description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=ANY($1::text[]) ORDER BY "createdAt" DESC`,caseIds):[];
   cases=cases.map((c:any)=>({...c,events:eventRows.filter((e:any)=>e.caseId===c.id).slice(0,100)}));
 }else{
   [stats,lawyers,locations,cases,categories,caseCategoryRows,feed,activity,notifications,lawyerBranches]=await Promise.all([
@@ -35,12 +35,12 @@ if(requestedBranchId){
     prisma.lawyer.findMany({orderBy:[{sortOrder:'asc'},{fullName:'asc'}],include:{assignments:{where:{task:{status:{notIn:['COMPLETED','CANCELLED']},OR:[{scheduledDate:{gte:new Date()}},{scheduledDate:null}]}}}}}),
     prisma.location.findMany({select:{id:true,slug:true,name:true,nameEn:true,type:true,subType:true,governorate:true,city:true,district:true,workingHours:true,jurisdiction:true,distanceBucket:true,services:true,description:true},orderBy:[{type:'asc'},{name:'asc'}]}),
     prisma.caseRecord.findMany({orderBy:{id:'desc'},take:100,include:{events:{orderBy:{createdAt:'desc'},take:100}}}),
-    prisma.$queryRawUnsafe<any[]>(\`SELECT "id","name_ar","name_en","sort_order","active" FROM "office_case_categories" ORDER BY "sort_order","name_ar"\`),
-    prisma.$queryRawUnsafe<any[]>(\`SELECT "id","category_id" FROM "case_records" WHERE "archived_at" IS NULL\`),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name_ar","name_en","sort_order","active" FROM "office_case_categories" ORDER BY "sort_order","name_ar"`),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id","category_id" FROM "case_records" WHERE "archived_at" IS NULL`),
     getFeed({limit:15}),
     prisma.activityLog.findMany({orderBy:{createdAt:'desc'},take:12,include:{lawyer:{select:{fullName:true,slug:true}}}}),
     prisma.notification.findMany({where:{userId:adminIdentity.userId},orderBy:{createdAt:'desc'},take:30}),
-    prisma.$queryRawUnsafe<any[]>(\`SELECT bl."lawyer_id",ob."name_ar" AS "branch_name" FROM "office_branch_lawyers" bl INNER JOIN "office_branches" ob ON ob."id"=bl."branch_id" ORDER BY bl."lawyer_id"\`)
+    prisma.$queryRawUnsafe<any[]>(`SELECT bl."lawyer_id",ob."name_ar" AS "branch_name" FROM "office_branch_lawyers" bl INNER JOIN "office_branches" ob ON ob."id"=bl."branch_id" ORDER BY bl."lawyer_id"`)
   ]);
 }return (<><div className="mx-auto w-full max-w-[1440px] px-4 pt-5 sm:px-6"><div className="mb-4 grid gap-2 md:grid-cols-3">
 <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gold-200 bg-white p-2"><span className="px-2 text-[10px] font-black text-gold-700">الإدارة</span><Link href="/admin/office" className="inline-flex items-center gap-2 rounded-xl bg-navy-950 px-4 py-2 text-[11px] font-extrabold text-white"><ShieldCheck size={14}/> مركز الإدارة</Link><Link href="/admin/settings" className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-extrabold text-navy-700 hover:bg-ivory-50"><Settings size={14} className="text-gold-600"/> إعدادات المساعد</Link></div>
