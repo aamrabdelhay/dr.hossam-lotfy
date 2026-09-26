@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn';
 type Choice = { id: string; name: string; number?: string; clientName?: string | null };
 type TodayTask = { id: string; description: string; time: string | null; location: string | null; caseName: string | null; caseNumber: string | null; lawyers: string[] };
 type Directory = { lawyers: Choice[]; locations: Choice[]; cases: Choice[]; todayTasks: TodayTask[] };
-type Action = { type: string; description?: string; scheduledDate?: string; scheduledTime?: string; lawyerIds?: string[]; locationId?: string; notes?: string; caseName?: string; caseNumber?: string; clientName?: string; missing?: string[]; choices?: Directory };
+type Action = { type: string; branchId?: string; description?: string; scheduledDate?: string; scheduledTime?: string; lawyerIds?: string[]; locationId?: string; notes?: string; caseName?: string; caseNumber?: string; clientName?: string; missing?: string[]; choices?: Directory };
 type Msg = { role: 'user' | 'assistant'; text: string; action?: Action; nav?: { path: string; label: string }; success?: boolean; local?: 'today' | 'cases' | 'help' };
 
 const quick = ['إضافة جلسة جديدة', 'إنشاء مهمة', 'مواعيد اليوم', 'القضايا المفتوحة', 'شرح النظام'] as const;
