@@ -35,10 +35,189 @@ function SearchablePicker({ label, placeholder, items, value, onChange, multi = 
 function ChoiceGroup({ label, values, value, onChange }: { label: string; values: readonly string[]; value?: string; onChange: (v: string) => void }) { return <div><div className="mb-1.5 text-[11px] font-bold !text-navy-700">{label}</div><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{values.map((item) => <button key={item} type="button" onClick={() => onChange(item)} className={cn('rounded-xl border px-3 py-2.5 text-[11px] font-bold !text-navy-800', value === item ? 'border-gold-500 bg-gold-100 !text-navy-950' : 'border-navy-200 bg-white hover:border-gold-400')}>{item}</button>)}</div></div>; }
 
 function ActionForm({ action, directory, onDone, busy }: { action: Action; directory: Directory; onDone: (a: Action) => void; busy: boolean }) {
-  const [v, setV] = React.useState<Action>({ ...action, choices: directory }); const today = cairoToday(); React.useEffect(() => setV((x) => ({ ...x, ...action, choices: directory })), [action, directory]); const change = (k: keyof Action, x: unknown) => setV((s) => ({ ...s, [k]: x })); const selectedCaseId = directory.cases.find((x) => x.number === v.caseNumber)?.id || '';
+  const [v, setV] = React.useState<Action>({ ...action, choices: directory });
+  const [dateOpen, setDateOpen] = React.useState(false);
+  const [timeOpen, setTimeOpen] = React.useState(false);
+  const today = cairoToday();
+
+  React.useEffect(() => {
+    setV((x) => ({ ...x, ...action, choices: directory }));
+    setDateOpen(false);
+    setTimeOpen(false);
+  }, [action, directory]);
+
+  const change = (k: keyof Action, x: unknown) => setV((s) => ({ ...s, [k]: x }));
+  const selectedCaseId = directory.cases.find((x) => x.number === v.caseNumber)?.id || '';
   const dates = [{ value: today, label: 'اليوم' }, { value: addDays(today,1), label: 'غدًا' }, { value: addDays(today,2), label: 'بعد غد' }, { value: addDays(today,7), label: 'الأسبوع القادم' }];
-  const valid = v.type === 'create_task' ? !!v.description && !!v.lawyerIds?.length : !!v.description && !!v.lawyerIds?.length && !!v.locationId && !!v.scheduledDate && !!v.scheduledTime;
-  return <div className="mt-3 space-y-4 rounded-2xl border border-gold-200 bg-gold-50/60 p-3.5"><div className="flex items-center gap-2 text-xs font-extrabold !text-navy-950"><ClipboardList size={16} className="text-gold-600"/>اختر بيانات التنفيذ</div><ChoiceGroup label={v.type === 'create_session' ? 'نوع الجلسة' : 'نوع المهمة'} values={v.type === 'create_session' ? sessionTypes : taskTypes} value={v.description} onChange={(x) => change('description', x)}/><div className="grid gap-3 sm:grid-cols-2"><SearchablePicker label="المحامي / المحامون" placeholder="ابحث باسم المحامي" items={directory.lawyers} value={v.lawyerIds || []} multi onChange={(x) => change('lawyerIds', x)}/><SearchablePicker label="المحكمة / الجهة" placeholder="ابحث باسم المحكمة أو الجهة" items={directory.locations} value={v.locationId || ''} onChange={(x) => change('locationId', x)}/><SearchablePicker label="القضية" placeholder="ابحث باسم القضية أو رقمها" items={directory.cases} value={selectedCaseId} onChange={(x) => { const c = directory.cases.find((y) => y.id === x); change('caseNumber', c?.number || undefined); change('caseName', c?.name || undefined); change('clientName', c?.clientName || undefined); }}/><div><div className="mb-1.5 text-[11px] font-bold !text-navy-700">التاريخ</div><div className="grid grid-cols-2 gap-2">{dates.map((x) => <button key={x.value} type="button" onClick={() => change('scheduledDate', x.value)} className={cn('rounded-xl border px-3 py-2.5 text-[11px] font-bold !text-navy-800', v.scheduledDate === x.value ? 'border-gold-500 bg-gold-100 !text-navy-950' : 'border-navy-200 bg-white')}>{x.label}</button>)}</div><div className="relative mt-2 h-10"><div className="flex h-full items-center justify-center rounded-xl border border-dashed border-navy-300 bg-white text-[11px] font-bold !text-navy-700">اختيار تاريخ آخر</div><input aria-label="اختيار تاريخ آخر" type="date" min={today} value={v.scheduledDate || ''} onChange={(e) => change('scheduledDate', e.target.value || undefined)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"/></div>{v.scheduledDate && !dates.some((x) => x.value === v.scheduledDate) && <div className="mt-1 text-center text-[10px] !text-navy-600">{dateLabel(v.scheduledDate)}</div>}</div><div><div className="mb-1.5 text-[11px] font-bold !text-navy-700">الوقت</div><div className="grid grid-cols-4 gap-2">{timeOptions.map((time) => <button key={time} type="button" onClick={() => change('scheduledTime', time)} className={cn('rounded-xl border px-2 py-2.5 text-[11px] font-bold !text-navy-800', v.scheduledTime === time ? 'border-gold-500 bg-gold-100 !text-navy-950' : 'border-navy-200 bg-white')}>{time}</button>)}</div><div className="relative mt-2 h-10"><div className="flex h-full items-center justify-center rounded-xl border border-dashed border-navy-300 bg-white text-[11px] font-bold !text-navy-700">اختيار وقت آخر</div><input aria-label="اختيار وقت آخر" type="time" value={v.scheduledTime || ''} onChange={(e) => change('scheduledTime', e.target.value || undefined)} className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"/></div></div></div><button type="button" disabled={busy || !valid} onClick={() => onDone({ ...v, choices: undefined, missing: undefined })} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gold-500 px-4 py-3 text-xs font-extrabold !text-navy-950 disabled:opacity-50">{busy ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>} تأكيد وتنفيذ</button></div>;
+
+  const otherDates = React.useMemo(
+    () => Array.from({ length: 365 }, (_, i) => addDays(today, i)),
+    [today],
+  );
+  const allTimes = React.useMemo(
+    () => Array.from({ length: 96 }, (_, i) => {
+      const hour = Math.floor(i / 4).toString().padStart(2, '0');
+      const minute = ((i % 4) * 15).toString().padStart(2, '0');
+      return `${hour}:${minute}`;
+    }),
+    [],
+  );
+
+  const valid = v.type === 'create_task'
+    ? !!v.description && !!v.lawyerIds?.length
+    : !!v.description && !!v.lawyerIds?.length && !!v.locationId && !!v.scheduledDate && !!v.scheduledTime;
+
+  return (
+    <div className="mt-3 space-y-4 rounded-2xl border border-gold-200 bg-gold-50/60 p-3.5">
+      <div className="flex items-center gap-2 text-xs font-extrabold !text-navy-950">
+        <ClipboardList size={16} className="text-gold-600"/>
+        اختر بيانات التنفيذ
+      </div>
+
+      <ChoiceGroup
+        label={v.type === 'create_session' ? 'نوع الجلسة' : 'نوع المهمة'}
+        values={v.type === 'create_session' ? sessionTypes : taskTypes}
+        value={v.description}
+        onChange={(x) => change('description', x)}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <SearchablePicker label="المحامي / المحامون" placeholder="ابحث باسم المحامي" items={directory.lawyers} value={v.lawyerIds || []} multi onChange={(x) => change('lawyerIds', x)}/>
+
+        <SearchablePicker label="المحكمة / الجهة" placeholder="ابحث باسم المحكمة أو الجهة" items={directory.locations} value={v.locationId || ''} onChange={(x) => change('locationId', x)}/>
+
+        <SearchablePicker
+          label="القضية"
+          placeholder="ابحث باسم القضية أو رقمها"
+          items={directory.cases}
+          value={selectedCaseId}
+          onChange={(x) => {
+            const c = directory.cases.find((y) => y.id === x);
+            change('caseNumber', c?.number || undefined);
+            change('caseName', c?.name || undefined);
+            change('clientName', c?.clientName || undefined);
+          }}
+        />
+
+        <div>
+          <div className="mb-1.5 text-[11px] font-bold !text-navy-700">التاريخ</div>
+          <div className="grid grid-cols-2 gap-2">
+            {dates.map((x) => (
+              <button
+                key={x.value}
+                type="button"
+                onClick={() => { change('scheduledDate', x.value); setDateOpen(false); }}
+                className={cn(
+                  'rounded-xl border px-3 py-2.5 text-[11px] font-bold !text-navy-800',
+                  v.scheduledDate === x.value ? 'border-gold-500 bg-gold-100 !text-navy-950' : 'border-navy-200 bg-white',
+                )}
+              >
+                {x.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative mt-2">
+            <button
+              type="button"
+              aria-expanded={dateOpen}
+              onClick={() => { setDateOpen((open) => !open); setTimeOpen(false); }}
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-dashed border-navy-300 bg-white text-[11px] font-bold !text-navy-700 hover:border-gold-400"
+            >
+              {v.scheduledDate && !dates.some((x) => x.value === v.scheduledDate) ? dateLabel(v.scheduledDate) : 'اختيار تاريخ آخر'}
+            </button>
+
+            {dateOpen && (
+              <div className="absolute inset-x-0 top-12 z-[60] overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-xl">
+                <div className="border-b border-navy-100 bg-navy-50 px-3 py-2 text-right text-[11px] font-extrabold !text-navy-800">
+                  اختر التاريخ
+                </div>
+                <div className="max-h-64 overflow-y-auto p-2">
+                  {otherDates.map((iso) => (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => { change('scheduledDate', iso); setDateOpen(false); }}
+                      className={cn(
+                        'mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-start text-[11px] font-bold hover:bg-gold-50',
+                        v.scheduledDate === iso ? 'bg-gold-100 !text-navy-950' : '!text-navy-700',
+                      )}
+                    >
+                      <span>{iso}</span>
+                      <span>{dateLabel(iso)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1.5 text-[11px] font-bold !text-navy-700">الوقت</div>
+          <div className="grid grid-cols-4 gap-2">
+            {timeOptions.map((time) => (
+              <button
+                key={time}
+                type="button"
+                onClick={() => { change('scheduledTime', time); setTimeOpen(false); }}
+                className={cn(
+                  'rounded-xl border px-2 py-2.5 text-[11px] font-bold !text-navy-800',
+                  v.scheduledTime === time ? 'border-gold-500 bg-gold-100 !text-navy-950' : 'border-navy-200 bg-white',
+                )}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative mt-2">
+            <button
+              type="button"
+              aria-expanded={timeOpen}
+              onClick={() => { setTimeOpen((open) => !open); setDateOpen(false); }}
+              className="flex h-10 w-full items-center justify-center rounded-xl border border-dashed border-navy-300 bg-white text-[11px] font-bold !text-navy-700 hover:border-gold-400"
+            >
+              {v.scheduledTime && !timeOptions.includes(v.scheduledTime) ? v.scheduledTime : 'اختيار وقت آخر'}
+            </button>
+
+            {timeOpen && (
+              <div className="absolute inset-x-0 top-12 z-[60] overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-xl">
+                <div className="border-b border-navy-100 bg-navy-50 px-3 py-2 text-right text-[11px] font-extrabold !text-navy-800">
+                  اختر الوقت
+                </div>
+                <div className="grid max-h-64 grid-cols-3 gap-1.5 overflow-y-auto p-2 sm:grid-cols-4">
+                  {allTimes.map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() => { change('scheduledTime', time); setTimeOpen(false); }}
+                      className={cn(
+                        'rounded-xl border px-2 py-2 text-[11px] font-bold !text-navy-800 hover:border-gold-400 hover:bg-gold-50',
+                        v.scheduledTime === time ? 'border-gold-500 bg-gold-100 !text-navy-950' : 'border-navy-100 bg-white',
+                      )}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        disabled={busy || !valid}
+        onClick={() => onDone({ ...v, choices: undefined, missing: undefined })}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gold-500 px-4 py-3 text-xs font-extrabold !text-navy-950 disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={15} className="animate-spin"/> : <CheckCircle2 size={15}/>}
+        تأكيد وتنفيذ
+      </button>
+    </div>
+  );
 }
 
 function TodayResults({ tasks }: { tasks: TodayTask[] }) { return <div className="space-y-2">{tasks.length ? tasks.map((x) => <a key={x.id} href={`/sessions/${x.id}`} className="block rounded-2xl border border-navy-100 bg-white p-3 text-start hover:border-gold-400"><div className="flex items-center justify-between gap-2"><span className="font-extrabold !text-navy-900">{x.description}</span><span className="text-[11px] font-bold !text-navy-500">{x.time || 'بدون وقت'}</span></div><div className="mt-1 text-[11px] !text-navy-600">{[x.location, x.caseName || x.caseNumber, x.lawyers.join('، ')].filter(Boolean).join(' • ') || 'تفاصيل المهمة'}</div></a>) : <div className="rounded-2xl border border-navy-100 bg-white p-4 text-sm !text-navy-600">لا توجد جلسات أو مهام مجدولة اليوم.</div>}</div>; }
