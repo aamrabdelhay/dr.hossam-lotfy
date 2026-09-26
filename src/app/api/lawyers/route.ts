@@ -4,7 +4,7 @@ import { handle, json, readJson, requirePermission, user } from '@/lib/api';
 import { logActivity } from '@/lib/activity';
 import { slugify, uniqueSlug } from '@/lib/slug';
 import { isDemoMode, DEMO_TAG } from '@/lib/demo-mode';
-import { getBranchScope } from '@/lib/branch-access';
+import { getBranchScope, branchForWrite } from '@/lib/branch-access';
 
 export async function GET() {
   const session = await user();
@@ -84,6 +84,7 @@ const createSchema = z.object({
     .string()
     .max(120)
     .optional(),
+  branchId: z.string().max(100).optional(),
 });
 
 export const POST = handle(async (req: Request) => {
@@ -92,6 +93,7 @@ export const POST = handle(async (req: Request) => {
   // handle() expects the standard Request type,
   // so pass req directly instead of casting it to NextRequest.
   const data = await readJson(req, createSchema);
+  const branchId = await branchForWrite(session, data.branchId);
 
   const parts = data.fullName
     .trim()
@@ -138,6 +140,14 @@ export const POST = handle(async (req: Request) => {
       approvedAt: new Date(),
     },
   });
+
+  if (branchId) {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "office_branch_lawyers" ("branch_id","lawyer_id") VALUES ($1,$2) ON CONFLICT ("lawyer_id") DO UPDATE SET "branch_id"=EXCLUDED."branch_id"',
+      branchId,
+      lawyer.id,
+    );
+  }
 
   await logActivity({
     action: 'LAWYER_ADDED',
