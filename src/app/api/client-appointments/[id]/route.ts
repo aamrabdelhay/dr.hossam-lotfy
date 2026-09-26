@@ -46,7 +46,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     '📅 <b>التاريخ:</b> ' + data.date,
     '🕕 <b>الوقت:</b> ' + data.time,
   ].filter(Boolean).join('\n');
-  await sendTelegramGroupNotification(message).catch(() => undefined);
+  await sendTelegramGroupNotification(message).catch((error) => { console.error('Client appointment Telegram notification failed:', error); });
 
   return NextResponse.json({ ok: true, date: data.date, time: data.time, status: 'CONFIRMED' });
 }
