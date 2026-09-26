@@ -287,6 +287,59 @@ export type AdminStats = {
   cases: number;
 };
 
+export async function getBranchAdminStats(branchId: string): Promise<AdminStats> {
+  const [taskRows, lawyerRows, locationRows, caseRows] = await Promise.all([
+    prisma.$queryRawUnsafe<Array<{
+      today: number;
+      tomorrow: number;
+      critical: number;
+      important: number;
+      upcoming30: number;
+      uncompleted: number;
+      completed: number;
+    }>>(
+      `SELECT
+        COUNT(*) FILTER (WHERE "status" <> 'CANCELLED' AND "scheduledDate" >= CURRENT_DATE AND "scheduledDate" < CURRENT_DATE + INTERVAL '1 day')::int AS "today",
+        COUNT(*) FILTER (WHERE "status" <> 'CANCELLED' AND "scheduledDate" >= CURRENT_DATE + INTERVAL '1 day' AND "scheduledDate" < CURRENT_DATE + INTERVAL '2 day')::int AS "tomorrow",
+        COUNT(*) FILTER (WHERE "status" <> 'CANCELLED' AND "status" <> 'COMPLETED' AND "scheduledDate" >= CURRENT_DATE + INTERVAL '1 day' AND "scheduledDate" < CURRENT_DATE + INTERVAL '4 day')::int AS "critical",
+        COUNT(*) FILTER (WHERE "status" <> 'CANCELLED' AND "status" <> 'COMPLETED' AND "scheduledDate" >= CURRENT_DATE + INTERVAL '4 day' AND "scheduledDate" < CURRENT_DATE + INTERVAL '15 day')::int AS "important",
+        COUNT(*) FILTER (WHERE "status" <> 'CANCELLED' AND "status" <> 'COMPLETED' AND "scheduledDate" >= CURRENT_DATE + INTERVAL '15 day' AND "scheduledDate" < CURRENT_DATE + INTERVAL '31 day')::int AS "upcoming30",
+        COUNT(*) FILTER (WHERE "status" IN ('PENDING','IN_PROGRESS'))::int AS "uncompleted",
+        COUNT(*) FILTER (WHERE "status" = 'COMPLETED')::int AS "completed"
+      FROM "tasks"
+      WHERE COALESCE("branch_id",'branch_main') = $1`,
+      branchId,
+    ),
+    prisma.$queryRawUnsafe<Array<{ count: number }>>(
+      `SELECT COUNT(DISTINCT l."id")::int AS "count"
+       FROM "lawyers" l
+       INNER JOIN "office_branch_lawyers" bl ON bl."lawyer_id" = l."id"
+       WHERE bl."branch_id" = $1 AND l."active" = true`,
+      branchId,
+    ),
+    prisma.location.count(),
+    prisma.$queryRawUnsafe<Array<{ count: number }>>(
+      `SELECT COUNT(*)::int AS "count"
+       FROM "case_records"
+       WHERE COALESCE("branch_id",'branch_main') = $1`,
+      branchId,
+    ),
+  ]);
+  const tasks = taskRows[0] ?? { today: 0, tomorrow: 0, critical: 0, important: 0, upcoming30: 0, uncompleted: 0, completed: 0 };
+  return {
+    today: Number(tasks.today),
+    tomorrow: Number(tasks.tomorrow),
+    critical: Number(tasks.critical),
+    important: Number(tasks.important),
+    upcoming30: Number(tasks.upcoming30),
+    uncompleted: Number(tasks.uncompleted),
+    completed: Number(tasks.completed),
+    lawyers: Number(lawyerRows[0]?.count ?? 0),
+    locations: locationRows,
+    cases: Number(caseRows[0]?.count ?? 0),
+  };
+}
+
 export async function getAdminStats(): Promise<AdminStats> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
