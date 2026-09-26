@@ -1,3 +1,14 @@
+export function isTelegramConfigured() {
+  return Boolean(process.env.TELEGRAM_BOT_TOKEN?.trim() && process.env.TELEGRAM_GROUP_CHAT_ID?.trim());
+}
+
+export function escapeTelegramHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
 export async function sendTelegramGroupNotification(message: string) {
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const CHAT_ID = process.env.TELEGRAM_GROUP_CHAT_ID?.trim();
