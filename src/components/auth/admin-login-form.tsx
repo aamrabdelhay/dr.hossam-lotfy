@@ -1,14 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { Loader2, KeyRound } from 'lucide-react';
 import { Button, Field, Input } from '../ui';
 
 const REMEMBER_KEY = 'hl-admin-login';
 
 export function AdminLoginForm() {
-  const router = useRouter();
   const [code, setCode] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
