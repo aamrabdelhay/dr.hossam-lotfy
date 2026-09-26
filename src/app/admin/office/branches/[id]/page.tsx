@@ -26,6 +26,10 @@ export default async function BranchDetailsPage({params}:{params:Promise<{id:str
   if(!branch)notFound();
   if(!senior&&!scope.branchIds.includes(id))redirect('/admin/office');
 
+  if(senior){
+    redirect('/admin?branchId='+encodeURIComponent(id));
+  }
+
   if(!senior){
     return (
       <main dir="rtl" className="mx-auto w-full max-w-[1250px] px-4 py-7 sm:px-6 lg:px-8">
