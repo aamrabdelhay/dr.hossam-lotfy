@@ -10,6 +10,7 @@ export const officeId = (prefix: string) => `${prefix}_${crypto.randomUUID().rep
 export async function isSeniorManagement(session: SessionUser | null): Promise<boolean> {
   if (!session) return false;
   if (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) return true;
+  if (session.role === 'lawyer' && session.isAdmin) return true;
   const userId = session.role === 'admin' ? session.userId : null;
   const lawyerId = session.role === 'lawyer' ? session.lawyerId : null;
   const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
@@ -17,6 +18,13 @@ export async function isSeniorManagement(session: SessionUser | null): Promise<b
     userId,
     lawyerId,
   ).catch(() => []);
+  if (!rows.length && lawyerId) {
+    const principal = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "lawyers" WHERE "id"=$1 AND "isPrincipal"=true AND "active"=true LIMIT 1`,
+      lawyerId,
+    ).catch(() => []);
+    if (principal.length) return true;
+  }
   return rows.length > 0;
 }
 

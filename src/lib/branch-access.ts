@@ -12,10 +12,12 @@ export async function getBranchScope(session:SessionUser|null):Promise<BranchSco
   if(!session)return{allBranches:false,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
   const userId=session.role==='admin'?session.userId:null;
   const lawyerId=session.role==='lawyer'?session.lawyerId:null;
-  const seniorByAccount=session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN');
+  const seniorByAccount=(session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN'))||(session.role==='lawyer'&&session.isAdmin);
   const seniorByMembership=!!(await prisma.$queryRawUnsafe<Array<{id:string}>>(
     `SELECT "id" FROM "office_senior_members" WHERE (("user_id"=$1 AND $1 IS NOT NULL) OR ("lawyer_id"=$2 AND $2 IS NOT NULL)) LIMIT 1`,userId,lawyerId).catch(()=>[]))[0];
-  if(seniorByAccount||seniorByMembership)return{allBranches:true,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
+  const seniorByPrincipal=!!(lawyerId && (await prisma.$queryRawUnsafe<Array<{id:string}>>(
+    `SELECT "id" FROM "lawyers" WHERE "id"=$1 AND "isPrincipal"=true AND "active"=true LIMIT 1`,lawyerId).catch(()=>[]))[0]);
+  if(seniorByAccount||seniorByMembership||seniorByPrincipal)return{allBranches:true,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
   const rows=await prisma.$queryRawUnsafe<Array<{branch_id:string;manager_type:string}>>(
     `SELECT "branch_id","manager_type" FROM "office_branch_managers" WHERE (("user_id"=$1 AND $1 IS NOT NULL) OR ("lawyer_id"=$2 AND $2 IS NOT NULL))`,userId,lawyerId).catch(()=>[]);
   const officeManagerBranchIds=rows.filter(r=>r.manager_type==='OFFICE_MANAGER').map(r=>r.branch_id);
@@ -42,8 +44,8 @@ export async function branchSummary(branchId:string){
   if(!branch)return null;
   const[lawyers,cases,clients,tasks]=await Promise.all([
     prisma.$queryRawUnsafe<any[]>(`SELECT l."id",l."slug",l."fullName",l."title",l."active",l."email",l."googleEmail" FROM "office_branch_lawyers" bl JOIN "lawyers" l ON l."id"=bl."lawyer_id" WHERE bl."branch_id"=$1 ORDER BY l."fullName"`,branchId),
-    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","number","clientName","archived_at" FROM "case_records" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "id" DESC LIMIT 500`,branchId),
-    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","phone","email","assignedLawyerId","status" FROM "clients" WHERE COALESCE("branch_id",$1)=$1 AND COALESCE("status",'MAIN')<>'DELETED' ORDER BY lower("name") LIMIT 500`,branchId),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","number","clientName","archived_at" FROM "case_records" WHERE "branch_id"=$1 ORDER BY "id" DESC LIMIT 500`,branchId),
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","phone","email","assignedLawyerId","status" FROM "clients" WHERE "branch_id"=$1 AND COALESCE("status",'MAIN')<>'DELETED' ORDER BY lower("name") LIMIT 500`,branchId),
     prisma.$queryRawUnsafe<any[]>(`SELECT t."id",t."caseId",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",l."name" AS "locationName",cr."name" AS "caseName",cr."number" AS "caseNumber",cr."clientName",cr."clientId" FROM "tasks" t LEFT JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "locations" l ON l."id"=t."locationId" WHERE COALESCE(t."branch_id",cr."branch_id",$1)=$1 ORDER BY t."scheduledDate" DESC NULLS LAST,t."createdAt" DESC LIMIT 500`,branchId)
   ]);
   return{branch,lawyers,cases,clients,tasks};

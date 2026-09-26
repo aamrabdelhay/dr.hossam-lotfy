@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { getAllBranches, getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement, isFinanceManagement, isOfficeManager } from '@/lib/office-workflow';
 
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'مركز إدارة الفروع' };
 
 export default async function OfficeManagementPage() {

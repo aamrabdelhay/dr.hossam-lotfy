@@ -21,6 +21,7 @@ export default async function BranchDetailsPage({ params }: { params: Promise<{ 
   const allBranches = await getAllBranches();
   const summary = await branchSummary(id);
   if (!summary) notFound();
+  const visibleBranches = branchScope.allBranches ? allBranches : allBranches.filter((branch) => branchScope.branchIds.includes(branch.id));
 
   const managerRows = await prisma.$queryRawUnsafe<Array<{ id:string; manager_type:string; lawyer_id:string|null; user_id:string|null; lawyer_name:string|null; user_name:string|null }>>(
     'SELECT m."id",m."manager_type",m."lawyer_id",m."user_id",l."fullName" AS "lawyer_name",u."name" AS "user_name" FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" LEFT JOIN "users" u ON u."id"=m."user_id" WHERE m."branch_id"=$1 ORDER BY m."manager_type"',
@@ -43,7 +44,7 @@ export default async function BranchDetailsPage({ params }: { params: Promise<{ 
   const officeManager = managerRows.find(m => m.manager_type === 'OFFICE_MANAGER');
   const financeManager = managerRows.find(m => m.manager_type === 'FINANCE_MANAGER');
   const management = await getLawyerManagementLabels(lawyerIds);
-  const caseRows = await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."clientId",cr."category_id",cat."name_ar" AS "category_name" FROM "case_records" cr LEFT JOIN "office_case_categories" cat ON cat."id"=cr."category_id" WHERE COALESCE(cr."branch_id",$1)=$1 AND cr."archived_at" IS NULL ORDER BY cat."sort_order" NULLS LAST,cr."id" DESC',id);
+  const caseRows = await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."clientId",cr."category_id",cat."name_ar" AS "category_name" FROM "case_records" cr LEFT JOIN "office_case_categories" cat ON cat."id"=cr."category_id" WHERE cr."branch_id"=$1 AND cr."archived_at" IS NULL ORDER BY cat."sort_order" NULLS LAST,cr."id" DESC',id);
   const caseGroups = caseRows.reduce((groups:any[],row:any)=>{const key=row.category_id||'uncategorized';let group=groups.find((x:any)=>x.id===key);if(!group){group={id:key,name:row.category_name||'قضايا غير مصنفة',cases:[]};groups.push(group);}group.cases.push(row);return groups;},[]);
 
   return (
@@ -52,6 +53,14 @@ export default async function BranchDetailsPage({ params }: { params: Promise<{ 
         <Link href="/admin/office" className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600 shadow-soft"><ArrowRight size={14}/> الرجوع إلى مركز الإدارة</Link>
         <Link href="/admin?tab=lawyers" className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600"><Users size={14}/> كل المحامين</Link>
       </div>
+      {visibleBranches.length > 1 && <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-gold-200 bg-gold-50/40 p-3">
+        <span className="me-1 text-[10px] font-black text-gold-700">التبديل بين الفروع</span>
+        {visibleBranches.map((branch) => (
+          <Link key={branch.id} href={'/admin/office/branches/' + branch.id} className={`rounded-full px-3 py-1.5 text-[10px] font-extrabold ${branch.id===id?'bg-navy-950 text-white':'bg-white text-navy-700 hover:bg-navy-50'}`}>
+            {branch.name_ar}
+          </Link>
+        ))}
+      </div> 
 
       <Card className="mb-5 overflow-hidden border-gold-200">
         <div className="bg-navy-950 px-6 py-7 text-white">

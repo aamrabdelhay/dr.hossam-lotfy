@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ financeOnly:true, branches:allowed, selectedBranchId, summary, requests, dues, expenses, members:[], users:[], lawyers:summary?.lawyers??[], logins:[], clicks:[], archive:[], categories:[], financeMembers:branchManagers, branchManagers, availableLawyers });
   }
   const cases = selectedBranchId
-    ? await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."branch_id",cr."archived_at",cr."category_id" FROM "case_records" cr WHERE COALESCE(cr."branch_id",$1)=$1 ORDER BY cr."id" DESC LIMIT 500', selectedBranchId)
+    ? await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."branch_id",cr."archived_at",cr."category_id" FROM "case_records" cr WHERE cr."branch_id"=$1 ORDER BY cr."id" DESC LIMIT 500', selectedBranchId)
     : await prisma.$queryRawUnsafe<any[]>('SELECT cr."id",cr."name",cr."number",cr."clientName",cr."branch_id",cr."archived_at",cr."category_id" FROM "case_records" cr ORDER BY cr."id" DESC LIMIT 500');
   const [members, users, lawyers, requests, logins, clicks, archive, categories, dues, financeMembers, expenses, branchManagers] = await Promise.all([
     prisma.$queryRawUnsafe<any[]>('SELECT m.*,u."name" AS user_name,u."email" AS user_email,l."fullName" AS lawyer_name FROM "office_senior_members" m LEFT JOIN "users" u ON u."id"=m."user_id" LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."created_at" DESC'),
