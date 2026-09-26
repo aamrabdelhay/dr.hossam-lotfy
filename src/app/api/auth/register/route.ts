@@ -6,6 +6,7 @@ import { logActivity } from '@/lib/activity';
 import { notifyNewRegistration } from '@/lib/mail';
 import { getAllBranches } from '@/lib/branch-access';
 import { notifySenior } from '@/lib/office-workflow';
+import { appOrigin } from '@/lib/google-oauth';
 import { escapeTelegramHtml, sendTelegramGroupNotification } from '@/lib/telegram';
 
 const registerSchema = z.object({
@@ -75,7 +76,7 @@ export const POST = handle(async (req: Request) => {
     '<b>الهاتف:</b> ' + escapeTelegramHtml(lawyer.phone ?? 'غير محدد'),
     '<b>الفرع:</b> ' + escapeTelegramHtml(branch.name_ar),
     '',
-    '<a href="' + process.env.NEXT_PUBLIC_APP_URL?.trim() + '/admin/office">فتح طلبات الإدارة</a>',
+    '<a href="' + appOrigin() + '/admin/office">فتح طلبات الإدارة</a>',
   ].filter(Boolean).join('\n')).catch((error) => {
     console.error('Lawyer registration Telegram notification failed:', error);
   });
