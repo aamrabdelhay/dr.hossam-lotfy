@@ -111,8 +111,6 @@ type AdminShellProps = {
     readAt: string | null;
     createdAt: string;
   }>;
-  branchId?: string;
-  branchName?: string;
 };
 
 export function AdminShell(props: AdminShellProps) {
@@ -143,7 +141,7 @@ export function AdminShell(props: AdminShellProps) {
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-extrabold text-ivory-50">منطقة الإدارة</h1>
               <p className="text-[12px] font-semibold text-ivory-300">
-                {props.branchName ? 'إدارة المكتب — ' + props.branchName : 'إدارة المكتب'}
+                إدارة المكتب
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -194,7 +192,7 @@ export function AdminShell(props: AdminShellProps) {
       />
 
       {tab === 'overview' && <OverviewTab {...props} onOpenTask={() => setModal({ kind: 'task' })} />}
-      {tab === 'tasks' && <TasksTab branchId={props.branchId} locations={props.locations} lawyers={props.lawyers} onEdit={(t) => setModal({ kind: 'editTask', data: t })} />}
+      {tab === 'tasks' && <TasksTab locations={props.locations} lawyers={props.lawyers} onEdit={(t) => setModal({ kind: 'editTask', data: t })} />}
       {tab === 'lawyers' && <LawyersTab lawyers={props.lawyers} onAdd={() => setModal({ kind: 'lawyer' })} onEdit={(l) => setModal({ kind: 'lawyer', data: l })} />}
       {tab === 'locations' && <LocationsTab locations={props.locations} onAdd={() => setModal({ kind: 'location' })} onEdit={(l) => setModal({ kind: 'location', data: l })} />}
       {tab === 'cases' && <CasesTab cases={props.cases} />}
@@ -207,7 +205,6 @@ export function AdminShell(props: AdminShellProps) {
       <TaskCreator
         open={modal?.kind === 'task'}
         onClose={() => setModal(null)}
-        branchId={props.branchId}
         locations={props.locations}
         lawyers={props.lawyers.map((l) => ({ id: l.id, name: l.name, isPrincipal: l.isPrincipal }))}
         cases={props.cases}
@@ -215,7 +212,6 @@ export function AdminShell(props: AdminShellProps) {
       <LawyerForm
         open={modal?.kind === 'lawyer'}
         onClose={() => setModal(null)}
-        branchId={props.branchId}
         lawyer={
           modal?.kind === 'lawyer' && modal.data
             ? (() => {
@@ -340,12 +336,10 @@ function OverviewTab(props: AdminShellProps & { onOpenTask: () => void }) {
 /* ─────────────────────────── Tasks management ─────────────────────────── */
 
 function TasksTab({
-  branchId,
   locations,
   lawyers,
   onEdit,
 }: {
-  branchId?: string;
   locations: NavLocation[];
   lawyers: LawyerRow[];
   onEdit: (t: TaskVM) => void;
@@ -381,7 +375,6 @@ function TasksTab({
       if (from) params.set('from', from);
       if (to) params.set('to', to);
       if (debouncedQ) params.set('q', debouncedQ);
-      if (branchId) params.set('branchId', branchId);
       const res = await fetch(`/api/tasks?${params}`);
       if (res.ok) {
         const d = await res.json();
@@ -391,7 +384,7 @@ function TasksTab({
       }
       setLoading(false);
     },
-    [branchId, lawyerId, locationId, status, from, to, debouncedQ],
+    [lawyerId, locationId, status, from, to, debouncedQ],
   );
 
   React.useEffect(() => {
