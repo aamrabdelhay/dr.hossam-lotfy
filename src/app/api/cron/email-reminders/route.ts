@@ -241,7 +241,8 @@ export async function GET(req: Request) {
 
   const todayKey = cairoDateKey();
   const telegramEnabled = isTelegramConfigured();
-  const dailyAtMidnight = new Date().getUTCHours() >= 21;
+  const cairoHour = Number(new Intl.DateTimeFormat('en-US',{timeZone:'Africa/Cairo',hour:'2-digit',hour12:false}).format(new Date()));
+  const dailyAtMidnight = cairoHour === 0;
 
   const [telegram, email] = await Promise.all([
     dailyAtMidnight ? sendTelegramDailySummary(todayKey).catch((error) => ({ error: String(error?.message ?? error) })) : Promise.resolve({ skipped: 'not-daily-run' }),
