@@ -27,10 +27,9 @@ export function AdminLoginForm() {
       const res = await fetch('/api/auth/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: normalizedCode }), cache: 'no-store' });
       if (res.ok) {
         try { sessionStorage.setItem(REMEMBER_KEY, normalizedCode); } catch { /* ignore */ }
-        // The session cookie is already set. Prefetch the protected route first,
-        // then switch to it without a second full-document navigation.
-        router.prefetch('/admin');
-        router.replace('/admin');
+        // Force a full navigation so the server-rendered layout reads the
+        // newly-issued session cookie immediately.
+        window.location.replace('/admin');
         return;
       }
       const d = await res.json().catch(() => ({}));
