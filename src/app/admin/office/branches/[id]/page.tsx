@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowRight, Bell, BriefcaseBusiness, MapPin, Users, WalletCards, UserRound, FolderTree, FileText, CalendarDays } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
-import { getBranchScope, hasBranchAccess, branchSummary, getAllBranches } from '@/lib/branch-access';
+import { getBranchScope, branchSummary, getAllBranches } from '@/lib/branch-access';
 import { getLawyerManagementLabels, isSeniorManagement } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
@@ -15,7 +15,8 @@ export default async function BranchDetailsPage({ params }: { params: Promise<{ 
   if (!session) redirect('/auth');
   const { id } = await params;
   const senior = await isSeniorManagement(session);
-  if (!senior && !(await hasBranchAccess(session, id, 'office'))) redirect('/admin/office');
+  const branchScope = await getBranchScope(session);
+  if (!senior && !branchScope.branchIds.includes(id)) redirect('/admin/office');
 
   const allBranches = await getAllBranches();
   const summary = await branchSummary(id);
