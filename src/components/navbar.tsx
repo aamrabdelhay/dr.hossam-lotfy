@@ -188,7 +188,7 @@ export function Navbar({ lawyers, locations, branches, session, unread }: Navbar
     <header ref={wrapRef} className="fixed inset-x-0 top-2 z-50 mx-auto w-[calc(100%-1rem)] max-w-[1440px] rounded-2xl border border-navy-100 bg-white/95 shadow-lg backdrop-blur sm:top-3 sm:w-[calc(100%-2rem)]">
       <div className="relative flex min-h-14 items-center gap-1 px-2 sm:px-4">
         <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full text-navy-400 lg:hidden" onClick={() => setMobileOpen((value) => !value)} aria-label={COPY.menu}>{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
-        <Link href="/" className="flex shrink-0 items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy-950 text-xs font-bold text-gold-400">LL</span><span className="hidden sm:flex flex-col"><span className="text-[12px] font-extrabold tracking-wider text-navy-950">Loutfi</span><span className="text-[8px] font-bold tracking-[3px] text-gold-600">LAW FIRM</span></span></Link>
+        <Link href="/" className="flex shrink-0 items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy-950 text-xs font-bold text-gold-400">LL</span><span className="hidden text-[12px] font-extrabold tracking-wider text-navy-950 sm:block">Loutfi</span></Link>
         <form onSubmit={doSearch} className="mx-2 hidden min-w-0 max-w-[360px] flex-1 xl:flex"><div className="relative w-full"><Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(event) => setQ(event.target.value)} placeholder={COPY.searchPlaceholder} className="h-9 w-full rounded-full border border-navy-200 bg-ivory-50 ps-9 pe-3 text-[12px] text-navy-900 outline-none focus:border-gold-500" /></div></form>
         <nav className="hidden items-center gap-1 lg:flex">
           <div className="relative">
@@ -211,15 +211,15 @@ export function Navbar({ lawyers, locations, branches, session, unread }: Navbar
           </div>}
         </nav>
         <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
-          {session && pathname !== '/' && <button type="button" onClick={() => router.back()} className="flex h-8 items-center gap-1 rounded-lg border border-navy-200 bg-white px-2 text-[11px] font-bold text-navy-600 hover:border-gold-400 hover:text-navy-950"><span aria-hidden>←</span><span className="hidden sm:inline">{COPY.back}</span></button>}
           {session && <NotificationBell unread={unread} />}
           {session && <Link href="/profile" className="flex items-center gap-1 rounded-full border border-navy-200 bg-white px-2.5 py-2 text-[11px] font-bold text-navy-700 hover:border-gold-400"><UserCircle2 size={14} className="text-gold-600" /><span className="hidden max-w-28 truncate sm:inline">{COPY.profile}</span></Link>}
           {!session ? (
             <Link href="/auth" prefetch={false} className="rounded-full px-3 py-2 text-[10px] font-bold text-navy-500"><KeyRound size={13} className="inline me-1" />دخول</Link>
           ) : (
-            <React.Fragment>
+            <div className="flex items-center gap-1">
+              {pathname !== '/' && <button type="button" onClick={() => router.back()} className="flex h-8 items-center gap-1 rounded-lg border border-navy-200 bg-white px-2 text-[11px] font-bold text-navy-600 hover:border-gold-400 hover:text-navy-950"><span aria-hidden>←</span><span className="hidden sm:inline">{COPY.back}</span></button>}
               <button type="button" onClick={logout} aria-label={COPY.logout} className="flex h-8 items-center gap-1 rounded-lg bg-red-50 px-2 text-[11px] font-bold text-red-600"><LogOut size={14} /><span className="hidden sm:inline">{COPY.logout}</span></button>
-            </React.Fragment>
+            </div>
           )}
         </div>
       </div>

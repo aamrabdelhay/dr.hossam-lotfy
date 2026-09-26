@@ -38,10 +38,11 @@ export async function visibleBranchIds(session:SessionUser|null,kind:'office'|'f
 export async function branchSummary(branchId:string){
   const branch=(await prisma.$queryRawUnsafe<BranchRow[]>(`SELECT "id","code","name_ar","name_en","address","is_main","active" FROM "office_branches" WHERE "id"=$1 LIMIT 1`,branchId))[0]??null;
   if(!branch)return null;
-  const[lawyers,cases,clients]=await Promise.all([
+  const[lawyers,cases,clients,tasks]=await Promise.all([
     prisma.$queryRawUnsafe<any[]>(`SELECT l."id",l."slug",l."fullName",l."title",l."active",l."email",l."googleEmail" FROM "office_branch_lawyers" bl JOIN "lawyers" l ON l."id"=bl."lawyer_id" WHERE bl."branch_id"=$1 ORDER BY l."fullName"`,branchId),
     prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","number","clientName","archived_at" FROM "case_records" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "id" DESC LIMIT 500`,branchId),
-    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","phone","email","assignedLawyerId","status" FROM "clients" WHERE COALESCE("branch_id",$1)=$1 AND COALESCE("status",'MAIN')<>'DELETED' ORDER BY lower("name") LIMIT 500`,branchId)
+    prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","phone","email","assignedLawyerId","status" FROM "clients" WHERE COALESCE("branch_id",$1)=$1 AND COALESCE("status",'MAIN')<>'DELETED' ORDER BY lower("name") LIMIT 500`,branchId),
+    prisma.$queryRawUnsafe<any[]>(`SELECT t."id",t."caseId",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",l."name" AS "locationName",cr."name" AS "caseName",cr."number" AS "caseNumber",cr."clientName",cr."clientId" FROM "tasks" t LEFT JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "locations" l ON l."id"=t."locationId" WHERE COALESCE(t."branch_id",cr."branch_id",$1)=$1 ORDER BY t."scheduledDate" DESC NULLS LAST,t."createdAt" DESC LIMIT 500`,branchId)
   ]);
-  return{branch,lawyers,cases,clients};
+  return{branch,lawyers,cases,clients,tasks};
 }
