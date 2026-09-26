@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkHealth } from '@/lib/health';
 import { user } from '@/lib/api';
+import { isTelegramConfigured } from '@/lib/telegram';
 
 /** Health must always execute at request time; cached diagnostics are misleading. */
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,7 @@ export async function GET() {
   const health = await checkHealth();
   const currentUser = await user();
   const isAdmin = currentUser?.role === 'admin';
+  const telegramConfigured = isTelegramConfigured();
 
   // Keep operational diagnostics (schema state, migration names and record
   // counts) out of the public endpoint. Monitoring only needs a coarse health
@@ -19,7 +21,10 @@ export async function GET() {
     : {
         status: health.status,
         ...(health.status !== 'ok' ? { error: 'الخدمة غير متاحة مؤقتاً' } : {}),
+        telegramConfigured,
       };
+
+  if (isAdmin) response.telegramConfigured = telegramConfigured;
 
   return NextResponse.json(response, {
     status: health.status === 'ok' ? 200 : 503,
