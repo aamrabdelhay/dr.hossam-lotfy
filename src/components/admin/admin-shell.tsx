@@ -199,7 +199,7 @@ export function AdminShell(props: AdminShellProps) {
       {tab === 'cases' && <CasesTab cases={props.cases} />}
       {tab === 'case-sections' && <CaseSectionsTab categories={props.categories} cases={props.cases} />}
       {tab === 'users' && props.permissions.manageUsers && <UsersTab currentUserId={props.session.userId} />}
-      {tab === 'activity' && <ActivityTab initial={props.activity} />}
+      {tab === 'activity' && <ActivityTab initial={props.activity} branchId={props.branchId} />}
       {tab === 'notifications' && <NotificationsTab notifications={props.notifications} />}
 
       {/* Modals */}
@@ -1002,14 +1002,14 @@ function CasesTab({ cases }: { cases: AdminShellProps['cases'] }) {
   );
 }
 
-function ActivityTab({ initial }: { initial: Array<{ id: string; action: string; summary: string; createdAt: string }> }) {
+function ActivityTab({ initial, branchId }: { initial: Array<{ id: string; action: string; summary: string; createdAt: string }>; branchId?: string }) {
   const [items, setItems] = React.useState<
     Array<{ id: string; action: string; summary: string; createdAt: string; lawyer: { fullName: string; slug: string } | null }>
   >([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    fetch('/api/activity')
+    fetch(branchId ? `/api/activity?branchId=${encodeURIComponent(branchId)}` : '/api/activity')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setItems(d.activity))
       .finally(() => setLoading(false));
