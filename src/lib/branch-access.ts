@@ -10,10 +10,12 @@ export async function getAllBranches():Promise<BranchRow[]>{
 }
 export async function getBranchScope(session:SessionUser|null):Promise<BranchScope>{
   if(!session)return{allBranches:false,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
-  const senior=session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN');
-  if(senior)return{allBranches:true,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
   const userId=session.role==='admin'?session.userId:null;
   const lawyerId=session.role==='lawyer'?session.lawyerId:null;
+  const seniorByAccount=session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN');
+  const seniorByMembership=!!(await prisma.$queryRawUnsafe<Array<{id:string}>>(
+    `SELECT "id" FROM "office_senior_members" WHERE (("user_id"=$1 AND $1 IS NOT NULL) OR ("lawyer_id"=$2 AND $2 IS NOT NULL)) LIMIT 1`,userId,lawyerId).catch(()=>[]))[0];
+  if(seniorByAccount||seniorByMembership)return{allBranches:true,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
   const rows=await prisma.$queryRawUnsafe<Array<{branch_id:string;manager_type:string}>>(
     `SELECT "branch_id","manager_type" FROM "office_branch_managers" WHERE (("user_id"=$1 AND $1 IS NOT NULL) OR ("lawyer_id"=$2 AND $2 IS NOT NULL))`,userId,lawyerId).catch(()=>[]);
   const officeManagerBranchIds=rows.filter(r=>r.manager_type==='OFFICE_MANAGER').map(r=>r.branch_id);
