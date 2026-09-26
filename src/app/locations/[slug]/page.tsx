@@ -55,6 +55,18 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
   const IsCourt = location.type === 'COURT';
 
   const tasksVM = location.tasks.map((t) => toTaskVM(t as never));
+  const caseIds = Array.from(new Set(location.tasks.map((t) => t.caseId).filter((x): x is string => Boolean(x))));
+  const locationCases = caseIds.length ? await prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;clientId:string|null;clientName:string|null;categoryName:string|null;categorySort:number|null}>>(
+    'SELECT cr."id",cr."name",cr."number",cr."clientId",cl."name" AS "clientName",cat."name_ar" AS "categoryName",cat."sort_order" AS "categorySort" FROM "case_records" cr LEFT JOIN "clients" cl ON cl."id"=cr."clientId" LEFT JOIN "office_case_categories" cat ON cat."id"=cr."category_id" WHERE cr."id" = ANY($1::text[]) AND cr."archived_at" IS NULL ORDER BY cat."sort_order" NULLS LAST, cr."id" DESC',
+    caseIds,
+  ) : [];
+  const caseGroups: Array<{id:string;name:string;cases:typeof locationCases}> = [];
+  for (const row of locationCases) {
+    const key = row.categoryName || 'غير مصنفة';
+    let group = caseGroups.find((g) => g.id === key);
+    if (!group) { group = { id: key, name: key, cases: [] }; caseGroups.push(group); }
+    group.cases.push(row);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-4 py-5 sm:px-6">
@@ -146,6 +158,42 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
                 {location.hasOnlineService && <Badge tone="green">خدمة أونلاين متاحة</Badge>}
                 {location.requiresPersonal && <Badge tone="amber">الحضور الشخصي مطلوب</Badge>}
               </div>
+            </div>
+          </Card>
+        )}
+
+        {caseGroups.length > 0 && (
+          <Card className="mt-5 p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-[15px] font-extrabold text-navy-900">قضايا هذا المكان حسب النوع</h2>
+                <p className="mt-1 text-[11px] font-semibold text-navy-300">تظهر فقط أنواع القضايا الموجودة فعليًا في هذا المكان.</p>
+              </div>
+              <Badge tone="gold">{locationCases.length} قضية</Badge>
+            </div>
+            <div className="space-y-3">
+              {caseGroups.map((group) => (
+                <section key={group.id} className="rounded-2xl border border-navy-100 bg-ivory-50 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-black text-navy-850">{group.name}</h3>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-navy-400">{group.cases.length}</span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {group.cases.map((caseRow) => (
+                      <Link key={caseRow.id} href={'/cases/' + caseRow.id} className="rounded-xl bg-white p-3 transition hover:bg-gold-50">
+                        <div className="flex items-start gap-2">
+                          <FileText size={14} className="mt-0.5 shrink-0 text-gold-600" />
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-extrabold text-navy-900">{caseRow.name}</p>
+                            <p className="mt-1 text-[10px] text-navy-400">{caseRow.number}{caseRow.clientName ? ' — ' + caseRow.clientName : ''}</p>
+                            {caseRow.clientId && <p className="mt-1 text-[10px] font-bold text-gold-700">العميل: {caseRow.clientName || 'ملف العميل'}</p>}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           </Card>
         )}

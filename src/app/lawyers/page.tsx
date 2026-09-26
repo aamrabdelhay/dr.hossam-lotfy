@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { SessionSidebar } from '@/components/session-sidebar';
 import { Avatar, Badge, Card, EmptyState } from '@/components/ui';
 import { TITLE_LABEL } from '@/lib/constants';
+import { getLawyerManagementLabels } from '@/lib/office-workflow';
 
 export const metadata: Metadata = { title: 'المحامون' };
 
@@ -26,6 +27,7 @@ export default async function LawyersPage() {
     getCurrentUser(),
   ]);
 
+  const management = await getLawyerManagementLabels(lawyers.map((l) => l.id));
   const sorted = [...lawyers].sort((a, b) => Number(b.isPrincipal) - Number(a.isPrincipal) || a.sortOrder - b.sortOrder);
 
   return (
@@ -47,6 +49,7 @@ export default async function LawyersPage() {
                       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                         <p className="break-words text-[14px] font-extrabold leading-6 text-navy-950 group-hover:underline sm:text-[15px]">{l.fullName}</p>
                         {l.isPrincipal && <Badge tone="gold">رئيس المكتب</Badge>}
+                        {(management[l.id] ?? []).map((label) => <Badge key={label} tone="gold">{label}</Badge>)}
                       </div>
                       <p className="mt-0.5 text-[12px] font-bold text-navy-400">{TITLE_LABEL[l.title]}</p>
                       {l.specialization && <p className="mt-1.5 flex items-start gap-1 text-[11.5px] font-semibold leading-5 text-navy-500"><Briefcase size={11} className="mt-1 shrink-0 text-gold-600" /><span className="break-words">{l.specialization}</span></p>}

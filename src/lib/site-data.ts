@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from './prisma';
 import type { NavLawyer, NavLocation } from './constants';
+import { getLawyerManagementLabels } from './office-workflow';
 
 export async function getSiteNav(branchId?: string) {
   const [lawyers, locations] = await Promise.all([
@@ -19,8 +20,9 @@ export async function getSiteNav(branchId?: string) {
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     }),
   ]);
+  const management = await getLawyerManagementLabels(lawyers.map((l) => l.id));
   return {
-    lawyers: lawyers.map((l) => ({ id: l.id, slug: l.slug, name: l.fullName, title: l.title, photo: l.profilePhotoUrl, isPrincipal: l.isPrincipal })) as NavLawyer[],
+    lawyers: lawyers.map((l) => ({ id: l.id, slug: l.slug, name: l.fullName, title: l.title, photo: l.profilePhotoUrl, isPrincipal: l.isPrincipal, managementLabels: management[l.id] ?? [] })) as NavLawyer[],
     locations: locations.map((l) => ({ id: l.id, slug: l.slug, name: l.name, type: l.type })) as NavLocation[],
   };
 }

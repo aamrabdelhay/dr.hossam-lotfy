@@ -67,6 +67,7 @@ export async function POST(req: Request) {
   const session = await user();
   const senior = await isSeniorManagement(session);
   const finance = await isFinanceManagement(session);
+  const officeManager = await isOfficeManager(session);
   if (!session || (!senior && !finance && !officeManager)) return NextResponse.json({ error: 'صلاحية الإدارة المطلوبة غير متاحة' }, { status: 403 });
   const body = await req.json();
   const action = String(body.action || '');

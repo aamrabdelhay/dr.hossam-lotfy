@@ -71,6 +71,7 @@ export type NavLawyer = {
   title: 'DOCTOR' | 'ADVOCATE';
   photo: string | null;
   isPrincipal: boolean;
+  managementLabels: string[];
 };
 
 export type NavLocation = {

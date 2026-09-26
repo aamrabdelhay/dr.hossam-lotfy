@@ -39,6 +39,37 @@ export async function isFinanceManagement(session: SessionUser | null): Promise<
   return rows.length > 0;
 }
 
+export async function getLawyerManagementLabels(lawyerIds: string | string[]): Promise<Record<string, string[]>> {
+  const ids = Array.from(new Set(Array.isArray(lawyerIds) ? lawyerIds : [lawyerIds])).filter(Boolean);
+  const result: Record<string, string[]> = Object.fromEntries(ids.map((id) => [id, []]));
+  if (!ids.length) return result;
+
+  const [seniorRows, managerRows, financeRows] = await Promise.all([
+    prisma.$queryRawUnsafe<Array<{ lawyer_id: string; title: string | null }>>(
+      'SELECT "lawyer_id","title" FROM "office_senior_members" WHERE "lawyer_id" = ANY($1::text[])',
+      ids,
+    ),
+    prisma.$queryRawUnsafe<Array<{ lawyer_id: string; manager_type: string }>>(
+      'SELECT "lawyer_id","manager_type" FROM "office_branch_managers" WHERE "lawyer_id" = ANY($1::text[])',
+      ids,
+    ),
+    prisma.$queryRawUnsafe<Array<{ lawyer_id: string }>>(
+      'SELECT "lawyer_id" FROM "office_finance_members" WHERE "lawyer_id" = ANY($1::text[])',
+      ids,
+    ),
+  ]);
+
+  for (const row of seniorRows) result[row.lawyer_id]?.push(row.title?.trim() || 'إدارة عليا');
+  for (const row of managerRows) {
+    const label = row.manager_type === 'FINANCE_MANAGER' ? 'إدارة مالية' : row.manager_type === 'OFFICE_MANAGER' ? 'مدير المكتب' : null;
+    if (label && result[row.lawyer_id] && !result[row.lawyer_id].includes(label)) result[row.lawyer_id].push(label);
+  }
+  for (const row of financeRows) {
+    if (result[row.lawyer_id] && !result[row.lawyer_id].includes('إدارة مالية')) result[row.lawyer_id].push('إدارة مالية');
+  }
+  return result;
+}
+
 export async function createOfficeRequest(input: {
   type: string;
   title: string;
