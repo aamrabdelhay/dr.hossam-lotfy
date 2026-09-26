@@ -60,7 +60,7 @@ export default async function BranchDetailsPage({ params }: { params: Promise<{ 
             {branch.name_ar}
           </Link>
         ))}
-      </div> 
+      </div>}
 
       <Card className="mb-5 overflow-hidden border-gold-200">
         <div className="bg-navy-950 px-6 py-7 text-white">
