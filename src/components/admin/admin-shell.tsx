@@ -60,6 +60,7 @@ type LawyerRow = {
   isPrincipal: boolean;
   active: boolean;
   upcoming: number;
+  branchName: string | null;
 };
 
 type AdminShellProps = {
@@ -627,7 +628,8 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
         <div className="flex flex-wrap items-center gap-2">
           <Link href={`/lawyers/${l.slug}`} className="text-[13.5px] font-extrabold text-navy-950 hover:underline">{l.name}</Link>
           <Badge tone={l.isPrincipal ? 'gold' : 'gray'}>{TITLE_LABEL[l.title]}</Badge>
-          {!l.approved && <Badge tone="amber">بانتظار الاعتماد</Badge>}
+          {!l.approved && <Badge tone="amber">بانتظار اعتماد الإدارة العليا</Badge>}
+          {l.branchName && <Badge tone="outline">{l.branchName}</Badge>}
           {!l.active && <Badge tone="red">غير نشط</Badge>}
         </div>
         <p className="mt-0.5 text-[11px] font-semibold text-navy-400">

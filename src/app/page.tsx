@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { CalendarClock, Landmark, Scale, Search, BriefcaseBusiness, ClipboardList, AlertTriangle, Users, MapPinned } from 'lucide-react';
 import { getSidebarData, getFeed, getAdminStats } from '@/lib/queries';
 import { getRecentLawyerStatusPosts } from '@/lib/lawyer-status';
@@ -19,6 +20,7 @@ export default async function HomePage() {
   const language = await getSiteLanguage();
   const copy = copyFor(language);
   const session = await getCurrentUser();
+  if (!session) redirect('/auth');
   const branchScope = await getBranchScope(session);
   const branchTaskIds = !branchScope.allBranches && branchScope.officeManager
     ? await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "tasks" WHERE "branch_id"=ANY($1::text[])', branchScope.officeManagerBranchIds)

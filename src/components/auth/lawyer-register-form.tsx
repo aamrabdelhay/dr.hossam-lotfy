@@ -10,19 +10,22 @@ import { toastError } from '../toasts';
  * pending state (approvedAt = null) and only becomes usable after the office
  * approves it from the admin «المحامون» section.
  */
-export function LawyerRegisterForm() {
+type BranchOption = { id: string; name_ar: string; address: string };
+
+export function LawyerRegisterForm({ branches }: { branches: BranchOption[] }) {
   const [fullName, setFullName] = React.useState('');
   const [title, setTitle] = React.useState<'DOCTOR' | 'ADVOCATE'>('ADVOCATE');
   const [phone, setPhone] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [specialization, setSpecialization] = React.useState('');
+  const [branchId, setBranchId] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [done, setDone] = React.useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !phone.trim() || !email.trim()) {
-      toastError('الاسم الثلاثي ورقم التليفون والبريد الإلكتروني مطلوبة.');
+    if (!fullName.trim() || !phone.trim() || !email.trim() || !branchId) {
+      toastError('الاسم الثلاثي ورقم التليفون والبريد الإلكتروني واختيار الفرع مطلوبة.');
       return;
     }
     setBusy(true);
@@ -35,6 +38,7 @@ export function LawyerRegisterForm() {
         phone: phone.trim(),
         email: email.trim(),
         specialization: specialization.trim() || undefined,
+        branchId,
       }),
     });
     setBusy(false);
@@ -78,6 +82,12 @@ export function LawyerRegisterForm() {
       </div>
       <Field label="البريد الإلكتروني (Gmail)" required hint="ستستخدمه لتسجيل الدخول">
         <Input type="email" dir="ltr" className="ltr text-start" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gmail.com" />
+      </Field>
+      <Field label="الفرع المطلوب" required hint="سيحدد هذا الفرع نطاق عملك بعد موافقة الإدارة العليا">
+        <Select value={branchId} onChange={(e) => setBranchId(e.target.value)} required>
+          <option value="">اختر الفرع</option>
+          {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name_ar} — {branch.address}</option>)}
+        </Select>
       </Field>
       <Field label="المجال / التخصص" hint="اختياري">
         <Input value={specialization} onChange={(e) => setSpecialization(e.target.value)} />

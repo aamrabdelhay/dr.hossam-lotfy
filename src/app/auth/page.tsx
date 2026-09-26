@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthCard } from '@/components/auth/auth-card';
+import { getAllBranches } from '@/lib/branch-access';
 
 export const metadata: Metadata = { title: 'الدخول' };
 
@@ -15,6 +16,7 @@ export default async function AuthPage({
   searchParams: Promise<{ error?: string; registered?: string }>;
 }) {
   const { error, registered } = await searchParams;
+  const branches = await getAllBranches();
 
   return (
     <div className="relative mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
@@ -29,7 +31,7 @@ export default async function AuthPage({
             تم استلام طلب التسجيل ✓ — سيظهر حسابك في «المحامون» عند الإدارة بحالة بانتظار الاعتماد، وستتمكن من الدخول فور اعتماده.
           </p>
         )}
-        <AuthCard />
+        <AuthCard branches={branches} />
       </div>
     </div>
   );

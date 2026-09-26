@@ -4,6 +4,8 @@ import { handle, json, readJson } from '@/lib/api';
 import { slugify, uniqueSlug } from '@/lib/slug';
 import { logActivity } from '@/lib/activity';
 import { notifyNewRegistration } from '@/lib/mail';
+import { getAllBranches } from '@/lib/branch-access';
+import { notifySenior } from '@/lib/office-workflow';
 
 const registerSchema = z.object({
   fullName: z.string().min(3, 'الاسم مطلوب').max(120),
@@ -11,6 +13,7 @@ const registerSchema = z.object({
   phone: z.string().min(6, 'رقم التليفون مطلوب').max(20),
   email: z.string().email('بريد إلكتروني غير صالح').max(120),
   specialization: z.string().max(200).optional(),
+  branchId: z.string().min(1, 'اختيار الفرع مطلوب'),
 });
 
 /**
@@ -33,6 +36,9 @@ export const POST = handle(async (req: Request) => {
     return json({ error: 'هذا البريد الإلكتروني مسجل بالفعل — سجّل الدخول بدلاً من ذلك.' }, { status: 409 });
   }
 
+  const branch = (await getAllBranches()).find((item) => item.id === data.branchId);
+  if (!branch) return json({ error: 'الفرع المختار غير موجود أو غير نشط.' }, { status: 400 });
+
   const slug = await uniqueSlug(slugify(fullName));
   const lawyer = await prisma.lawyer.create({
     data: {
@@ -46,12 +52,19 @@ export const POST = handle(async (req: Request) => {
     },
   });
 
+  await prisma.$executeRawUnsafe(
+    'INSERT INTO "office_branch_lawyers" ("branch_id","lawyer_id") VALUES ($1,$2) ON CONFLICT DO NOTHING',
+    branch.id,
+    lawyer.id,
+  );
+
   await logActivity({
     action: 'LAWYER_REGISTERED',
-    summary: `سجّل محامٍ نفسه وينتظر الاعتماد: ${lawyer.fullName}`,
+    summary: `سجّل محامٍ نفسه وينتظر الاعتماد: ${lawyer.fullName} — ${branch.name_ar}`,
     lawyerId: lawyer.id,
   });
   await notifyNewRegistration(lawyer.fullName, email, lawyer.phone);
+  await notifySenior('طلب انضمام محامٍ جديد', `طلب ${lawyer.fullName} الانضمام إلى ${branch.name_ar}. يلزم اعتماد الإدارة العليا قبل تسجيل الدخول.`).catch(() => undefined);
 
   return json({ ok: true, pending: true, lawyer: { id: lawyer.id, slug: lawyer.slug } }, { status: 201 });
 });

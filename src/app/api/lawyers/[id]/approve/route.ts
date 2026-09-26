@@ -1,8 +1,9 @@
-import { handle, json, requirePermission } from '@/lib/api';
+import { handle, json, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 import { notifyLawyerApproved } from '@/lib/mail';
 import { appOrigin } from '@/lib/google-oauth';
+import { isSeniorManagement } from '@/lib/office-workflow';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,10 @@ type Ctx = { params: Promise<{ id: string }> };
  */
 export const POST = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const session = await requirePermission('manageLawyers');
+  const session = await user();
+  if (!session || !(await isSeniorManagement(session))) {
+    return json({ error: 'اعتماد طلبات الانضمام متاح للإدارة العليا فقط.' }, { status: 403 });
+  }
 
   const lawyer = await prisma.lawyer.findUnique({ where: { id } });
   if (!lawyer) return json({ error: 'المحامي غير موجود' }, { status: 404 });
@@ -31,7 +35,8 @@ export const POST = handle(async (_req: Request, ctx: Ctx) => {
     action: 'LAWYER_APPROVED',
     summary: `اعتمد المحامي: ${updated.fullName}`,
     lawyerId: updated.id,
-    byUserId: session.userId,
+    byUserId: session.role === 'admin' ? session.userId : undefined,
+    byLawyerId: session.role === 'lawyer' ? session.lawyerId : undefined,
   });
 
   // Prefer the private Gmail login identity, but fall back to the stored
