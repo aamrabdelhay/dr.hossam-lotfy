@@ -4,6 +4,7 @@ import { logActivity } from '@/lib/activity';
 import { notifyLawyerApproved } from '@/lib/mail';
 import { appOrigin } from '@/lib/google-oauth';
 import { isSeniorManagement } from '@/lib/office-workflow';
+import { escapeTelegramHtml, sendTelegramGroupNotification } from '@/lib/telegram';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -46,6 +47,19 @@ export const POST = handle(async (_req: Request, ctx: Ctx) => {
   if (recipient) {
     await notifyLawyerApproved(recipient, updated.fullName, appOrigin());
   }
+
+  await sendTelegramGroupNotification([
+    '<b>✅ اعتماد محامٍ جديد</b>',
+    '',
+    '<b>الاسم:</b> ' + escapeTelegramHtml(updated.fullName),
+    '<b>البريد:</b> ' + escapeTelegramHtml(recipient ?? 'غير محدد'),
+    updated.phone ? '<b>الهاتف:</b> ' + escapeTelegramHtml(updated.phone) : null,
+    '<b>اعتماد بواسطة:</b> ' + escapeTelegramHtml(session.name),
+    '',
+    '<a href="' + appOrigin() + '/admin/office">فتح الإدارة</a>',
+  ].filter(Boolean).join('\n')).catch((error) => {
+    console.error('Lawyer approval Telegram notification failed:', error);
+  });
 
   return json({ ok: true, lawyer: { id: updated.id, fullName: updated.fullName }, mailRecipient: recipient ?? null });
 });

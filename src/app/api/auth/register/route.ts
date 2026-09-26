@@ -6,6 +6,8 @@ import { logActivity } from '@/lib/activity';
 import { notifyNewRegistration } from '@/lib/mail';
 import { getAllBranches } from '@/lib/branch-access';
 import { notifySenior } from '@/lib/office-workflow';
+import { appOrigin } from '@/lib/google-oauth';
+import { escapeTelegramHtml, sendTelegramGroupNotification } from '@/lib/telegram';
 
 const registerSchema = z.object({
   fullName: z.string().min(3, 'الاسم مطلوب').max(120),
@@ -65,6 +67,19 @@ export const POST = handle(async (req: Request) => {
   });
   await notifyNewRegistration(lawyer.fullName, email, lawyer.phone);
   await notifySenior('طلب انضمام محامٍ جديد', `طلب ${lawyer.fullName} الانضمام إلى ${branch.name_ar}. يلزم اعتماد الإدارة العليا قبل تسجيل الدخول.`).catch(() => undefined);
+
+  await sendTelegramGroupNotification([
+    '<b>🔔 طلب انضمام محامٍ جديد</b>',
+    '',
+    '<b>الاسم:</b> ' + escapeTelegramHtml(lawyer.fullName),
+    '<b>البريد:</b> ' + escapeTelegramHtml(email),
+    '<b>الهاتف:</b> ' + escapeTelegramHtml(lawyer.phone ?? 'غير محدد'),
+    '<b>الفرع:</b> ' + escapeTelegramHtml(branch.name_ar),
+    '',
+    '<a href="' + appOrigin() + '/admin/office">فتح طلبات الإدارة</a>',
+  ].filter(Boolean).join('\n')).catch((error) => {
+    console.error('Lawyer registration Telegram notification failed:', error);
+  });
 
   return json({ ok: true, pending: true, lawyer: { id: lawyer.id, slug: lawyer.slug } }, { status: 201 });
 });
