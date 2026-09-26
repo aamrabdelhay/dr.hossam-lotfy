@@ -13,7 +13,7 @@ const MORNING_WINDOWS: Array<{ days: number; kind: string; label: string }> = [
   { days: 3, kind: 'session-3', label: '3 أيام' },
 ];
 const NIGHT_WINDOW = { days: 1, kind: 'session-1', label: 'غداً' };
-const TELEGRAM_DAILY_KEY = 'telegram_daily_summary';
+const TELEGRAM_DAILY_KEY_PREFIX = 'telegram_daily_summary:';
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -127,7 +127,8 @@ function telegramSessionBlock(title: string, dateKey: string, rows: TelegramSess
 async function sendTelegramDailySummary(todayKey: string) {
   if (!isTelegramConfigured()) return { skipped: 'telegram-not-configured' };
 
-  const marker = await prisma.adminSetting.findUnique({ where: { key: TELEGRAM_DAILY_KEY } }).catch(() => null);
+  const markerKey = TELEGRAM_DAILY_KEY_PREFIX + todayKey;
+  const marker = await prisma.adminSetting.findUnique({ where: { key: markerKey } }).catch(() => null);
   if (marker?.value === todayKey) return { skipped: 'already-sent', date: todayKey };
 
   const dateKeys = [todayKey, 7, 14, 30].map((value) => typeof value === 'number' ? shiftDateKey(todayKey, value) : value);
@@ -151,11 +152,11 @@ async function sendTelegramDailySummary(todayKey: string) {
   ].join('\n');
 
   try {
-    await prisma.adminSetting.create({ data: { key: TELEGRAM_DAILY_KEY, value: todayKey } });
+    await prisma.adminSetting.create({ data: { key: markerKey, value: todayKey } });
   } catch (error) {
-    const existing = await prisma.adminSetting.findUnique({ where: { key: TELEGRAM_DAILY_KEY } }).catch(() => null);
+    const existing = await prisma.adminSetting.findUnique({ where: { key: markerKey } }).catch(() => null);
     if (existing?.value === todayKey) return { skipped: 'already-sent', date: todayKey };
-    await prisma.adminSetting.delete({ where: { key: TELEGRAM_DAILY_KEY } }).catch(() => undefined);
+    await prisma.adminSetting.delete({ where: { key: markerKey } }).catch(() => undefined);
     throw error;
   }
 
@@ -163,7 +164,7 @@ async function sendTelegramDailySummary(todayKey: string) {
     await sendTelegramGroupNotification(message);
     return { sent: true, date: todayKey, sessions: rows.length };
   } catch (error) {
-    await prisma.adminSetting.delete({ where: { key: TELEGRAM_DAILY_KEY } }).catch(() => undefined);
+    await prisma.adminSetting.delete({ where: { key: markerKey } }).catch(() => undefined);
     throw error;
   }
 }
