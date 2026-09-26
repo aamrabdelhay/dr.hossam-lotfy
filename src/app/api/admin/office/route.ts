@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { user } from '@/lib/api';
-import { isSeniorManagement, isFinanceManagement, officeId } from '@/lib/office-workflow';
+import { isSeniorManagement, isFinanceManagement, getLawyerManagementLabels, officeId } from '@/lib/office-workflow';
 import { slugify, uniqueSlug } from '@/lib/slug';
 import { getAllBranches, getBranchScope, branchSummary } from '@/lib/branch-access';
 import { isOfficeManager } from '@/lib/office-workflow';
@@ -61,7 +61,9 @@ export async function GET(req: Request) {
     selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" WHERE COALESCE("branch_id",$1)=$1 ORDER BY "created_at" DESC LIMIT 500', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT * FROM "office_expenses" ORDER BY "created_at" DESC LIMIT 500'),
     selectedBranchId ? prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" WHERE m."branch_id"=$1 ORDER BY m."manager_type"', selectedBranchId) : prisma.$queryRawUnsafe<any[]>('SELECT m.*,l."fullName" AS lawyer_name,l."email" AS lawyer_email FROM "office_branch_managers" m LEFT JOIN "lawyers" l ON l."id"=m."lawyer_id" ORDER BY m."branch_id",m."manager_type"'),
   ]);
-  return NextResponse.json({ financeOnly:false, branches:allowed, selectedBranchId, summary, members: senior ? members : [], users: senior ? users : [], lawyers, cases, requests, logins: senior ? logins : [], clicks: senior ? clicks : [], archive: senior ? archive : [], categories, dues, financeMembers, expenses, branchManagers, availableLawyers });
+  const management = await getLawyerManagementLabels(lawyers.map((l:any)=>l.id));
+  const lawyersWithManagement = lawyers.map((l:any)=>({ ...l, managementLabels: management[l.id] ?? [] }));
+  return NextResponse.json({ financeOnly:false, branches:allowed, selectedBranchId, summary, members: senior ? members : [], users: senior ? users : [], lawyers:lawyersWithManagement, cases, requests, logins: senior ? logins : [], clicks: senior ? clicks : [], archive: senior ? archive : [], categories, dues, financeMembers, expenses, branchManagers, availableLawyers });
 }
 export async function POST(req: Request) {
   const session = await user();
