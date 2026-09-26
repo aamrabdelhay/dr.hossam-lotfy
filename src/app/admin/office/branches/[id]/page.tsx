@@ -71,6 +71,16 @@ export default async function BranchDetailsPage({ params }: { params: Promise<{ 
         </div>
       </Card>
 
+      <div className="mb-5">
+        <Card className="overflow-hidden">
+          <div className="border-b border-navy-100 px-5 py-4">
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-navy-950"><CalendarDays size={17} className="text-gold-600"/>الجلسات والمهام في هذا الفرع</h2>
+            <p className="mt-1 text-[11px] text-navy-400">كل جلسة أو تكليف مرتبط بالفرع، مع القضية والعميل والمكان.</p>
+          </div>
+          {summary.tasks.length===0 ? <div className="p-8"><EmptyState title="لا توجد جلسات أو مهام مرتبطة بهذا الفرع." /></div> : <div className="divide-y divide-navy-100">{summary.tasks.map((task:any)=><Link key={task.id} href={task.caseId?'/cases/'+task.caseId:'/calendar'} className="block px-5 py-4 hover:bg-ivory-50"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-extrabold text-navy-800">{task.description}</p><p className="mt-1 text-[10px] text-navy-400">{task.locationName||'مكان غير محدد'}{task.scheduledDate?' · '+new Date(task.scheduledDate).toLocaleDateString('ar-EG'):''}{task.scheduledTime?' · '+task.scheduledTime:''}</p>{task.caseName&&<p className="mt-1 text-[10px] font-bold text-gold-700">القضية: {task.caseName}{task.caseNumber?' — '+task.caseNumber:''}</p>}{task.clientName&&<p className="mt-1 text-[10px] font-bold text-navy-500">العميل: {task.clientName}</p>}</div><span className="rounded-full bg-navy-100 px-2 py-1 text-[9px] font-black text-navy-600">{task.status==='COMPLETED'?'مكتملة':task.status==='CANCELLED'?'ملغاة':'قيد التنفيذ'}</span></div></Link>)}</div>}
+        </Card>
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-3">
         <section className="space-y-4">
           <Card className="p-5">
