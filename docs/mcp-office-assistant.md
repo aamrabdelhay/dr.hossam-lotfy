@@ -40,3 +40,22 @@ Then:
 5. add optional MCP Apps UI for sessions/tasks.
 
 No Vercel deployment is part of this change.
+
+
+## Current transport status
+
+A first Streamable HTTP-compatible endpoint is available at `/mcp`. It currently exposes initialization and tool discovery only; tool execution deliberately returns an authentication error until OAuth 2.1 is wired.
+
+This is intentional. The office data is private and the write tools can create sessions/tasks. OpenAI's MCP guidance requires authentication for private data and write actions and recommends OAuth 2.1 for authenticated MCP servers.
+
+## Authentication implementation
+
+The remaining server-side boundary is OAuth 2.1:
+- protected-resource metadata;
+- authorization-server metadata;
+- authorization-code + PKCE;
+- access-token validation on every MCP request;
+- scope enforcement (`office:read` / `office:write`);
+- stable `get_profile` identity.
+
+No office data or write action is exposed by the current unauthenticated transport.
