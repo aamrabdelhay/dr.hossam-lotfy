@@ -15,7 +15,7 @@ export default async function AuthPage({
 }: {
   searchParams: Promise<{ error?: string; registered?: string }>;
 }) {
-  const { error, registered } = await searchParams;
+  const { error, registered, next } = await searchParams;
   const branches = await getAllBranches();
 
   return (
@@ -31,7 +31,7 @@ export default async function AuthPage({
             تم استلام طلب التسجيل ✓ — سيظهر حسابك في «المحامون» عند الإدارة بحالة بانتظار الاعتماد، وستتمكن من الدخول فور اعتماده.
           </p>
         )}
-        <AuthCard branches={branches} />
+        <AuthCard branches={branches} next={next} />
       </div>
     </div>
   );
