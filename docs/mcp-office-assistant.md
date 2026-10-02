@@ -44,18 +44,10 @@ No Vercel deployment is part of this change.
 
 ## Current transport status
 
-A first Streamable HTTP-compatible endpoint is available at `/mcp`. It currently exposes initialization and tool discovery only; tool execution deliberately returns an authentication error until OAuth 2.1 is wired.
+The `/mcp` endpoint now authenticates tool calls with an OAuth 2.1-style authorization-code + PKCE flow (S256). Protected-resource and authorization-server discovery metadata are implemented, and access/refresh tokens are stored only as SHA-256 hashes in dedicated SQL tables.
 
-This is intentional. The office data is private and the write tools can create sessions/tasks. OpenAI's MCP guidance requires authentication for private data and write actions and recommends OAuth 2.1 for authenticated MCP servers.
+The existing office login/session cookie remains the user-authentication boundary. OAuth authorization preserves that account and the existing branch/RBAC checks. Ordinary lawyers cannot directly create tasks/sessions through MCP; those writes are routed through the existing office approval workflow. Login preserves the OAuth return URL so the ChatGPT linking flow can continue after authentication.
 
-## Authentication implementation
+The migration `prisma/migrations/20261003000100_mcp_oauth/migration.sql` must be applied before the MCP connection is used against a database that does not already contain these tables.
 
-The remaining server-side boundary is OAuth 2.1:
-- protected-resource metadata;
-- authorization-server metadata;
-- authorization-code + PKCE;
-- access-token validation on every MCP request;
-- scope enforcement (`office:read` / `office:write`);
-- stable `get_profile` identity.
-
-No office data or write action is exposed by the current unauthenticated transport.
+No Vercel deployment was requested or performed by this implementation.
