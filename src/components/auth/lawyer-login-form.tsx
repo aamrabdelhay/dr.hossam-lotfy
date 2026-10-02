@@ -14,7 +14,7 @@ type RememberedLogin = { name?: string; email?: string };
  * and their Gmail address; the backend matches the approved lawyer and opens a
  * session, then the client redirects to that lawyer's profile.
  */
-export function LawyerLoginForm() {
+export function LawyerLoginForm({ next }: { next?: string }) {
   const router = useRouter();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -51,7 +51,7 @@ export function LawyerLoginForm() {
         // Remembering the fields is an enhancement, not a login dependency.
       }
       const d = await res.json().catch(() => ({}));
-      router.replace(d.slug ? `/lawyers/${d.slug}` : '/');
+      router.replace(next || (d.slug ? `/lawyers/${d.slug}` : '/'));
       router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
