@@ -51,7 +51,8 @@ export function LawyerLoginForm({ next }: { next?: string }) {
         // Remembering the fields is an enhancement, not a login dependency.
       }
       const d = await res.json().catch(() => ({}));
-      router.replace(next || (d.slug ? `/lawyers/${d.slug}` : '/'));
+      const safeNext = (() => { if (!next) return null; try { const u = new URL(next, window.location.origin); return u.origin === window.location.origin ? u.toString() : null; } catch { return null; } })();
+      router.replace(safeNext || (d.slug ? `/lawyers/${d.slug}` : '/'));
       router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
