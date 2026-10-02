@@ -36,6 +36,16 @@ function parseCookieValue(value: string | undefined | null): string | null {
   return body.slice(3);
 }
 
+export async function getCurrentSessionRecord() {
+  const store = await cookies();
+  const raw = parseCookieValue(store.get(COOKIE)?.value);
+  if (!raw) return null;
+  const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
+  const session = await prisma.authSession.findUnique({ where: { tokenHash } });
+  if (!session || session.revokedAt || session.expiresAt < new Date()) return null;
+  return session;
+}
+
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const raw = parseCookieValue(store.get(COOKIE)?.value); if (!raw) return null;
