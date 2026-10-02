@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { OFFICE_MCP_TOOLS, callOfficeMcpTool } from '@/lib/mcp/office-tools';
+import { OFFICE_MCP_TOOLS, callOfficeMcpTool, isWriteTool } from '@/lib/mcp/office-tools';
+import { authenticateAccessToken, appOrigin } from '@/lib/mcp/oauth';
 
 const PROTOCOL_VERSION = '2025-06-18';
 
@@ -40,7 +41,21 @@ export async function POST(req: Request) {
   }
 
   if (body.method === 'tools/call') {
-    return error(body.id, -32001, 'MCP authentication is not enabled on this endpoint yet.');
+    const name = body.params?.name;
+    const authorization = req.headers.get('authorization') || '';
+    const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+    const requiredScope = isWriteTool(name) ? 'office:write' : 'office:read';
+    const auth = token ? await authenticateAccessToken(token, requiredScope) : null;
+    if (!auth) {
+      const resourceMetadata = appOrigin(req) + '/.well-known/oauth-protected-resource';
+      return new NextResponse(JSON.stringify({jsonrpc:'2.0',id:body.id,result:{content:[{type:'text',text:'Authentication required.'}],isError:true,_meta:{'mcp/www_authenticate':['Bearer resource_metadata="' + resourceMetadata + '", scope="' + requiredScope + '", error="invalid_token", error_description="Valid OAuth access is required."']}}}),{status:401,headers:{'Content-Type':'application/json', 'WWW-Authenticate':'Bearer resource_metadata="' + resourceMetadata + '", scope="' + requiredScope + '"'}});
+    }
+    try {
+      const result = await callOfficeMcpTool(name, body.params?.arguments ?? {}, auth.user);
+      return jsonrpc(body.id, { content:[{type:'text',text:JSON.stringify(result)}], structuredContent:result, isError:false });
+    } catch (e) {
+      return jsonrpc(body.id, { content:[{type:'text',text:e instanceof Error ? e.message : 'Tool execution failed'}], isError:true });
+    }
   }
 
   return error(body.id, -32601, 'Method not found');
