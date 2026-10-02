@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import type { SessionUser } from '@/lib/auth';
 import { getBranchScope, branchForWrite, getAllBranches } from '@/lib/branch-access';
-import { isSeniorManagement } from '@/lib/office-workflow';
+import { isSeniorManagement, createOfficeRequest, notifySenior } from '@/lib/office-workflow';
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'التاريخ يجب أن يكون YYYY-MM-DD');
 const timeSchema = z.string().regex(/^\d{2}:\d{2}$/, 'الوقت يجب أن يكون HH:MM');
@@ -235,6 +235,20 @@ async function createOfficeTask(session: SessionUser, args: unknown, isSession: 
   const scope = await getBranchScope(session);
   if (!scope.allBranches && !scope.branchIds.includes(branchId)) {
     throw new Error('لا تملك صلاحية إنشاء بيانات في هذا الفرع');
+  }
+
+  const authorization = await assertMcpUser(session);
+  if (authorization.requiresApproval) {
+    const requestId = await createOfficeRequest({
+      type: isSession ? 'TASK_CREATE_SESSION' : 'TASK_CREATE',
+      title: isSession ? 'طلب إضافة جلسة من مساعد المكتب' : 'طلب إضافة تكليف من مساعد المكتب',
+      reason: data.description,
+      payload: data,
+      targetEntityType: 'task',
+      session,
+    });
+    await notifySenior('طلب جديد من مساعد المكتب', data.description.slice(0, 100), '/admin/office').catch(() => undefined);
+    return { requiresApproval: true, requestId, type: isSession ? 'session' : 'task', description: data.description };
   }
 
   const location = await prisma.location.findUnique({
