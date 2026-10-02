@@ -9,7 +9,25 @@ import { isSeniorManagement } from '@/lib/office-workflow';
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'التاريخ يجب أن يكون YYYY-MM-DD');
 const timeSchema = z.string().regex(/^\d{2}:\d{2}$/, 'الوقت يجب أن يكون HH:MM');
 
-export const OFFICE_MCP_TOOLS = [
+export const OFFICE_MCP_TOOLS = [\n  {
+    name: 'get_profile',
+    title: 'بيانات الحساب الحالي',
+    description: 'يعرض هوية الحساب الذي تمت مصادقته على اتصال مساعد مكتب لوتفي.',
+    inputSchema: { type: 'object', properties: {} },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        role: { type: 'string' },
+      },
+      required: ['id', 'name', 'role'],
+    },
+    securitySchemes: [{ type: 'oauth2', scopes: ['office:read'] }],
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+    _meta: { 'openai/profile': true },
+  },
+
   {
     name: 'get_upcoming_sessions',
     title: 'عرض الجلسات القادمة',
@@ -297,7 +315,13 @@ export async function callOfficeMcpTool(
   args: unknown,
   session: SessionUser,
 ) {
-  switch (name) {
+  switch (name) {\n    case 'get_profile':
+      return {
+        id: session.role === 'admin' ? `admin:${session.userId}` : `lawyer:${session.lawyerId}`,
+        name: session.name,
+        role: session.role === 'admin' ? session.userRole : 'LAWYER',
+      };
+
     case 'get_upcoming_sessions':
       return { sessions: await readTasks(session, args, true) };
     case 'get_tasks':
