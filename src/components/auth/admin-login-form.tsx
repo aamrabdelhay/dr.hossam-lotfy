@@ -27,7 +27,8 @@ export function AdminLoginForm({ next }: { next?: string }) {
         try { sessionStorage.setItem(REMEMBER_KEY, normalizedCode); } catch { /* ignore */ }
         // Force a full navigation so the server-rendered layout reads the
         // newly-issued session cookie immediately.
-        window.location.replace(next || '/admin');
+        const safeNext = (() => { if (!next) return null; try { const u = new URL(next, window.location.origin); return u.origin === window.location.origin ? u.toString() : null; } catch { return null; } })();
+        window.location.replace(safeNext || '/admin');
         return;
       }
       const d = await res.json().catch(() => ({}));
