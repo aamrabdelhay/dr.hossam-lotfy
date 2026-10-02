@@ -13,7 +13,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function AuthPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; registered?: string }>;
+  searchParams: Promise<{ error?: string; registered?: string; next?: string }>;
 }) {
   const { error, registered, next } = await searchParams;
   const branches = await getAllBranches();
