@@ -20,7 +20,7 @@ The first tool set is:
 - `create_task`
 - `create_session`
 
-No database schema change is required by this slice.
+The MCP OAuth layer adds two SQL tables via a migration; the Prisma client does not need new generated models because the OAuth layer uses parameterized raw SQL.
 
 ## Security boundary
 
