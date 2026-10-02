@@ -6,7 +6,7 @@ import { Button, Field, Input } from '../ui';
 
 const REMEMBER_KEY = 'hl-admin-login';
 
-export function AdminLoginForm() {
+export function AdminLoginForm({ next }: { next?: string }) {
   const [code, setCode] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -27,7 +27,7 @@ export function AdminLoginForm() {
         try { sessionStorage.setItem(REMEMBER_KEY, normalizedCode); } catch { /* ignore */ }
         // Force a full navigation so the server-rendered layout reads the
         // newly-issued session cookie immediately.
-        window.location.replace('/admin');
+        window.location.replace(next || '/admin');
         return;
       }
       const d = await res.json().catch(() => ({}));
