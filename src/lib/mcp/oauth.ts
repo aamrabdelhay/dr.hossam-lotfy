@@ -36,23 +36,23 @@ export async function createAuthorizationCode(input: { clientId:string; redirect
   const session = await getCurrentSessionRecord();
   if (!session) throw new Error('login_required');
   const code = token('mcpcode');
-  await prisma.mcpOAuthCode.create({ data: { codeHash:hash(code), authSessionId:session.id, clientId:input.clientId, redirectUri:input.redirectUri, codeChallenge:input.codeChallenge, scope:input.scope.join(' '), resource:input.resource, expiresAt:new Date(Date.now()+CODE_TTL_MS) } });
+  await prisma.$executeRawUnsafe('INSERT INTO "mcp_oauth_codes" ("id","codeHash","authSessionId","clientId","redirectUri","codeChallenge","scope","resource","expiresAt","createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())', 'code_'+crypto.randomUUID(), hash(code), session.id, input.clientId, input.redirectUri, input.codeChallenge, input.scope.join(' '), input.resource, new Date(Date.now()+CODE_TTL_MS));
   return code;
 }
 export async function exchangeAuthorizationCode(input:{code:string;clientId:string;redirectUri:string;codeVerifier:string;resource:string}) {
-  const row=await prisma.mcpOAuthCode.findUnique({where:{codeHash:hash(input.code)}});
+  const rows=await prisma.$queryRawUnsafe<any[]>('SELECT * FROM "mcp_oauth_codes" WHERE "codeHash"=$1 LIMIT 1',hash(input.code)); const row=rows[0];
   if(!row || row.usedAt || row.expiresAt<new Date() || row.clientId!==input.clientId || row.redirectUri!==input.redirectUri || row.resource!==input.resource || pkceChallenge(input.codeVerifier)!==row.codeChallenge) throw new Error('invalid_grant');
-  const used=await prisma.mcpOAuthCode.updateMany({where:{id:row.id,usedAt:null},data:{usedAt:new Date()}});
+  const used=await prisma.$executeRawUnsafe('UPDATE "mcp_oauth_codes" SET "usedAt"=NOW() WHERE "id"=$1 AND "usedAt" IS NULL',row.id);
   if(used.count!==1) throw new Error('invalid_grant');
   const accessToken=token('mcpat'), refreshToken=token('mcprt');
-  await prisma.mcpOAuthToken.create({data:{accessTokenHash:hash(accessToken),refreshTokenHash:hash(refreshToken),authSessionId:row.authSessionId,clientId:row.clientId,scope:row.scope,resource:row.resource,expiresAt:new Date(Date.now()+ACCESS_TTL_MS),refreshExpiresAt:new Date(Date.now()+REFRESH_TTL_MS)}});
+  await prisma.$executeRawUnsafe('INSERT INTO "mcp_oauth_tokens" ("id","accessTokenHash","refreshTokenHash","authSessionId","clientId","scope","resource","expiresAt","refreshExpiresAt","createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())','tok_'+crypto.randomUUID(),hash(accessToken),hash(refreshToken),row.authSessionId,row.clientId,row.scope,row.resource,new Date(Date.now()+ACCESS_TTL_MS),new Date(Date.now()+REFRESH_TTL_MS));
   return {accessToken,refreshToken,scope:row.scope};
 }
 export async function refreshAccessToken(input:{refreshToken:string;clientId:string;resource:string}) {
-  const row=await prisma.mcpOAuthToken.findUnique({where:{refreshTokenHash:hash(input.refreshToken)}});
+  const rows=await prisma.$queryRawUnsafe<any[]>('SELECT * FROM "mcp_oauth_tokens" WHERE "refreshTokenHash"=$1 LIMIT 1',hash(input.refreshToken)); const row=rows[0];
   if(!row || row.revokedAt || row.refreshExpiresAt<new Date() || row.clientId!==input.clientId || row.resource!==input.resource) throw new Error('invalid_grant');
   const accessToken=token('mcpat');
-  await prisma.mcpOAuthToken.update({where:{id:row.id},data:{accessTokenHash:hash(accessToken),expiresAt:new Date(Date.now()+ACCESS_TTL_MS)}});
+  await prisma.$executeRawUnsafe('UPDATE "mcp_oauth_tokens" SET "accessTokenHash"=$2,"expiresAt"=$3 WHERE "id"=$1',row.id,hash(accessToken),new Date(Date.now()+ACCESS_TTL_MS));
   return {accessToken,scope:row.scope};
 }
 async function userFromSession(s:any):Promise<SessionUser|null>{
@@ -61,10 +61,10 @@ async function userFromSession(s:any):Promise<SessionUser|null>{
   return null;
 }
 export async function authenticateAccessToken(raw:string, requiredScope?:string){
-  const row=await prisma.mcpOAuthToken.findUnique({where:{accessTokenHash:hash(raw)},include:{authSession:true}});
-  if(!row||row.revokedAt||row.expiresAt<new Date()||row.authSession.revokedAt||row.authSession.expiresAt<new Date())return null;
+  const rows=await prisma.$queryRawUnsafe<any[]>('SELECT t.*,s."role",s."userId",s."lawyerId",s."userRole",s."revokedAt" AS "sessionRevokedAt",s."expiresAt" AS "sessionExpiresAt" FROM "mcp_oauth_tokens" t JOIN "auth_sessions" s ON s."id"=t."authSessionId" WHERE t."accessTokenHash"=$1 LIMIT 1',hash(raw)); const row=rows[0];
+  if(!row||row.revokedAt||row.expiresAt<new Date()||row.sessionRevokedAt||row.sessionExpiresAt<new Date())return null;
   const scopes=row.scope.split(' ').filter(Boolean); if(requiredScope&&!scopes.includes(requiredScope))return null;
-  const user=await userFromSession(row.authSession); if(!user)return null;
+  const user=await userFromSession(row); if(!user)return null;
   return {user,scopes};
 }
 export async function currentUser(){return getCurrentUser();}
