@@ -9,7 +9,8 @@ import { isSeniorManagement, createOfficeRequest, notifySenior } from '@/lib/off
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'التاريخ يجب أن يكون YYYY-MM-DD');
 const timeSchema = z.string().regex(/^\d{2}:\d{2}$/, 'الوقت يجب أن يكون HH:MM');
 
-export const OFFICE_MCP_TOOLS = [\n  {
+export const OFFICE_MCP_TOOLS = [
+  {
     name: 'get_profile',
     title: 'بيانات الحساب الحالي',
     description: 'يعرض هوية الحساب الذي تمت مصادقته على اتصال مساعد مكتب لوتفي.',
@@ -329,7 +330,8 @@ export async function callOfficeMcpTool(
   args: unknown,
   session: SessionUser,
 ) {
-  switch (name) {\n    case 'get_profile':
+  switch (name) {
+    case 'get_profile':
       return {
         id: session.role === 'admin' ? `admin:${session.userId}` : `lawyer:${session.lawyerId}`,
         name: session.name,
