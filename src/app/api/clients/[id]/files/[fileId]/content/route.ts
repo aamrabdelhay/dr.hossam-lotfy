@@ -46,7 +46,7 @@ export const GET = handle(async (
     id,
   );
   const file = rows[0];
-  if (!file || !isPrivateBlobUrl(file.url)) {
+  if (!file || !isPrivateBlobUrl(file.url, id)) {
     return json({ error: 'الملف غير موجود' }, { status: 404 });
   }
 

@@ -25,17 +25,30 @@ export async function requireClientFileAccess(clientId: string) {
   return client;
 }
 
-export function isPrivateBlobUrl(value: string | null | undefined): value is string {
+export function isPrivateBlobUrl(value: string | null | undefined, clientId?: string): value is string {
   if (!value) return false;
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && url.hostname.endsWith('.private.blob.vercel-storage.com');
+    if (url.protocol !== 'https:') return false;
+
+    const storeId = process.env.BLOB_STORE_ID?.trim();
+    const expectedHost = storeId
+      ? `${storeId.toLowerCase()}.private.blob.vercel-storage.com`
+      : null;
+    const isExpectedStore = expectedHost
+      ? url.hostname.toLowerCase() === expectedHost
+      : process.env.NODE_ENV !== 'production' &&
+        url.hostname.toLowerCase().endsWith('.private.blob.vercel-storage.com');
+
+    if (!isExpectedStore) return false;
+    if (clientId && !url.pathname.startsWith(`/clients/${clientId}/`)) return false;
+    return true;
   } catch {
     return false;
   }
 }
 
 export function clientFileContentUrl(clientId: string, fileId: string, storedUrl: string | null) {
-  if (!isPrivateBlobUrl(storedUrl)) return storedUrl;
+  if (!isPrivateBlobUrl(storedUrl, clientId)) return storedUrl;
   return `/api/clients/${encodeURIComponent(clientId)}/files/${encodeURIComponent(fileId)}/content`;
 }
