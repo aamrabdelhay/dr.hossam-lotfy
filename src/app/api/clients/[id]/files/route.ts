@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { ApiError, handle, json, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { officeId } from '@/lib/office-workflow';
-import { clientFileContentUrl, requireClientFileAccess } from '@/lib/client-file-access';
+import { clientFileContentUrl, isPrivateBlobUrl, requireClientFileAccess } from '@/lib/client-file-access';
 
 type ClientFileRow = {
   id: string;
@@ -16,7 +16,8 @@ type ClientFileRow = {
   created_at: Date | string;
 };
 
-const MAX_CLIENT_FILE_BYTES = 4 * 1024 * 1024;
+const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
+const MAX_SERVER_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 const FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   '.png': { mime: 'image/png', kind: 'image' },
@@ -31,11 +32,23 @@ const FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   },
 };
 
+const UPLOADED_FILE_KINDS = new Set(['image', 'pdf', 'word', 'file']);
+
 function safeFilename(name: string) {
   return name
     .replace(/[\/\\]/g, '_')
     .replace(/[^\w.\-\u0600-\u06ff ]/g, '_')
     .slice(0, 180) || 'client-file';
+}
+
+function typeFromPrivateUrl(url: string) {
+  try {
+    const pathname = new URL(url).pathname;
+    const extension = pathname.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
+    return FILE_TYPES[extension] || null;
+  } catch {
+    return null;
+  }
 }
 
 export const GET = handle(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
@@ -73,6 +86,8 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
   let text: string | null = null;
 
   if (requestType.includes('multipart/form-data')) {
+    // Compatibility for older clients. Large files must use the signed
+    // direct-upload endpoint to avoid Vercel Function body-size limits.
     const form = await req.formData();
     const entry = form.get('file');
     if (!(entry instanceof File)) throw new ApiError(400, 'اختر ملفًا أولًا');
@@ -87,8 +102,8 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
       throw new ApiError(400, 'نوع الملف لا يتوافق مع امتداده. اختر الملف الأصلي وحاول مرة أخرى.');
     }
     if (file.size <= 0) throw new ApiError(400, 'الملف فارغ');
-    if (file.size > MAX_CLIENT_FILE_BYTES) {
-      throw new ApiError(413, 'حجم الملف أكبر من الحد المسموح به. الحد الأقصى للرفع من هذه الشاشة 4 ميجابايت.');
+    if (file.size > MAX_SERVER_UPLOAD_BYTES) {
+      throw new ApiError(413, 'هذا المسار يقبل ملفات حتى 4 ميجابايت. استخدم زر الرفع داخل المنصة للملفات الأكبر.');
     }
     if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
       throw new ApiError(503, 'تخزين الملفات غير متصل. اربط مخزن Vercel Blob الخاص بالمشروع ثم أعد المحاولة.');
@@ -110,23 +125,37 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
       url = blob.url;
     } catch (error) {
       console.error('[client-file-upload] Blob upload failed:', error);
-      throw new ApiError(
-        502,
-        'تعذر رفع الملف إلى التخزين الخاص. تحقق من اتصال مخزن Vercel Blob وصلاحية الوصول ثم حاول مرة أخرى.',
-      );
+      throw new ApiError(502, 'تعذر رفع الملف إلى التخزين الخاص. تحقق من اتصال مخزن Vercel Blob ثم حاول مرة أخرى.');
     }
   } else {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') throw new ApiError(400, 'بيانات الملف غير صالحة');
-    name = String(body.name || 'ملاحظة');
+
+    name = String(body.name || 'ملاحظة').trim();
     kind = String(body.kind || 'note');
     url = body.url ? String(body.url) : null;
     text = body.text ? String(body.text) : null;
     mime = body.mimeType ? String(body.mimeType) : null;
     size = Number(body.size || 0);
+
+    if (UPLOADED_FILE_KINDS.has(kind)) {
+      if (!url || !isPrivateBlobUrl(url, id)) {
+        throw new ApiError(400, 'رابط الملف الخاص غير صالح أو لا يتبع هذا العميل.');
+      }
+      const fileType = typeFromPrivateUrl(url);
+      if (!fileType || mime !== fileType.mime) {
+        throw new ApiError(400, 'نوع الملف لا يتوافق مع بيانات التخزين. أعد رفع الملف من داخل المنصة.');
+      }
+      if (!Number.isInteger(size) || size <= 0 || size > MAX_CLIENT_FILE_BYTES) {
+        throw new ApiError(413, 'حجم الملف غير صالح أو يتجاوز الحد الأقصى البالغ 100 ميجابايت.');
+      }
+      kind = fileType.kind;
+    } else if (url?.includes('.private.blob.vercel-storage.com') && !isPrivateBlobUrl(url, id)) {
+      throw new ApiError(400, 'لا يمكن ربط ملف خاص بعميل آخر أو بمخزن مختلف.');
+    }
   }
 
-  if (!name.trim()) throw new ApiError(400, 'اسم الملف مطلوب');
+  if (!name) throw new ApiError(400, 'اسم الملف مطلوب');
 
   const fileId = officeId('clientfile');
   await prisma.$executeRawUnsafe(
@@ -135,7 +164,7 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
     fileId,
     id,
-    name.trim(),
+    name,
     kind,
     mime,
     size,

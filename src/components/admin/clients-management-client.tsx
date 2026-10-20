@@ -1,9 +1,26 @@
 'use client';
 
 import * as React from 'react';
+import { uploadPresigned } from '@vercel/blob/client';
 import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
+const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
+const CLIENT_FILE_TYPES: Record<string, { mime: string; kind: string }> = {
+  '.png': { mime: 'image/png', kind: 'image' },
+  '.jpg': { mime: 'image/jpeg', kind: 'image' },
+  '.jpeg': { mime: 'image/jpeg', kind: 'image' },
+  '.webp': { mime: 'image/webp', kind: 'image' },
+  '.pdf': { mime: 'application/pdf', kind: 'pdf' },
+  '.doc': { mime: 'application/msword', kind: 'word' },
+  '.docx': { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'word' },
+};
+function safeClientFilename(name: string) {
+  return name
+    .replace(/[\/\\]/g, '_')
+    .replace(/[^\w.\-\u0600-\u06ff ]/g, '_')
+    .slice(0, 180) || 'client-file';
+}
 const APPOINTMENT_TYPE_LABELS: Record<string,string> = { LEGAL_CONSULTATION:'استشارة قانونية', CASE_FOLLOW_UP:'متابعة ملف', OTHER:'أخرى', 'استشارة قانونية':'استشارة قانونية', 'متابعة ملف':'متابعة ملف', 'أخرى':'أخرى' };
 type Client = {
   id:string;
@@ -78,39 +95,85 @@ export function ClientsManagementClient({
   };
 
   const upload=async(id:string,mode:'file'|'link'|'note',value:any):Promise<boolean>=>{
-    if(mode==='file' && value.file instanceof File && value.file.size > 4 * 1024 * 1024){
-      alert('حجم الملف كبير جداً. الحد الأقصى للرفع من هذه الشاشة 4 ميجابايت.');
-      return false;
-    }
+    let payload:{name:string;kind:string;url?:string|null;text?:string|null;mimeType?:string|null;size?:number};
 
-    const fd=new FormData();
-    if(mode==='file')fd.append('file',value.file);
-    else{
-      fd.append('name',value.name||'ملاحظة');
-      fd.append('text',value.text||'');
-      if(value.url)fd.append('url',value.url);
-      fd.append('kind',mode);
+    if(mode==='file'){
+      const file=value.file as File|undefined;
+      if(!file){
+        alert('اختر ملفًا أولًا.');
+        return false;
+      }
+      if(file.size<=0){
+        alert('الملف فارغ.');
+        return false;
+      }
+      if(file.size>MAX_CLIENT_FILE_BYTES){
+        alert('حجم الملف أكبر من الحد المسموح به. الحد الأقصى 100 ميجابايت.');
+        return false;
+      }
+
+      const extension=file.name.toLowerCase().match(/\.[^.]+$/)?.[0]||'';
+      const fileType=CLIENT_FILE_TYPES[extension];
+      if(!fileType){
+        alert('نوع الملف غير مدعوم. استخدم صورة PNG أو JPG أو WebP أو PDF أو Word.');
+        return false;
+      }
+      if(file.type && file.type!==fileType.mime){
+        alert('نوع الملف لا يتوافق مع امتداده. اختر الملف الأصلي وحاول مرة أخرى.');
+        return false;
+      }
+
+      const pathname=`clients/${id}/${crypto.randomUUID()}-${safeClientFilename(file.name)}`;
+      let blob:{url:string};
+      try{
+        blob=await uploadPresigned(pathname,file,{
+          access:'private',
+          handleUploadUrl:`/api/clients/${id}/files/upload`,
+        });
+      }catch{
+        alert('تعذر رفع الملف إلى التخزين الخاص. تحقق من الاتصال وحاول مرة أخرى.');
+        return false;
+      }
+
+      payload={
+        name:file.name,
+        kind:fileType.kind,
+        url:blob.url,
+        mimeType:fileType.mime,
+        size:file.size,
+      };
+    }else{
+      payload={
+        name:value.name||'ملاحظة',
+        kind:mode,
+        url:value.url||null,
+        text:value.text||null,
+      };
     }
 
     try{
       const r=await fetch(`/api/clients/${id}/files`,{
         method:'POST',
-        body:mode==='file'?fd:JSON.stringify({name:value.name,kind:mode,url:value.url,text:value.text}),
-        headers:mode==='file'?undefined:{'Content-Type':'application/json'}
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),
       });
       const j=await r.json().catch(()=>({}));
       if(!r.ok){
-        alert(j.error || (r.status===413
-          ? 'حجم الملف أكبر من الحد المسموح به. الحد الأقصى 4 ميجابايت.'
-          : 'تعذر إضافة الملف. تحقق من الاتصال وإعدادات التخزين ثم حاول مرة أخرى.'));
+        alert(j.error || 'تعذر حفظ بيانات الملف في المنصة. تحقق من الصلاحيات والاتصال ثم حاول مرة أخرى.');
         return false;
       }
-      const item={id:j.id,name:value.name||value.file?.name||'ملف جديد',kind:j.kind||mode,url:j.url||value.url||'',text_content:value.text||null};
+      const item={
+        id:j.id,
+        name:payload.name||'ملف جديد',
+        kind:j.kind||payload.kind,
+        url:j.url||payload.url||'',
+        text_content:payload.text||null,
+      };
       setFiles(x=>({...x,[id]:[...(x[id]||[]),item]}));
       setOpen(id);
       return true;
     }catch{
-      alert('تعذر الاتصال بالخادم أثناء إضافة الملف. تحقق من الاتصال وحاول مرة أخرى.');
+      alert('تعذر الاتصال بالخادم أثناء حفظ الملف. حاول تحديث قائمة ملفات العميل قبل إعادة الرفع.');
       return false;
     }
   };
@@ -238,7 +301,7 @@ function ClientRow({
       {showAdd&&(
         <div className="mt-3 rounded-xl bg-ivory-50 p-3">
           <div className="grid gap-2 sm:grid-cols-3">
-            <label className="rounded-xl border bg-white p-3 text-xs font-bold">رفع ملف (حتى 4 ميجابايت)<input type="file" accept="image/*,.pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0]||null)} className="mt-2 w-full text-[10px]"/></label>
+            <label className="rounded-xl border bg-white p-3 text-xs font-bold">رفع ملف (حتى 100 ميجابايت)<input type="file" accept="image/png,image/jpeg,image/webp,.pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0]||null)} className="mt-2 w-full text-[10px]"/></label>
             <label className="rounded-xl border bg-white p-3 text-xs font-bold">رابط<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" className="mt-2 w-full rounded-lg border p-2 text-xs"/></label>
             <label className="rounded-xl border bg-white p-3 text-xs font-bold">ملاحظة<textarea value={text} onChange={e=>setText(e.target.value)} className="mt-2 w-full rounded-lg border p-2 text-xs" placeholder="نص أو ملاحظة"/></label>
           </div>
