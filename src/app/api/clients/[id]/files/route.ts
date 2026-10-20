@@ -148,6 +148,9 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
   return json({
     ok: true,
     id: fileId,
+    kind,
+    mimeType: mime,
+    size,
     url: clientFileContentUrl(id, fileId, url),
   });
 });

@@ -63,10 +63,18 @@ export function ClientsManagementClient({
       setOpen(open===id?null:id);
       return;
     }
-    const r=await fetch(`/api/clients/${id}/files`);
-    const j=await r.json();
-    setFiles(x=>({...x,[id]:j.files||[]}));
-    setOpen(id);
+    try{
+      const r=await fetch(`/api/clients/${id}/files`);
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){
+        alert(j.error || 'تعذر تحميل ملفات العميل. تحقق من الصلاحيات والاتصال وحاول مرة أخرى.');
+        return;
+      }
+      setFiles(x=>({...x,[id]:j.files||[]}));
+      setOpen(id);
+    }catch{
+      alert('تعذر الاتصال بالخادم لتحميل ملفات العميل. تحقق من الاتصال وحاول مرة أخرى.');
+    }
   };
 
   const upload=async(id:string,mode:'file'|'link'|'note',value:any):Promise<boolean>=>{
@@ -97,7 +105,7 @@ export function ClientsManagementClient({
           : 'تعذر إضافة الملف. تحقق من الاتصال وإعدادات التخزين ثم حاول مرة أخرى.'));
         return false;
       }
-      const item={id:j.id,name:value.name||value.file?.name||'ملف جديد',kind:mode,url:j.url||value.url||'',text_content:value.text||null};
+      const item={id:j.id,name:value.name||value.file?.name||'ملف جديد',kind:j.kind||mode,url:j.url||value.url||'',text_content:value.text||null};
       setFiles(x=>({...x,[id]:[...(x[id]||[]),item]}));
       setOpen(id);
       return true;
