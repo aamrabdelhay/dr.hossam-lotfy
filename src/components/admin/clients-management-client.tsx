@@ -15,7 +15,7 @@ const CLIENT_FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   '.doc': { mime: 'application/msword', kind: 'word' },
   '.docx': { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'word' },
 };
-type FileUploadProgress = (stage: 'uploading' | 'saving', percentage?: number) => void;
+type FileUploadProgress = (stage: 'preparing' | 'uploading' | 'saving', percentage?: number) => void;
 
 function safeClientFilename(name: string) {
   return name
@@ -127,16 +127,45 @@ export function ClientsManagementClient({
 
       const pathname=`clients/${id}/${crypto.randomUUID()}-${safeClientFilename(file.name)}`;
       let blob:{url:string};
-      onProgress?.('uploading',0);
+      onProgress?.('preparing',0);
+
+      // Bound periods with no transfer progress so a stalled presign/auth request
+      // cannot leave the upload dialog spinning forever.
+      const uploadController = new AbortController();
+      let uploadIdleTimer: ReturnType<typeof setTimeout> | undefined;
+      let lastUploadPercentage = -1;
+      let transferStarted = false;
+      const resetUploadIdleTimer = () => {
+        if (uploadIdleTimer) clearTimeout(uploadIdleTimer);
+        uploadIdleTimer = setTimeout(() => uploadController.abort(), 45_000);
+      };
+      resetUploadIdleTimer();
+
       try{
         blob=await uploadPresigned(pathname,file,{
           access:'private',
           handleUploadUrl:`/api/clients/${id}/files/upload`,
-          onUploadProgress:({percentage})=>onProgress?.('uploading',Math.round(percentage)),
+          abortSignal:uploadController.signal,
+          onUploadProgress:({percentage})=>{
+            transferStarted=true;
+            const roundedPercentage=Math.round(percentage);
+            onProgress?.('uploading',roundedPercentage);
+            if(roundedPercentage>lastUploadPercentage){
+              lastUploadPercentage=roundedPercentage;
+              resetUploadIdleTimer();
+            }
+          },
         });
-      }catch{
-        alert('تعذر رفع الملف إلى التخزين الخاص. تحقق من الاتصال وحاول مرة أخرى.');
-        return false;
+      }catch(error){
+        console.error('[client-file-upload] Upload failed:',error);
+        if(uploadController.signal.aborted){
+          throw new Error(transferStarted
+            ? 'توقف نقل الملف لأكثر من 45 ثانية دون تقدم. تحقق من الاتصال ثم أعد المحاولة.'
+            : 'لم يستجب خادم تجهيز رابط الرفع خلال 45 ثانية. أعد تحميل الصفحة وسجّل الدخول مجددًا ثم حاول مرة أخرى.');
+        }
+        throw new Error('تعذر تجهيز رابط الرفع أو الاتصال بالتخزين الخاص. تحقق من الاتصال والصلاحيات وحاول مرة أخرى.');
+      }finally{
+        if(uploadIdleTimer) clearTimeout(uploadIdleTimer);
       }
 
       onProgress?.('saving',100);
@@ -252,7 +281,7 @@ function ClientRow({
 
   const previewUrl=file?URL.createObjectURL(file):'';
   const [isSubmittingUpload,setIsSubmittingUpload]=React.useState(false);
-  const [uploadProgress,setUploadProgress]=React.useState<{stage:'uploading'|'saving';percentage:number}|null>(null);
+  const [uploadProgress,setUploadProgress]=React.useState<{stage:'preparing'|'uploading'|'saving';percentage:number}|null>(null);
   const [uploadError,setUploadError]=React.useState('');
 
   const confirmUpload=async()=>{
@@ -264,7 +293,7 @@ function ClientRow({
 
     setIsSubmittingUpload(true);
     setUploadError('');
-    setUploadProgress({stage:file?'uploading':'saving',percentage:0});
+    setUploadProgress({stage:file?'preparing':'saving',percentage:0});
     const updateProgress:FileUploadProgress=(stage,percentage)=>setUploadProgress({
       stage,
       percentage:Math.max(0,Math.min(100,percentage??0)),
@@ -360,7 +389,7 @@ function ClientRow({
           {uploadProgress&&(
             <div className="mt-3 rounded-lg border border-navy-100 bg-white p-3" role="status" aria-live="polite">
               <div className="text-xs font-bold text-navy-700">
-                {uploadProgress.stage==='uploading'? `جارٍ رفع الملف… ${uploadProgress.percentage}%` : 'تم رفع الملف، جارٍ حفظ بياناته…'}
+                {uploadProgress.stage==='preparing'?'جارٍ تجهيز رابط الرفع الآمن…':uploadProgress.stage==='uploading'? `جارٍ رفع الملف… ${uploadProgress.percentage}%` : 'تم رفع الملف، جارٍ حفظ بياناته…'}
               </div>
               {uploadProgress.stage==='uploading'&&(
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-navy-100">
@@ -372,7 +401,7 @@ function ClientRow({
           {uploadError&&<p role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs font-bold text-red-700">{uploadError}</p>}
           <button type="button" disabled={isSubmittingUpload} onClick={()=>void confirmUpload()} aria-busy={isSubmittingUpload} className="mt-2 rounded-lg bg-navy-950 px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">
             {isSubmittingUpload
-              ? uploadProgress?.stage==='uploading'? `جارٍ رفع الملف… ${uploadProgress.percentage}%` : 'جارٍ حفظ الملف…'
+              ? uploadProgress?.stage==='preparing' ? 'جارٍ تجهيز رابط الرفع…' : uploadProgress?.stage==='uploading' ? `جارٍ رفع الملف… ${uploadProgress.percentage}%` : 'جارٍ حفظ الملف…'
               : 'تأكيد الرفع'}
           </button>
         </div>
