@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { put } from '@vercel/blob';
 import { ApiError } from './api';
+import { lawyerPhotoReference } from './lawyer-photo';
 
 const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const EXT: Record<string, string> = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' };
@@ -44,18 +45,28 @@ export async function saveUpload(buffer: Buffer, contentType: string): Promise<s
   const ext = EXT[contentType];
   const file = `${id}${ext}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(file, buffer, {
-      access: 'public',
-      contentType,
-    });
-    return blob.url;
+  // Lawyer profile images belong in the private store. The application serves
+  // them through a guarded route only after a lawyer profile references them.
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
+    try {
+      const blob = await put(`lawyer-photos/${file}`, buffer, {
+        access: 'private',
+        contentType,
+        addRandomSuffix: false,
+      });
+      return lawyerPhotoReference(blob.url);
+    } catch (error) {
+      console.error('[lawyer-photo-upload] Blob upload failed:', error);
+      throw new ApiError(
+        502,
+        'تعذر رفع الصورة إلى التخزين الخاص. تحقق من اتصال Vercel Blob ثم حاول مرة أخرى.',
+      );
+    }
   }
 
-  // Vercel's filesystem is ephemeral. Never silently claim persistence in a
-  // production deployment when Blob storage has not been configured.
+  // Local development only; never claim persistence on Vercel's ephemeral filesystem.
   if (process.env.NODE_ENV === 'production') {
-    throw new ApiError(503, 'رفع الصور غير مفعّل في الإنتاج: أضف BLOB_READ_WRITE_TOKEN إلى Vercel.');
+    throw new ApiError(503, 'تخزين الصور غير متصل. اربط مخزن Vercel Blob الخاص بالمشروع ثم أعد المحاولة.');
   }
 
   await fs.mkdir(dir(), { recursive: true });

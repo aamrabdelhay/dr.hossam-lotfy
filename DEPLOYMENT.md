@@ -1,7 +1,7 @@
 # دليل نشر الإنتاج — DR. HOSSAM LOTFY LAW FIRM
 
 المنصة: **Next.js 15.5 + Prisma 7 + PostgreSQL (Neon) على Vercel**.
-هذا الملف هو المرجع الوحيد لخطوات النشر — نفّذها بالترتيب.
+هذا الملف هو المرجع الوحيد لخطوات النشر — نفّذها بالترتيب. يجب أن يبقى مخزن مستندات العملاء من نوع Private؛ لا تحوّله إلى Public لإصلاح الرفع.
 
 ---
 
@@ -28,7 +28,7 @@
 | `ADMIN_NAME` | `DR. Hossam Lotfy` | للـ seed فقط |
 | `ADMIN_EMAIL` | `admin@loutfilawfirm.net` | للـ seed فقط |
 | `ADMIN_PASSWORD` | كلمة مرور قوية | للـ seed فقط |
-| `BLOB_READ_WRITE_TOKEN` | من Vercel Blob Store | اختياري (رفع الصور) |
+| `BLOB_READ_WRITE_TOKEN` | توكن قراءة/كتابة لمخزن Vercel Blob الخاص، ما لم يكن اتصال OIDC مفعّلاً | مطلوب إلا عند استخدام OIDC |\n| `BLOB_STORE_ID` | يُضاف عند ربط مخزن Blob بالمشروع، ويُستخدم للتحقق من مصدر الملفات | مطلوب مع OIDC |
 | `SEED_ON_BUILD` | `1` لمرة واحدة عند الحاجة إلى زرع الحسابات ودليل الأماكن | اختياري |
 | `SKIP_DB_MIGRATE` | `1` فقط عند تنفيذ migrations يدوياً في حالة طوارئ | اختياري وخطر |
 
