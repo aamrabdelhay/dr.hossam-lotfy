@@ -69,7 +69,12 @@ export function ClientsManagementClient({
     setOpen(id);
   };
 
-  const upload=async(id:string,mode:'file'|'link'|'note',value:any)=>{
+  const upload=async(id:string,mode:'file'|'link'|'note',value:any):Promise<boolean>=>{
+    if(mode==='file' && value.file instanceof File && value.file.size > 4 * 1024 * 1024){
+      alert('حجم الملف كبير جداً. الحد الأقصى للرفع من هذه الشاشة 4 ميجابايت.');
+      return false;
+    }
+
     const fd=new FormData();
     if(mode==='file')fd.append('file',value.file);
     else{
@@ -78,20 +83,28 @@ export function ClientsManagementClient({
       if(value.url)fd.append('url',value.url);
       fd.append('kind',mode);
     }
-    const r=await fetch(`/api/clients/${id}/files`,{
-      method:'POST',
-      body:mode==='file'?fd:JSON.stringify({name:value.name,kind:mode,url:value.url,text:value.text}),
-      headers:mode==='file'?undefined:{'Content-Type':'application/json'}
-    });
-    if(r.ok){
-      const j=await r.json();
+
+    try{
+      const r=await fetch(`/api/clients/${id}/files`,{
+        method:'POST',
+        body:mode==='file'?fd:JSON.stringify({name:value.name,kind:mode,url:value.url,text:value.text}),
+        headers:mode==='file'?undefined:{'Content-Type':'application/json'}
+      });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){
+        alert(j.error || (r.status===413
+          ? 'حجم الملف أكبر من الحد المسموح به. الحد الأقصى 4 ميجابايت.'
+          : 'تعذر إضافة الملف. تحقق من الاتصال وإعدادات التخزين ثم حاول مرة أخرى.'));
+        return false;
+      }
       const item={id:j.id,name:value.name||value.file?.name||'ملف جديد',kind:mode,url:j.url||value.url||'',text_content:value.text||null};
       setFiles(x=>({...x,[id]:[...(x[id]||[]),item]}));
       setOpen(id);
       return true;
+    }catch{
+      alert('تعذر الاتصال بالخادم أثناء إضافة الملف. تحقق من الاتصال وحاول مرة أخرى.');
+      return false;
     }
-    alert((await r.json().catch(()=>({}))).error||'تعذر إضافة الملف');
-    return false;
   };
 
   const appointmentType = (c: Client) => c.nextAppointment ? (APPOINTMENT_TYPE_LABELS[c.nextAppointment.type] || c.nextAppointment.type) : 'OTHER';
@@ -217,7 +230,7 @@ function ClientRow({
       {showAdd&&(
         <div className="mt-3 rounded-xl bg-ivory-50 p-3">
           <div className="grid gap-2 sm:grid-cols-3">
-            <label className="rounded-xl border bg-white p-3 text-xs font-bold">رفع ملف<input type="file" accept="image/*,.pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0]||null)} className="mt-2 w-full text-[10px]"/></label>
+            <label className="rounded-xl border bg-white p-3 text-xs font-bold">رفع ملف (حتى 4 ميجابايت)<input type="file" accept="image/*,.pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0]||null)} className="mt-2 w-full text-[10px]"/></label>
             <label className="rounded-xl border bg-white p-3 text-xs font-bold">رابط<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" className="mt-2 w-full rounded-lg border p-2 text-xs"/></label>
             <label className="rounded-xl border bg-white p-3 text-xs font-bold">ملاحظة<textarea value={text} onChange={e=>setText(e.target.value)} className="mt-2 w-full rounded-lg border p-2 text-xs" placeholder="نص أو ملاحظة"/></label>
           </div>

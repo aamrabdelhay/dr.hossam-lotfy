@@ -19,7 +19,11 @@ export async function requireClientFileAccess(clientId: string) {
 
   const scope = await getBranchScope(session);
   const clientBranchId = client.branch_id || 'branch_main';
-  if (!scope.allBranches && scope.officeManager && !scope.officeManagerBranchIds.includes(clientBranchId)) {
+  if (
+    !scope.allBranches &&
+    (scope.officeManager || scope.financeManager) &&
+    !scope.branchIds.includes(clientBranchId)
+  ) {
     throw new ApiError(403, 'ليس لديك صلاحية الوصول إلى ملفات هذا العميل');
   }
   return client;
@@ -31,12 +35,10 @@ export function isPrivateBlobUrl(value: string | null | undefined, clientId?: st
     const url = new URL(value);
     if (url.protocol !== 'https:') return false;
 
-    const storeId = process.env.BLOB_STORE_ID?.trim();
-    const expectedHost = storeId
-      ? `${storeId.toLowerCase()}.private.blob.vercel-storage.com`
-      : null;
-    const isExpectedStore = expectedHost
-      ? url.hostname.toLowerCase() === expectedHost
+    const storeId = process.env.BLOB_STORE_ID?.trim().toLowerCase();
+    const storeIds = storeId ? new Set([storeId, storeId.replace(/^store_/, '')]) : new Set<string>();
+    const isExpectedStore = storeIds.size
+      ? Array.from(storeIds).some((id) => id && url.hostname.toLowerCase() === `${id}.private.blob.vercel-storage.com`)
       : process.env.NODE_ENV !== 'production' &&
         url.hostname.toLowerCase().endsWith('.private.blob.vercel-storage.com');
 
@@ -49,6 +51,10 @@ export function isPrivateBlobUrl(value: string | null | undefined, clientId?: st
 }
 
 export function clientFileContentUrl(clientId: string, fileId: string, storedUrl: string | null) {
-  if (!isPrivateBlobUrl(storedUrl, clientId)) return storedUrl;
-  return `/api/clients/${encodeURIComponent(clientId)}/files/${encodeURIComponent(fileId)}/content`;
+  if (!storedUrl) return storedUrl;
+  if (storedUrl.includes('.private.blob.vercel-storage.com')) {
+    if (!isPrivateBlobUrl(storedUrl, clientId)) return null;
+    return `/api/clients/${encodeURIComponent(clientId)}/files/${encodeURIComponent(fileId)}/content`;
+  }
+  return storedUrl;
 }

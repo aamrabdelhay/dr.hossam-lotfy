@@ -585,28 +585,41 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
     e.target.value = '';
     const target = photoTargetRef.current;
     if (!file || !target) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toastError('حجم الصورة كبير جداً؛ الحد الأقصى 4 ميجابايت.');
+      return;
+    }
+
     const form = new FormData();
     form.append('file', file);
     setBusy(true);
-    const up = await fetch('/api/upload', { method: 'POST', body: form });
-    if (!up.ok) {
-      const d = await up.json().catch(() => ({}));
-      toastError(d.error ?? 'تعذر رفع الصورة.');
+    try {
+      const up = await fetch('/api/upload', { method: 'POST', body: form });
+      const uploaded = await up.json().catch(() => ({}));
+      if (!up.ok || typeof uploaded.url !== 'string') {
+        toastError(uploaded.error ?? 'تعذر رفع الصورة.');
+        return;
+      }
+
+      const res = await fetch(`/api/lawyers/${target.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profilePhotoUrl: uploaded.url }),
+      });
+      const saved = await res.json().catch(() => ({}));
+      if (res.ok && saved.requiresApproval) {
+        toastSuccess('تم إرسال طلب تحديث الصورة للإدارة العليا.');
+        router.refresh();
+      } else if (res.ok) {
+        toastSuccess(`تم تحديث صورة ${target.name} ✓`);
+        router.refresh();
+      } else {
+        toastError(saved.error ?? 'تعذر حفظ الصورة.');
+      }
+    } catch {
+      toastError('تعذر الاتصال بالخادم أثناء رفع الصورة. تحقق من الاتصال وحاول مرة أخرى.');
+    } finally {
       setBusy(false);
-      return;
-    }
-    const d = await up.json();
-    const res = await fetch(`/api/lawyers/${target.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profilePhotoUrl: d.url }),
-    });
-    setBusy(false);
-    if (res.ok) {
-      toastSuccess(`تم تحديث صورة ${target.name} ✓`);
-      router.refresh();
-    } else {
-      toastError('تعذر حفظ الصورة.');
     }
   };
 

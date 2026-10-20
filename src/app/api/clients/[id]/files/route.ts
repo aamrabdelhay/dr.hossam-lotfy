@@ -16,6 +16,8 @@ type ClientFileRow = {
   created_at: Date | string;
 };
 
+const MAX_CLIENT_FILE_BYTES = 4 * 1024 * 1024;
+
 const FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   '.png': { mime: 'image/png', kind: 'image' },
   '.jpg': { mime: 'image/jpeg', kind: 'image' },
@@ -85,8 +87,11 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
       throw new ApiError(400, 'نوع الملف لا يتوافق مع امتداده. اختر الملف الأصلي وحاول مرة أخرى.');
     }
     if (file.size <= 0) throw new ApiError(400, 'الملف فارغ');
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new ApiError(503, 'تخزين الملفات غير مضبوط على Vercel (BLOB_READ_WRITE_TOKEN)');
+    if (file.size > MAX_CLIENT_FILE_BYTES) {
+      throw new ApiError(413, 'حجم الملف أكبر من الحد المسموح به. الحد الأقصى للرفع من هذه الشاشة 4 ميجابايت.');
+    }
+    if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
+      throw new ApiError(503, 'تخزين الملفات غير متصل. اربط مخزن Vercel Blob الخاص بالمشروع ثم أعد المحاولة.');
     }
 
     name = String(form.get('name') || file.name).trim();
@@ -96,12 +101,20 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
     size = file.size;
 
     const pathname = `clients/${id}/${crypto.randomUUID()}-${safeFilename(file.name)}`;
-    const blob = await put(pathname, file, {
-      access: 'private',
-      contentType: fileType.mime,
-      addRandomSuffix: false,
-    });
-    url = blob.url;
+    try {
+      const blob = await put(pathname, file, {
+        access: 'private',
+        contentType: fileType.mime,
+        addRandomSuffix: false,
+      });
+      url = blob.url;
+    } catch (error) {
+      console.error('[client-file-upload] Blob upload failed:', error);
+      throw new ApiError(
+        502,
+        'تعذر رفع الملف إلى التخزين الخاص. تحقق من اتصال مخزن Vercel Blob وصلاحية الوصول ثم حاول مرة أخرى.',
+      );
+    }
   } else {
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') throw new ApiError(400, 'بيانات الملف غير صالحة');
