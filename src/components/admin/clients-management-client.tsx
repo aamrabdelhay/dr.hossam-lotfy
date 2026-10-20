@@ -244,7 +244,7 @@ function ClientRow({
             <div key={f.id} className="flex items-center justify-between rounded-lg bg-ivory-50 px-3 py-2 text-xs">
               <span className="font-bold">{f.name}</span>
               <div className="flex gap-2">
-                {f.url&&<a href={f.url} target="_blank" rel="noreferrer" className="text-navy-700"><Download size={13}/></a>}
+                {f.url&&<a href={f.url?.startsWith('/api/clients/') ? `${f.url}?download=1` : f.url} target="_blank" rel="noreferrer" className="text-navy-700"><Download size={13}/></a>}
                 <button onClick={()=>onPreview({name:f.name,url:f.url,kind:f.kind,text:f.text_content})} className="text-gold-700"><Eye size={13}/></button>
               </div>
             </div>
