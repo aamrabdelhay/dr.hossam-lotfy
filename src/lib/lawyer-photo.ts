@@ -43,9 +43,12 @@ export function isValidLawyerPhotoReference(value: string): boolean {
     const url = new URL(value, 'https://local.invalid');
     if (url.origin !== 'https://local.invalid' || url.pathname !== PHOTO_REFERENCE_PATH) return false;
     const source = url.searchParams.get('source');
-    return !!source &&
-      value === lawyerPhotoReference(source) &&
-      isPrivateLawyerPhotoBlobUrl(source);
+    if (!source || !isPrivateLawyerPhotoBlobUrl(source)) return false;
+    try {
+      return value === lawyerPhotoReference(source);
+    } catch {
+      return false;
+    }
   } catch {
     return false;
   }

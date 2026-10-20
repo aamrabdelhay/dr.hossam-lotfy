@@ -48,12 +48,20 @@ export async function saveUpload(buffer: Buffer, contentType: string): Promise<s
   // Lawyer profile images belong in the private store. The application serves
   // them through a guarded route only after a lawyer profile references them.
   if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
-    const blob = await put(`lawyer-photos/${file}`, buffer, {
-      access: 'private',
-      contentType,
-      addRandomSuffix: false,
-    });
-    return lawyerPhotoReference(blob.url);
+    try {
+      const blob = await put(`lawyer-photos/${file}`, buffer, {
+        access: 'private',
+        contentType,
+        addRandomSuffix: false,
+      });
+      return lawyerPhotoReference(blob.url);
+    } catch (error) {
+      console.error('[lawyer-photo-upload] Blob upload failed:', error);
+      throw new ApiError(
+        502,
+        'تعذر رفع الصورة إلى التخزين الخاص. تحقق من اتصال Vercel Blob ثم حاول مرة أخرى.',
+      );
+    }
   }
 
   // Local development only; never claim persistence on Vercel's ephemeral filesystem.
