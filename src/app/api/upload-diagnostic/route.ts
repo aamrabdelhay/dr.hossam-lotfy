@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   const pathname = `clients/diagnostic/${randomUUID()}-blob-check.txt`;
   const validUntil = Date.now() + 2 * 60 * 1000;
   try {
+    const started = Date.now();
     const response = await handleUploadPresigned({
       body: {
         type: 'blob.generate-presigned-url',
@@ -36,14 +37,13 @@ export async function POST(request: Request) {
         };
       },
     });
-    const result = await response.json() as { type?: string; presignedUrlPayload?: Record<string, unknown> };
     return Response.json({
-      ok: response.ok,
-      status: response.status,
-      type: result.type,
-      hasPresignedUrlPayload: Boolean(result.presignedUrlPayload),
-      payloadKeys: result.presignedUrlPayload ? Object.keys(result.presignedUrlPayload) : [],
-    }, { status: response.status });
+      ok: Boolean(response.presignedUrlPayload),
+      durationMs: Date.now() - started,
+      type: response.type,
+      hasPresignedUrlPayload: Boolean(response.presignedUrlPayload),
+      payloadKeys: response.presignedUrlPayload ? Object.keys(response.presignedUrlPayload) : [],
+    });
   } catch (error) {
     return Response.json({
       ok: false,
