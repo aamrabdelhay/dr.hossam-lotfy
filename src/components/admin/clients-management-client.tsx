@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { uploadPresigned } from '@vercel/blob/client';
 import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
@@ -16,6 +15,105 @@ const CLIENT_FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   '.docx': { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'word' },
 };
 type FileUploadProgress = (stage: 'preparing' | 'uploading' | 'saving', percentage?: number) => void;
+
+function uploadFileToPrivateBlob(
+  file: File,
+  contentType: string,
+  presignedUrl: string,
+  onProgress?: FileUploadProgress,
+): Promise<{url:string}> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    let settled = false;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    let lastLoaded = 0;
+    let idleTimedOut = false;
+
+    const cleanup = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      xhr.upload.onprogress = null;
+      xhr.onload = null;
+      xhr.onerror = null;
+      xhr.onabort = null;
+      xhr.ontimeout = null;
+    };
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        idleTimedOut = true;
+        xhr.abort();
+        fail(new Error('توقف نقل الملف لأكثر من 45 ثانية دون أي تقدم. تحقق من الاتصال ثم أعد المحاولة.'));
+      }, 45_000);
+    };
+
+    try {
+      xhr.open('PUT', presignedUrl, true);
+      xhr.setRequestHeader('Content-Type', contentType);
+      xhr.upload.onprogress = (event) => {
+        const total = event.lengthComputable && event.total > 0 ? event.total : file.size;
+        const loaded = Math.min(event.loaded, total);
+        if (loaded > lastLoaded) {
+          lastLoaded = loaded;
+          resetIdleTimer();
+        }
+        const percentage = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+        onProgress?.('uploading', percentage);
+      };
+      xhr.onload = () => {
+        if (xhr.status < 200 || xhr.status >= 300) {
+          let message = '';
+          try {
+            const parsed = JSON.parse(xhr.responseText);
+            message = typeof parsed?.error === 'string'
+              ? parsed.error
+              : typeof parsed?.error?.message === 'string'
+                ? parsed.error.message
+                : '';
+          } catch {
+            message = '';
+          }
+          fail(new Error(message
+            ? `رفض مخزن الملفات عملية الرفع (HTTP ${xhr.status}): ${message}`
+            : `رفض مخزن الملفات عملية الرفع (HTTP ${xhr.status}).`));
+          return;
+        }
+        try {
+          const result = JSON.parse(xhr.responseText);
+          if (typeof result?.url !== 'string' || !result.url) {
+            fail(new Error('تم إرسال الملف لكن لم يرجع مخزن الملفات رابطًا صالحًا.'));
+            return;
+          }
+          onProgress?.('uploading', 100);
+          settled = true;
+          cleanup();
+          resolve({url:result.url});
+        } catch {
+          fail(new Error('استجاب مخزن الملفات ببيانات غير مفهومة بعد الرفع.'));
+        }
+      };
+      xhr.onerror = () => fail(new Error('تعذر الاتصال بخدمة تخزين الملفات. تحقق من اتصال الإنترنت أو قيود الشبكة ثم أعد المحاولة.'));
+      xhr.ontimeout = () => fail(new Error('انتهت مهلة رفع الملف. حاول مرة أخرى باستخدام اتصال أكثر استقرارًا.'));
+      xhr.onabort = () => {
+        if (!settled && idleTimedOut) {
+          fail(new Error('توقف نقل الملف لأكثر من 45 ثانية دون أي تقدم. تحقق من الاتصال ثم أعد المحاولة.'));
+        } else if (!settled) {
+          fail(new Error('تم إيقاف رفع الملف قبل اكتماله.'));
+        }
+      };
+      resetIdleTimer();
+      xhr.send(file);
+    } catch (error) {
+      fail(error instanceof Error ? error : new Error('تعذر بدء نقل الملف إلى التخزين الخاص.'));
+    }
+  });
+}
+
 
 function safeClientFilename(name: string) {
   return name
@@ -126,46 +224,39 @@ export function ClientsManagementClient({
       }
 
       const pathname=`clients/${id}/${crypto.randomUUID()}-${safeClientFilename(file.name)}`;
-      let blob:{url:string};
       onProgress?.('preparing',0);
 
-      // Bound periods with no transfer progress so a stalled presign/auth request
-      // cannot leave the upload dialog spinning forever.
-      const uploadController = new AbortController();
-      let uploadIdleTimer: ReturnType<typeof setTimeout> | undefined;
-      let lastUploadPercentage = -1;
-      let transferStarted = false;
-      const resetUploadIdleTimer = () => {
-        if (uploadIdleTimer) clearTimeout(uploadIdleTimer);
-        uploadIdleTimer = setTimeout(() => uploadController.abort(), 45_000);
-      };
-      resetUploadIdleTimer();
-
+      let presignedUrl = '';
       try{
-        blob=await uploadPresigned(pathname,file,{
-          access:'private',
-          handleUploadUrl:`/api/clients/${id}/files/upload`,
-          abortSignal:uploadController.signal,
-          onUploadProgress:({percentage})=>{
-            transferStarted=true;
-            const roundedPercentage=Math.round(percentage);
-            onProgress?.('uploading',roundedPercentage);
-            if(roundedPercentage>lastUploadPercentage){
-              lastUploadPercentage=roundedPercentage;
-              resetUploadIdleTimer();
-            }
-          },
+        const prepareResponse=await fetch(`/api/clients/${id}/files/upload`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({pathname,contentType:fileType.mime,size:file.size}),
+          signal:AbortSignal.timeout(20_000),
         });
-      }catch(error){
-        console.error('[client-file-upload] Upload failed:',error);
-        if(uploadController.signal.aborted){
-          throw new Error(transferStarted
-            ? 'توقف نقل الملف لأكثر من 45 ثانية دون تقدم. تحقق من الاتصال ثم أعد المحاولة.'
-            : 'لم يستجب خادم تجهيز رابط الرفع خلال 45 ثانية. أعد تحميل الصفحة وسجّل الدخول مجددًا ثم حاول مرة أخرى.');
+        const prepared=await prepareResponse.json().catch(()=>({}));
+        if(!prepareResponse.ok){
+          throw new Error(typeof prepared.error==='string' ? prepared.error : `تعذر تجهيز رابط الرفع (HTTP ${prepareResponse.status}).`);
         }
-        throw new Error('تعذر تجهيز رابط الرفع أو الاتصال بالتخزين الخاص. تحقق من الاتصال والصلاحيات وحاول مرة أخرى.');
-      }finally{
-        if(uploadIdleTimer) clearTimeout(uploadIdleTimer);
+        if(typeof prepared.presignedUrl!=='string' || !prepared.presignedUrl){
+          throw new Error('لم يرجع الخادم رابط رفع صالحًا. أعد تحميل الصفحة وحاول مرة أخرى.');
+        }
+        presignedUrl=prepared.presignedUrl;
+      }catch(error){
+        console.error('[client-file-upload] Presign request failed:',error);
+        if(error instanceof DOMException && error.name==='TimeoutError'){
+          throw new Error('استغرق تجهيز رابط الرفع أكثر من 20 ثانية. أعد المحاولة.');
+        }
+        throw error instanceof Error ? error : new Error('تعذر تجهيز رابط الرفع الخاص.');
+      }
+
+      onProgress?.('uploading',0);
+      let blob:{url:string};
+      try{
+        blob=await uploadFileToPrivateBlob(file,fileType.mime,presignedUrl,onProgress);
+      }catch(error){
+        console.error('[client-file-upload] Direct private Blob PUT failed:',error);
+        throw error instanceof Error ? error : new Error('فشل نقل الملف إلى مخزن الملفات الخاص.');
       }
 
       onProgress?.('saving',100);
