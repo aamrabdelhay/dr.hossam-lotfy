@@ -1,6 +1,6 @@
 import { issueSignedToken } from '@vercel/blob';
 import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/blob/client';
-import { ApiError, handle, json, user } from '@/lib/api';
+import { ApiError, handle, json } from '@/lib/api';
 import { requireClientFileAccess } from '@/lib/client-file-access';
 
 const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
@@ -18,6 +18,7 @@ const FILE_TYPES: Record<string, string> = {
 const ALLOWED_CONTENT_TYPES = Object.values(FILE_TYPES);
 
 export const POST = handle(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
+  const startedAt = Date.now();
   const { id } = await params;
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') {
@@ -31,9 +32,11 @@ export const POST = handle(async (request: Request, { params }: { params: Promis
       getSignedToken: async (pathname) => {
         // Authentication is checked when issuing an upload token. The completion
         // webhook is handled by handleUploadPresigned using the Blob webhook key.
-        const session = await user();
-        if (!session) throw new ApiError(401, 'يجب تسجيل الدخول لرفع ملف');
+        // This helper performs both session and branch-scoped permission checks.
+        // Avoid an extra session lookup before invoking it.
+        const accessCheckStartedAt = Date.now();
         await requireClientFileAccess(id);
+        console.info('[client-file-presigned-upload] Access check completed', { durationMs: Date.now() - accessCheckStartedAt });
 
         const prefix = `clients/${id}/`;
         if (
@@ -59,13 +62,16 @@ export const POST = handle(async (request: Request, { params }: { params: Promis
         }
 
         const validUntil = Date.now() + 10 * 60 * 1000;
+        const tokenStartedAt = Date.now();
         const token = await issueSignedToken({
           pathname,
           operations: ['put'],
           allowedContentTypes: [contentType],
           maximumSizeInBytes: MAX_CLIENT_FILE_BYTES,
           validUntil,
+          abortSignal: AbortSignal.timeout(15_000),
         });
+        console.info('[client-file-presigned-upload] Signed URL token issued', { durationMs: Date.now() - tokenStartedAt });
 
         return {
           token,
@@ -80,6 +86,7 @@ export const POST = handle(async (request: Request, { params }: { params: Promis
       },
     });
 
+    console.info('[client-file-presigned-upload] Presigned URL prepared', { durationMs: Date.now() - startedAt });
     return json(response);
   } catch (error) {
     if (error instanceof ApiError) throw error;
