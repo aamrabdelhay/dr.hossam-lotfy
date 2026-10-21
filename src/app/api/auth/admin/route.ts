@@ -1,25 +1,32 @@
 import { NextResponse } from 'next/server';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { createSessionCookie } from '@/lib/auth';
 import { handle, json, readJson } from '@/lib/api';
 
-/** The office administration access code. Only this exact value is accepted. */
-const ADMIN_CODE = 'hl';
 const FALLBACK_ADMIN_EMAIL = 'admin@hossam-lotfy.local';
 
-const loginSchema = z.object({ code: z.string().min(1).max(64) });
+const loginSchema = z.object({ code: z.string().min(1).max(128) });
+
+function matchesAdminCode(supplied: string, configured: string): boolean {
+  const suppliedDigest = createHash('sha256').update(supplied, 'utf8').digest();
+  const configuredDigest = createHash('sha256').update(configured, 'utf8').digest();
+  return timingSafeEqual(suppliedDigest, configuredDigest);
+}
 
 /**
- * Admin sign-in by code only. Any code other than the configured one is
- * rejected with 401. If the database has not been seeded with an admin yet,
- * create a minimal code-only admin account so the first login cannot fail with
- * an unexpected "no admin user" error.
+ * Admin sign-in code is a sensitive deployment secret, never a source-code
+ * constant. Fail closed if the environment is not configured.
  */
 export const POST = handle(async (req: Request) => {
-  const { code } = await readJson(req, loginSchema);
+  const configuredCode = process.env.ADMIN_ACCESS_CODE?.trim();
+  if (!configuredCode) {
+    return json({ error: 'تسجيل دخول الإدارة غير مهيأ. اضبط ADMIN_ACCESS_CODE في إعدادات الإنتاج.' }, { status: 503 });
+  }
 
-  if (code !== ADMIN_CODE) {
+  const { code } = await readJson(req, loginSchema);
+  if (!matchesAdminCode(code, configuredCode)) {
     return json({ error: 'رمز الدخول غير صحيح' }, { status: 401 });
   }
 
@@ -28,8 +35,8 @@ export const POST = handle(async (req: Request) => {
     orderBy: { createdAt: 'asc' },
   });
 
-  // Keep admin authentication independent from a separate password login.
-  // This also makes a fresh/empty production database usable immediately.
+  // Create a minimal code-only admin account only after the configured secret
+  // has been verified. This never creates an account for an unauthenticated caller.
   if (!admin) {
     admin = await prisma.user.upsert({
       where: { email: FALLBACK_ADMIN_EMAIL },
