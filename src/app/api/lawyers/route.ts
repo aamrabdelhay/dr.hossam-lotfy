@@ -62,6 +62,7 @@ const createSchema = z.object({
     .string()
     .email('بريد إلكتروني غير صالح')
     .max(120)
+    .nullable()
     .optional()
     .or(z.literal('').transform(() => undefined)),
 
@@ -69,12 +70,14 @@ const createSchema = z.object({
     .string()
     .email('بريد Gmail غير صالح')
     .max(120)
+    .nullable()
     .optional()
     .or(z.literal('').transform(() => undefined)),
 
   specialization: z
     .string()
     .max(200)
+    .nullable()
     .optional(),
 
   bio: z
@@ -86,6 +89,7 @@ const createSchema = z.object({
   position: z
     .string()
     .max(120)
+    .nullable()
     .optional(),
 });
 
