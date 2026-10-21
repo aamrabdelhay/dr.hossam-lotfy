@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS "case_files" (
   "name" TEXT NOT NULL,
   "kind" TEXT NOT NULL,
   "mime_type" TEXT,
-  "size_bytes" BIGINT,
+  "size_bytes" INTEGER,
   "url" TEXT,
   "created_by_user_id" TEXT,
   "created_by_lawyer_id" TEXT,
