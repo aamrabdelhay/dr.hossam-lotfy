@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assistantChatUrl, getAssistantSettings } from '@/lib/assistant-settings';
+import { fetchAssistantChat, getAssistantSettings } from '@/lib/assistant-settings';
 import { prisma } from '@/lib/prisma';
 import { logActivity } from '@/lib/activity';
 import { notifyTaskAssigned } from '@/lib/notifications';
@@ -19,7 +19,7 @@ const bodySchema=z.object({
 const MODEL='gemini-2.5-flash';
 function event(x:unknown){return `data: ${JSON.stringify(x)}\n\n`;}
 function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
-async function context(branchId?:string){const taskIds=branchId?await prisma.$queryRawUnsafe<string[]>(`SELECT "id" FROM "tasks" WHERE COALESCE("branch_id",'branch_main')=$1`,branchId):undefined;const [tasks,cases,lawyers,locations,clients]=await Promise.all([prisma.task.findMany({where:{...(taskIds?{id:{in:taskIds}}:{}),status:{notIn:['COMPLETED','CANCELLED']}},orderBy:{scheduledDate:'asc'},take:60,include:{location:{select:{name:true}},caseRecord:{select:{name:true,number:true,clientName:true}},assignees:{select:{lawyer:{select:{fullName:true}}}}}}),branchId?prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","number","clientName" FROM "case_records" WHERE COALESCE("branch_id",'branch_main')=$1 ORDER BY "id" DESC LIMIT 100`,branchId):prisma.caseRecord.findMany({take:100,select:{id:true,name:true,number:true,clientName:true}}),branchId?prisma.$queryRawUnsafe<any[]>(`SELECT l."id",l."fullName" FROM "lawyers" l INNER JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE bl."branch_id"=$1 AND l."active"=true ORDER BY l."fullName" LIMIT 100`,branchId):prisma.lawyer.findMany({where:{active:true},take:100,select:{id:true,fullName:true}}),prisma.location.findMany({take:250,select:{id:true,name:true,nameEn:true}}),prisma.$queryRawUnsafe<any[]>(branchId?`SELECT "id","name","phone","email","status" FROM "clients" WHERE COALESCE("status",'MAIN') NOT IN ('REJECTED','DELETED') AND COALESCE("branch_id",'branch_main')=$1 ORDER BY "name" LIMIT 200`:`SELECT "id","name","phone","email","status" FROM "clients" WHERE COALESCE("status",'MAIN') NOT IN ('REJECTED','DELETED') ORDER BY "name" LIMIT 200`,...(branchId?[branchId]:[]))]);return{tasks:tasks.map(t=>({id:t.id,description:t.description,date:t.scheduledDate?.toISOString().slice(0,10)||null,time:t.scheduledTime,location:t.location?.name||null,case:t.caseRecord?.name||null,caseNumber:t.caseRecord?.number||null,client:t.caseRecord?.clientName||null,lawyers:t.assignees.map(a=>a.lawyer.fullName)})),cases,lawyers,locations,clients};}
+async function context(branchId?:string){const taskRows=branchId?await prisma.$queryRawUnsafe<Array<{id:string}>>(`SELECT "id" FROM "tasks" WHERE COALESCE("branch_id",'branch_main')=$1`,branchId):undefined;const taskIds=taskRows?.map((row)=>row.id);const [tasks,cases,lawyers,locations,clients]=await Promise.all([prisma.task.findMany({where:{...(taskIds?{id:{in:taskIds}}:{}),status:{notIn:['COMPLETED','CANCELLED']}},orderBy:{scheduledDate:'asc'},take:60,include:{location:{select:{name:true}},caseRecord:{select:{name:true,number:true,clientName:true}},assignees:{select:{lawyer:{select:{fullName:true}}}}}}),branchId?prisma.$queryRawUnsafe<any[]>(`SELECT "id","name","number","clientName" FROM "case_records" WHERE COALESCE("branch_id",'branch_main')=$1 ORDER BY "id" DESC LIMIT 100`,branchId):prisma.caseRecord.findMany({take:100,select:{id:true,name:true,number:true,clientName:true}}),branchId?prisma.$queryRawUnsafe<any[]>(`SELECT l."id",l."fullName" FROM "lawyers" l INNER JOIN "office_branch_lawyers" bl ON bl."lawyer_id"=l."id" WHERE bl."branch_id"=$1 AND l."active"=true ORDER BY l."fullName" LIMIT 100`,branchId):prisma.lawyer.findMany({where:{active:true},take:100,select:{id:true,fullName:true}}),prisma.location.findMany({take:250,select:{id:true,name:true,nameEn:true}}),prisma.$queryRawUnsafe<any[]>(branchId?`SELECT "id","name","phone","email","status" FROM "clients" WHERE COALESCE("status",'MAIN') NOT IN ('REJECTED','DELETED') AND COALESCE("branch_id",'branch_main')=$1 ORDER BY "name" LIMIT 200`:`SELECT "id","name","phone","email","status" FROM "clients" WHERE COALESCE("status",'MAIN') NOT IN ('REJECTED','DELETED') ORDER BY "name" LIMIT 200`,...(branchId?[branchId]:[]))]);return{tasks:tasks.map(t=>({id:t.id,description:t.description,date:t.scheduledDate?.toISOString().slice(0,10)||null,time:t.scheduledTime,location:t.location?.name||null,case:t.caseRecord?.name||null,caseNumber:t.caseRecord?.number||null,client:t.caseRecord?.clientName||null,lawyers:t.assignees.map(a=>a.lawyer.fullName)})),cases,lawyers,locations,clients};}
 function localAnswer(message:string,c:any): string | null {
   const raw=message.trim();
   const q=raw.toLocaleLowerCase('ar-EG');
@@ -57,12 +57,11 @@ async function geminiStream(message:string, c:any, history:Array<{role:'user'|'a
     'بيانات المكتب الحالية (JSON):',
     JSON.stringify(c)
   ].join('\n');
-  const r=await fetch(assistantChatUrl(settings.baseUrl),{
-    method:'POST',
-    headers:{Authorization:'Bearer '+settings.apiKey,'Content-Type':'application/json'},
-    body:JSON.stringify({model:settings.model,messages:[{role:'system',content:system},...history.slice(-12),{role:'user',content:message}],temperature:.3,max_tokens:4096,stream:true}),
-    signal,cache:'no-store'
-  });
+  const result=await fetchAssistantChat(settings,{
+    messages:[{role:'system',content:system},...history.slice(-12),{role:'user',content:message}],
+    temperature:.3,max_tokens:4096,stream:true,
+  },signal);
+  const r=result.response;
   if(!r.ok){const detail=await r.text().catch(()=> '');throw new Error('ASSISTANT_'+r.status+':'+detail.slice(0,400))}
   if(!r.body)throw new Error('ASSISTANT_NO_STREAM');
   return r.body;
@@ -76,7 +75,18 @@ const scope=await getBranchScope(session);
 if(requestedBranchId&&!scope.allBranches&&!scope.branchIds.includes(requestedBranchId))return NextResponse.json({error:'لا تملك صلاحية هذا الفرع'},{status:403});
 if(!requestedBranchId&&!scope.allBranches&&scope.branchIds.length!==1)return NextResponse.json({error:'حدد فرع المكتب أولًا حتى أستخدم بيانات الفرع الصحيح.'},{status:400});
 const effectiveBranchId=requestedBranchId||(!scope.allBranches&&scope.branchIds.length===1?scope.branchIds[0]:undefined);
-const c=await context(effectiveBranchId);if(body.confirm&&body.action){const result=await executeAction(session,body.action);if(result.error)return NextResponse.json({ok:false,error:result.error,action:body.action});return NextResponse.json(result);}const history=(body.history||[]).filter((item)=>item.content.trim()).slice(-12);try{const upstream=await geminiStream(body.message,c,history,AbortSignal.timeout(45000));const reader=upstream.getReader();const decoder=new TextDecoder();const encoder=new TextEncoder();let buffer='';return new Response(new ReadableStream({async start(controller){try{for(;;){const{value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop()||'';for(const block of blocks){for(const line of block.split('\n')){if(!line.startsWith('data:'))continue;const raw=line.slice(5).trim();if(!raw||raw==='[DONE]')continue;try{const j=JSON.parse(raw);const text=j.choices?.[0]?.delta?.content||j.choices?.[0]?.message?.content||'';if(text)controller.enqueue(encoder.encode(event({type:'token',text})));}catch{}}}}controller.enqueue(encoder.encode(event({type:'done',configured:true})));controller.close();}catch(e){console.error('[assistant]',e);controller.enqueue(encoder.encode(event({type:'error',error:'تعذر الاتصال بخدمة المساعد حالياً.'})));controller.close();}}}),{headers:{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'}});}catch(e){
+if(body.confirm&&body.action){
+  try {
+    const result=await executeAction(session,body.action);
+    if(result.error)return NextResponse.json({ok:false,error:result.error,action:body.action},{status:400});
+    return NextResponse.json(result);
+  } catch(error) {
+    console.error('[assistant-action]',error);
+    return NextResponse.json({ok:false,error:'فشل تنفيذ المهمة بسبب خطأ داخلي. لم يتم تأكيد التنفيذ؛ راجع سجل النظام قبل إعادة المحاولة.'},{status:500});
+  }
+}
+const c=await context(effectiveBranchId);
+const history=(body.history||[]).filter((item)=>item.content.trim()).slice(-12);try {const upstream=await geminiStream(body.message,c,history,AbortSignal.timeout(45000));const reader=upstream.getReader();const decoder=new TextDecoder();const encoder=new TextEncoder();let buffer='';return new Response(new ReadableStream({async start(controller){try{for(;;){const{value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop()||'';for(const block of blocks){for(const line of block.split('\n')){if(!line.startsWith('data:'))continue;const raw=line.slice(5).trim();if(!raw||raw==='[DONE]')continue;try{const j=JSON.parse(raw);const text=j.choices?.[0]?.delta?.content||j.choices?.[0]?.message?.content||'';if(text)controller.enqueue(encoder.encode(event({type:'token',text})));}catch{}}}}controller.enqueue(encoder.encode(event({type:'done',configured:true})));controller.close();}catch(e){console.error('[assistant]',e);controller.enqueue(encoder.encode(event({type:'error',error:'تعذر الاتصال بخدمة المساعد حالياً.'})));controller.close();}}}),{headers:{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'}});}catch(e){
   console.error('[assistant]',e);
   const settings=await getAssistantSettings().catch(()=>null);
   const configured=Boolean(settings?.apiKey);
