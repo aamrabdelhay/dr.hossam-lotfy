@@ -96,9 +96,12 @@ export async function fetchAssistantChat(
   payload: Record<string, unknown>,
   signal?: AbortSignal,
 ) {
-  const models = isGeminiApiBaseUrl(settings.baseUrl) && settings.model !== 'gemini-3.8-flash'
-    ? [settings.model, 'gemini-3.8-flash']
+  const isGoogle = isGeminiApiBaseUrl(settings.baseUrl);
+  const candidates = isGoogle
+    ? [settings.model, 'gemini-3.8-flash', 'gemini-3.6-flash']
     : [settings.model];
+  const models = candidates.filter((model, index) => Boolean(model) && candidates.indexOf(model) === index);
+  const retryableGoogleStatuses = new Set([404, 429, 500, 502, 503, 504]);
 
   for (let i = 0; i < models.length; i++) {
     const response = await fetch(assistantChatUrl(settings.baseUrl), {
@@ -108,7 +111,10 @@ export async function fetchAssistantChat(
       signal,
       cache: 'no-store',
     });
-    if (response.status !== 404 || i === models.length - 1) {
+    const shouldTryAlternate = isGoogle
+      && i < models.length - 1
+      && retryableGoogleStatuses.has(response.status);
+    if (!shouldTryAlternate) {
       return { response, model: models[i], usedFallbackModel: i > 0 };
     }
     await response.body?.cancel().catch(() => undefined);
