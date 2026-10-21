@@ -37,10 +37,23 @@ function toVM(c: {
   };
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(_req: Request, ctx: Ctx) {
+  const session = await user();
+  if (!session) {
+    return json({ error: 'يجب تسجيل الدخول لعرض التعليقات' }, {
+      status: 401,
+      headers: { 'Cache-Control': 'private, no-store, max-age=0' },
+    });
+  }
+
   const { id } = await ctx.params;
   const task = await prisma.task.findUnique({ where: { id } });
-  if (!task) return json({ error: 'المهمة غير موجودة' }, { status: 404 });
+  if (!task) return json({ error: 'المهمة غير موجودة' }, {
+    status: 404,
+    headers: { 'Cache-Control': 'private, no-store, max-age=0' },
+  });
   const comments = await prisma.comment.findMany({
     where: { taskId: id },
     include: {
@@ -49,8 +62,9 @@ export async function GET(_req: Request, ctx: Ctx) {
     },
     orderBy: { createdAt: 'asc' },
   });
-  const session = await user();
-  return json({ comments: comments.map((c) => toVM(c as never, session)) });
+  return json({ comments: comments.map((c) => toVM(c as never, session)) }, {
+    headers: { 'Cache-Control': 'private, no-store, max-age=0' },
+  });
 }
 
 const createSchema = z.object({
