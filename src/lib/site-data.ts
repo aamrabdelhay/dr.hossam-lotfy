@@ -26,3 +26,11 @@ export async function getSiteNav(branchId?: string) {
     locations: locations.map((l) => ({ id: l.id, slug: l.slug, name: l.name, type: l.type })) as NavLocation[],
   };
 }
+
+
+export async function getSiteBranding() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ logo_data_url: string | null }>>(
+    `SELECT "logo_data_url" FROM "office_site_settings" WHERE "id" = 'default' LIMIT 1`,
+  );
+  return { logoDataUrl: rows[0]?.logo_data_url ?? null };
+}

@@ -109,3 +109,41 @@ export async function getPrivateS3Object(value: string, clientId: string, range?
     ...(range ? { Range: range } : {}),
   }));
 }
+
+/** Validate a private S3 URI against a resource-specific key prefix. */
+export function parsePrivateS3UrlForPrefix(value: string | null | undefined, prefix: string) {
+  const object = parsePrivateS3Url(value);
+  if (!object || !prefix || !object.key.startsWith(prefix)) return null;
+  return object;
+}
+
+export async function verifyUploadedPrivateS3File(
+  value: string,
+  prefix: string,
+  expectedSize: number,
+  expectedContentType: string,
+) {
+  const object = parsePrivateS3UrlForPrefix(value, prefix);
+  if (!object) return false;
+  const head = await getS3Client().send(new HeadObjectCommand({ Bucket: object.bucket, Key: object.key }));
+  const size = head.ContentLength ?? -1;
+  const mime = (head.ContentType || '').split(';', 1)[0].trim().toLowerCase();
+  const valid = size > 0 && size <= MAX_CLIENT_FILE_BYTES && size === expectedSize &&
+    mime === expectedContentType.toLowerCase();
+  if (!valid) {
+    await getS3Client().send(new DeleteObjectCommand({ Bucket: object.bucket, Key: object.key })).catch((error) => {
+      console.error('[private-s3-file] Could not delete an invalid uploaded object:', error);
+    });
+  }
+  return valid;
+}
+
+export async function getPrivateS3ObjectForPrefix(value: string, prefix: string, range?: string) {
+  const object = parsePrivateS3UrlForPrefix(value, prefix);
+  if (!object) return null;
+  return getS3Client().send(new GetObjectCommand({
+    Bucket: object.bucket,
+    Key: object.key,
+    ...(range ? { Range: range } : {}),
+  }));
+}
