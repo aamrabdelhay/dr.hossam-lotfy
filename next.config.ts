@@ -2,6 +2,10 @@
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+const s3ConnectOrigin = process.env.S3_BUCKET_NAME && process.env.AWS_REGION
+  ? 'https://' + process.env.S3_BUCKET_NAME + '.s3.' + process.env.AWS_REGION + '.amazonaws.com'
+  : null;
+
 /**
  * Content-Security-Policy: Next.js needs 'unsafe-inline' for its bootstrap
  * <script> payloads unless a nonce-middleware is used; styles come from
@@ -13,7 +17,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
-  "connect-src 'self' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.private.blob.vercel-storage.com",
+  "connect-src 'self' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.private.blob.vercel-storage.com" + (s3ConnectOrigin ? " " + s3ConnectOrigin : ""),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
