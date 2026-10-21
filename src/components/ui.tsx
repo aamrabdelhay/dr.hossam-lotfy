@@ -97,7 +97,7 @@ export function Field({
   status,
   children,
 }: {
-  label: string;
+  label: React.ReactNode;
   hint?: string;
   error?: string;
   required?: boolean;
@@ -108,7 +108,7 @@ export function Field({
   return (
     <label className="block">
       <span className="mb-1.5 flex items-center gap-1.5 text-[13px] font-semibold text-navy-800">
-        {typeof status === 'boolean' && <FieldStatusDot ok={status} label={label} />}
+        {typeof status === 'boolean' && <FieldStatusDot ok={status} label={typeof label === 'string' ? label : 'الحقل'} />}
         <span className="flex items-baseline gap-1">
           {label}
           {required && <span className="text-gold-600">*</span>}
