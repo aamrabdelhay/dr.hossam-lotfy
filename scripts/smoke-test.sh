@@ -100,6 +100,17 @@ request 'Invalid lawyer login is rejected' POST '/api/auth/lawyer' 401 --header 
 
 request 'Search API requires sign-in (English)' GET '/api/search?q=tax' 401 || true
 request 'Search API requires sign-in (Arabic)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
+
+request 'Task detail API requires sign-in' GET '/api/tasks/test-task-id' 401 || true
+request 'Task comments API requires sign-in' GET '/api/tasks/test-task-id/comments' 401 || true
+request 'Identity endpoint is uncacheable' GET '/api/auth/me' 200 || true
+header_matches 'Identity endpoint is private no-store' '^cache-control:.*private.*no-store'
+request 'Task detail page redirects guests' GET '/sessions/test-task-id' 200 || true
+if grep -Fq 'http-equiv="refresh" content="1;url=/auth"' "$last_body" || grep -Fq 'NEXT_REDIRECT;replace;/auth;307;' "$last_body"; then
+  pass 'Guest task page redirects to sign-in'
+else
+  fail 'Guest task page did not redirect to sign-in'
+fi
 request 'Cron endpoint rejects unauthenticated requests' GET '/api/cron/email-reminders' 401 || true
 
 # Next streams the redirect as a 200 HTML shell with a meta refresh and NEXT_REDIRECT marker.
