@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn';
 type Choice = { id: string; name: string; number?: string; clientName?: string | null };
 type TodayTask = { id: string; description: string; time: string | null; location: string | null; caseName: string | null; caseNumber: string | null; lawyers: string[] };
 type Directory = { lawyers: Choice[]; locations: Choice[]; cases: Choice[]; todayTasks: TodayTask[] };
-type Action = { type: string; branchId?: string; description?: string; scheduledDate?: string; scheduledTime?: string; lawyerIds?: string[]; locationId?: string; notes?: string; caseName?: string; caseNumber?: string; clientName?: string; missing?: string[]; choices?: Directory };
+type Action = { type: string; branchId?: string; description?: string; scheduledDate?: string; scheduledTime?: string; lawyerIds?: string[]; locationId?: string; caseId?: string; notes?: string; caseName?: string; caseNumber?: string; clientName?: string; missing?: string[]; choices?: Directory };
 type Msg = { role: 'user' | 'assistant'; text: string; action?: Action; nav?: { path: string; label: string }; success?: boolean; local?: 'today' | 'cases' | 'help' };
 
 const quick = ['إضافة جلسة جديدة', 'إنشاء مهمة', 'مواعيد اليوم', 'القضايا المفتوحة', 'شرح النظام', 'اختبار اتصال AI'] as const;
@@ -47,7 +47,7 @@ function ActionForm({ action, directory, onDone, busy }: { action: Action; direc
   }, [action, directory]);
 
   const change = (k: keyof Action, x: unknown) => setV((s) => ({ ...s, [k]: x }));
-  const selectedCaseId = directory.cases.find((x) => x.number === v.caseNumber)?.id || '';
+  const selectedCaseId = v.caseId || directory.cases.find((x) => x.number === v.caseNumber)?.id || '';
   const dates = [{ value: today, label: 'اليوم' }, { value: addDays(today,1), label: 'غدًا' }, { value: addDays(today,2), label: 'بعد غد' }, { value: addDays(today,7), label: 'الأسبوع القادم' }];
 
   const otherDates = React.useMemo(
@@ -93,6 +93,7 @@ function ActionForm({ action, directory, onDone, busy }: { action: Action; direc
           value={selectedCaseId}
           onChange={(x) => {
             const c = directory.cases.find((y) => y.id === x);
+            change('caseId', c?.id || undefined);
             change('caseNumber', c?.number || undefined);
             change('caseName', c?.name || undefined);
             change('clientName', c?.clientName || undefined);
