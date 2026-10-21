@@ -80,6 +80,7 @@ const createSchema = z.object({
   bio: z
     .string()
     .max(2000)
+    .nullable()
     .optional(),
 
   position: z
