@@ -88,7 +88,8 @@ async function answerTodayScheduleIfRequested(message:string, branchId?:string):
     ? await prisma.$queryRawUnsafe<Array<{id:string}>>(
         `SELECT "id" FROM "tasks"
          WHERE COALESCE("branch_id",'branch_main')=$1
-           AND "scheduledDate"::date=$2::date
+           AND ("scheduledDate"=$2::date OR
+                ("scheduledDate" IS NULL AND ("createdAt" AT TIME ZONE 'Africa/Cairo')::date=$2::date))
            AND "status" NOT IN ('COMPLETED','CANCELLED')
          ORDER BY "scheduledTime" ASC NULLS LAST
          LIMIT 250`,
@@ -96,7 +97,8 @@ async function answerTodayScheduleIfRequested(message:string, branchId?:string):
       )
     : await prisma.$queryRawUnsafe<Array<{id:string}>>(
         `SELECT "id" FROM "tasks"
-         WHERE "scheduledDate"::date=$1::date
+         WHERE ("scheduledDate"=$1::date OR
+                ("scheduledDate" IS NULL AND ("createdAt" AT TIME ZONE 'Africa/Cairo')::date=$1::date))
            AND "status" NOT IN ('COMPLETED','CANCELLED')
          ORDER BY "scheduledTime" ASC NULLS LAST
          LIMIT 250`,
