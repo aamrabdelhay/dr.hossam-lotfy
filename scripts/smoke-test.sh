@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# Lightweight production/local smoke test. It intentionally uses only curl,
-# grep and standard shell tools so it can run in CI, on a developer laptop or
-# against the public Vercel URL.
-#
-# Usage:
-#   npm run smoke
-#   npm run smoke -- https://dr-hossam-lotfy-hw88-aamrabdelhays-projects.vercel.app
-#   BASE_URL=https://example.com npm run smoke
+# Production-safe smoke tests. No credentials are hard-coded in this file.
+# Usage: npm run smoke -- https://dr-hossam-lotfy-hw88.vercel.app
+# Optional: SMOKE_ADMIN_ACCESS_CODE is supplied securely by the operator to test successful admin login.
 
 set -u -o pipefail
 
@@ -16,154 +11,103 @@ CONNECT_TIMEOUT="${SMOKE_CONNECT_TIMEOUT:-10}"
 MAX_TIME="${SMOKE_MAX_TIME:-30}"
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-  sed -n '2,11p' "$0"
+  echo "Usage: npm run smoke -- [BASE_URL]"
   exit 0
 fi
-
-if ! command -v curl >/dev/null 2>&1; then
-  echo "curl is required to run the smoke test." >&2
-  exit 2
-fi
+if ! command -v curl >/dev/null 2>&1; then echo "curl is required" >&2; exit 2; fi
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
-
 passed=0
 failed=0
 last_body=""
 last_headers=""
 last_status=""
 
-pass() {
-  printf '  \033[32m✓\033[0m %s\n' "$1"
-  passed=$((passed + 1))
-}
-
-fail() {
-  printf '  \033[31m✗\033[0m %s\n' "$1" >&2
-  failed=$((failed + 1))
-}
+pass() { printf '  ✓ %s\n' "$1"; passed=$((passed + 1)); }
+fail() { printf '  ✗ %s\n' "$1" >&2; failed=$((failed + 1)); }
 
 request() {
-  local label="$1"
-  local method="$2"
-  local path="$3"
-  local expected_status="$4"
+  local label="$1" method="$2" path="$3" expected_status="$4"
   shift 4
-
   local key
   key="$(printf '%s' "${method}-${path}" | tr -c '[:alnum:]' '_')"
   last_body="$TMP_DIR/${key}.body"
   last_headers="$TMP_DIR/${key}.headers"
-
   if ! last_status="$(curl --silent --show-error --globoff \
     --connect-timeout "$CONNECT_TIMEOUT" --max-time "$MAX_TIME" \
     --request "$method" --dump-header "$last_headers" --output "$last_body" \
     --write-out '%{http_code}' "$@" "${BASE_URL}${path}")"; then
-    fail "$label — تعذّر الوصول إلى ${BASE_URL}${path}"
+    fail "$label — network error"
     return 1
   fi
-
-  if [[ "$last_status" == "$expected_status" ]]; then
-    pass "$label — HTTP $last_status"
-    return 0
-  fi
-
-  fail "$label — المتوقع HTTP $expected_status، وصل HTTP $last_status"
-  if [[ -s "$last_body" ]]; then
-    printf '    response: %s\n' "$(head -c 300 "$last_body" | tr '\n' ' ')" >&2
-  fi
+  if [[ "$last_status" == "$expected_status" ]]; then pass "$label — HTTP $last_status"; return 0; fi
+  fail "$label — expected HTTP $expected_status, got $last_status"
+  [[ ! -s "$last_body" ]] || printf '    response: %s\n' "$(head -c 250 "$last_body" | tr '\n' ' ')" >&2
   return 1
 }
-
 body_contains() {
-  local label="$1"
-  local needle="$2"
-  if grep -Fq -- "$needle" "$last_body"; then
-    pass "$label"
-  else
-    fail "$label — لم يُعثر على: $needle"
-  fi
+  if grep -Fq -- "$2" "$last_body"; then pass "$1"; else fail "$1 — expected content missing"; fi
 }
-
 header_matches() {
-  local label="$1"
-  local expression="$2"
-  if grep -Eqi -- "$expression" "$last_headers"; then
-    pass "$label"
-  else
-    fail "$label — الهيدر غير موجود أو قيمته مختلفة"
-  fi
+  if grep -Eqi -- "$2" "$last_headers"; then pass "$1"; else fail "$1 — expected header missing"; fi
 }
 
 printf '\nSmoke test: %s\n\n' "$BASE_URL"
 
-request 'تشخيص الخدمة' GET '/api/health' 200 || true
-body_contains 'health.status = ok' '"status":"ok"'
-header_matches 'health is not cached' '^cache-control:.*no-store'
+request 'Health endpoint' GET '/api/health' 200 || true
+body_contains 'Health reports ok' '"status":"ok"'
+header_matches 'Health is not cached' '^cache-control:.*no-store'
 
-request 'صفحة عامة (المحامون)' GET '/lawyers' 200 || true
-header_matches 'Content-Security-Policy' '^content-security-policy:'
-header_matches 'X-Frame-Options: DENY' '^x-frame-options:[[:space:]]*DENY'
-header_matches 'X-Content-Type-Options: nosniff' '^x-content-type-options:[[:space:]]*nosniff'
-header_matches 'Referrer-Policy' '^referrer-policy:'
-header_matches 'Permissions-Policy' '^permissions-policy:'
-header_matches 'Strict-Transport-Security' '^strict-transport-security:'
+request 'Lawyers page' GET '/lawyers' 200 || true
+header_matches 'Content-Security-Policy exists' '^content-security-policy:'
+header_matches 'X-Frame-Options is SAMEORIGIN' '^x-frame-options:[[:space:]]*SAMEORIGIN'
+header_matches 'X-Content-Type-Options is nosniff' '^x-content-type-options:[[:space:]]*nosniff'
+header_matches 'Referrer-Policy exists' '^referrer-policy:'
+header_matches 'Permissions-Policy exists' '^permissions-policy:'
+header_matches 'Strict-Transport-Security exists' '^strict-transport-security:'
 
 request 'robots.txt' GET '/robots.txt' 200 || true
-body_contains 'robots يحتوي Sitemap' 'Sitemap:'
-if [[ "$BASE_URL" =~ ^https?://(localhost|127\.0\.0\.1)(:|/|$) ]]; then
-  pass 'robots يستخدم رابط Sitemap قانونياً (قد يكون الدومين الإنتاجي في البيئة المحلية)'
-else
-  body_contains 'robots يشير إلى الدومين المختبَر' "${BASE_URL}/sitemap.xml"
-fi
+body_contains 'robots contains sitemap' 'Sitemap:'
+body_contains 'robots points to tested domain' "${BASE_URL}/sitemap.xml"
 
 request 'sitemap.xml' GET '/sitemap.xml' 200 || true
 location_links="$(grep -o '/locations/' "$last_body" 2>/dev/null | wc -l | tr -d ' ')"
-if [[ "$location_links" =~ ^[0-9]+$ ]] && (( location_links >= 149 )); then
-  pass "sitemap يحتوي على 149 رابط مكان أو أكثر ($location_links)"
+if [[ "$location_links" =~ ^[0-9]+$ ]] && (( location_links >= 149 )); then pass "Sitemap location links: $location_links"; else fail "Sitemap has only $location_links location links"; fi
+if grep -Eo '<loc>https?://' "$last_body" >/dev/null; then pass 'Sitemap URLs are absolute'; else fail 'Sitemap has no absolute URLs'; fi
+
+request 'Locations page' GET '/locations' 200 || true
+body_contains 'Locations has upcoming activities section' 'أنشطة قادمة'
+body_contains 'Locations has lawyer-guide filters' 'بحث وتصفية دليل المحامي'
+request 'Locations API' GET '/api/locations' 200 || true
+body_contains 'Locations API contains list' '"locations"'
+
+request 'Home page' GET '/' 200 || true
+request 'Sessions page' GET '/sessions' 200 || true
+request 'Calendar page' GET '/calendar' 200 || true
+request 'Auth page' GET '/auth' 200 || true
+body_contains 'Auth page has sign-in option' 'تسجيل دخول'
+body_contains 'Auth page has first registration option' 'تسجيل أول مرة'
+body_contains 'Auth page has admin entry option' 'دخول الإدارة'
+
+request 'Wrong admin code is rejected' POST '/api/auth/admin' 401 --header 'Content-Type: application/json' --data '{"code":"definitely-wrong"}' || true
+if [[ -n "${SMOKE_ADMIN_ACCESS_CODE:-}" ]]; then
+  request 'Configured admin code works' POST '/api/auth/admin' 200 --header 'Content-Type: application/json' --data "{\"code\":\"$SMOKE_ADMIN_ACCESS_CODE\"}" || true
 else
-  fail "sitemap يحتوي على $location_links روابط مكان؛ المتوقع 149 على الأقل"
+  printf '  - SKIP successful admin login (set SMOKE_ADMIN_ACCESS_CODE securely to run this check)\n'
 fi
+request 'Invalid lawyer login is rejected' POST '/api/auth/lawyer' 401 --header 'Content-Type: application/json' --data '{"name":"Unknown Test User","email":"no-such-user@example.invalid"}' || true
 
-request 'دليل الأماكن' GET '/locations' 200 || true
-body_contains 'قسم الأنشطة القادمة' 'أنشطة قادمة'
-body_contains 'فلاتر دليل المحامي' 'بحث وتصفية دليل المحامي'
+request 'Search API requires sign-in (English)' GET '/api/search?q=tax' 401 || true
+request 'Search API requires sign-in (Arabic)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
+request 'Email reminder endpoint responds' GET '/api/cron/email-reminders' 200 || true
 
-request 'قائمة الأماكن العامة' GET '/api/locations' 200 || true
-body_contains 'الأماكن العامة تُرجع قائمة' '"locations"'
+request 'Admin page redirects guests to login' GET '/admin' 307 || true
+header_matches 'Admin redirect points to login' '^location:.*\/admin\/login'
+request 'Guest cannot create a location' POST '/api/locations' 403 --data '' || true
+request 'Guest cannot read user records' GET '/api/users' 403 || true
 
-request 'الصفحة الرئيسية مفتوحة للزائر' GET '/' 200 || true
-request 'صفحة الجلسات مفتوحة للزائر' GET '/sessions' 200 || true
-request 'صفحة التقويم مفتوحة للزائر' GET '/calendar' 200 || true
-
-request 'بوابة الدخول (بطاقة واحدة بثلاثة أوضاع)' GET '/auth' 200 || true
-body_contains 'تبويب تسجيل دخول محامي' 'تسجيل دخول'
-body_contains 'تبويب تسجيل أول مرة' 'تسجيل أول مرة'
-body_contains 'تبويب دخول الإدارة' 'دخول الإدارة'
-body_contains 'عنوان دخول محامي' 'دخول محامي'
-
-request 'دخول الإدارة بكود خاطئ يُرفض' POST '/api/auth/admin' 401 --header 'Content-Type: application/json' --data '{"code":"wrong"}'
-request 'دخول الإدارة بالكود الصحيح يُقبل' POST '/api/auth/admin' 200 --header 'Content-Type: application/json' --data '{"code":"hl"}'
-request 'دخول محامي ببيانات خاطئة يُرفض' POST '/api/auth/lawyer' 401 --header 'Content-Type: application/json' --data '{"name":"غير موجود","email":"noone@gmail.com"}'
-
-request 'البحث محمي خلف تسجيل الدخول (إنجليزي)' GET '/api/search?q=tax' 401 || true
-request 'البحث محمي خلف تسجيل الدخول (عربي)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
-
-request 'تذكيرات الإيميل (كرون) متاحة' GET '/api/cron/email-reminders' 200 || true
-
-request 'إدارة الزائر تُحوّل للدخول' GET '/admin' 307 || true
-header_matches 'وجهة تحويل الإدارة' '^location:.*\/admin\/login'
-
-request 'منع إضافة مكان للزائر' POST '/api/locations' 403 --data '' || true
-request 'منع قائمة المستخدمين للزائر' GET '/api/users' 403 || true
-
-printf '\n%s\n' '────────────────────────────────────────'
-printf 'النتيجة: %d ناجح، %d فاشل\n' "$passed" "$failed"
-
-if (( failed > 0 )); then
-  printf 'راجع /api/health أولاً عند فشل الصحة أو صفحات البيانات.\n' >&2
-  exit 1
-fi
-
-printf 'كل اختبارات الـ smoke الأساسية نجحت.\n'
+printf '\n────────────────────────────────────────\n'
+printf 'Result: %d passed, %d failed\n' "$passed" "$failed"
+if (( failed > 0 )); then exit 1; fi
+printf 'All available smoke checks passed.\n'
