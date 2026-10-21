@@ -230,7 +230,7 @@ export function OfficeAssistant() {
   const branchId = searchParams.get('branchId') || undefined;
   const [open, setOpen] = React.useState(false); const [input, setInput] = React.useState(''); const [busy, setBusy] = React.useState(false); const [messages, setMessages] = React.useState<Msg[]>([]); const [configured, setConfigured] = React.useState<boolean | null>(null); const [directory, setDirectory] = React.useState<Directory | null>(null);
   const resetHome = () => { setMessages([]); setInput(''); setBusy(false); };
-  const loadDirectory = React.useCallback(async () => { try { const raw = localStorage.getItem(CACHE_KEY); if (raw) { const parsed = JSON.parse(raw); if (parsed?.data?.lawyers && Date.now() - Number(parsed.savedAt || 0) < 6 * 60 * 60 * 1000) setDirectory(parsed.data); } } catch {} try { const r = await fetch(branchId ? `/api/assistant/bootstrap?branchId=${encodeURIComponent(branchId)}` : '/api/assistant/bootstrap', { cache: 'force-cache' }); if (!r.ok) throw new Error(); const d = await r.json(); const next: Directory = { lawyers: d.lawyers || [], locations: d.locations || [], cases: d.cases || [], todayTasks: d.todayTasks || [] }; setDirectory(next); try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {} } catch {} }, [branchId]);
+  const loadDirectory = React.useCallback(async () => { try { const raw = localStorage.getItem(CACHE_KEY); if (raw) { const parsed = JSON.parse(raw); if (parsed?.data?.lawyers && Date.now() - Number(parsed.savedAt || 0) < 6 * 60 * 60 * 1000) setDirectory(parsed.data); } } catch {} try { const r = await fetch(branchId ? `/api/assistant/bootstrap?branchId=${encodeURIComponent(branchId)}` : '/api/assistant/bootstrap', { cache: 'no-store' }); if (!r.ok) throw new Error(); const d = await r.json(); const next: Directory = { lawyers: d.lawyers || [], locations: d.locations || [], cases: d.cases || [], todayTasks: d.todayTasks || [] }; setDirectory(next); try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {} } catch {} }, [branchId]);
   React.useEffect(() => { void loadDirectory(); }, [loadDirectory, branchId]);
   React.useEffect(() => { if (!open || configured !== null) return; fetch('/api/assistant', { cache: 'no-store' }).then(async (r) => { const d = await r.json(); setConfigured(Boolean(d.configured)); }).catch(() => setConfigured(false)); }, [open, configured]);
   const localAction = (type: 'task' | 'session'): Action | null => directory ? { type: type === 'task' ? 'create_task' : 'create_session', lawyerIds: [], choices: directory } : null;
@@ -250,17 +250,32 @@ export function OfficeAssistant() {
       setBusy(false);
     }
   };
-  const localQuick = (label: typeof quick[number]) => {
+  const localQuick = async (label: typeof quick[number]) => {
     if (label === 'اختبار اتصال AI') { void checkApi(); return; }
     if (label === 'شرح النظام') { setMessages([{ role: 'assistant', text: 'اختر الجزء الذي تريد معرفة طريقة استخدامه:', local: 'help' }]); return; }
+    if (label === 'مواعيد اليوم') {
+      setBusy(true);
+      setMessages([{ role: 'assistant', text: 'جارٍ تحديث مواعيد ومهام اليوم من قاعدة البيانات…', local: 'today' }]);
+      try {
+        const r = await fetch(branchId ? `/api/assistant/bootstrap?branchId=${encodeURIComponent(branchId)}` : '/api/assistant/bootstrap', { cache: 'no-store' });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'تعذر تحميل مواعيد اليوم.');
+        const next: Directory = { lawyers: d.lawyers || [], locations: d.locations || [], cases: d.cases || [], todayTasks: d.todayTasks || [] };
+        setDirectory(next);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {}
+        setMessages([{ role: 'assistant', text: 'هذه مواعيد ومهام اليوم المحفوظة في المكتب:', local: 'today' }]);
+      } catch (e) {
+        setMessages([{ role: 'assistant', text: e instanceof Error ? e.message : 'تعذر تحديث مواعيد اليوم.', local: 'today' }]);
+      } finally { setBusy(false); }
+      return;
+    }
     if (!directory) return;
     if (label === 'إضافة جلسة جديدة' || label === 'إنشاء مهمة') {
       const action = localAction(label === 'إنشاء مهمة' ? 'task' : 'session');
       if (action) setMessages([{ role: 'assistant', text: '', action }]);
       return;
     }
-    if (label === 'مواعيد اليوم') setMessages([{ role: 'assistant', text: 'هذه مواعيد اليوم المحفوظة في المكتب:', local: 'today' }]);
-    else if (label === 'القضايا المسجلة') setMessages([{ role: 'assistant', text: 'هذه القضايا المسجلة في المكتب:', local: 'cases' }]);
+    if (label === 'القضايا المسجلة') setMessages([{ role: 'assistant', text: 'هذه القضايا المسجلة في المكتب:', local: 'cases' }]);
   };
   const submit = async (text: string, action?: Action, finalize = false) => { const message = text.trim(); const actionWithBranch = action ? { ...action, branchId: action.branchId ?? branchId } : undefined; if (!message || busy) return; const history = messages.filter((item) => item.text.trim() && !item.action && !item.local).slice(-10).map((item) => ({ role: item.role, content: item.text.slice(0, 2000) })); setInput(''); setMessages((m) => [...m, { role: 'user', text: message }]); setBusy(true); try { const r = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(actionWithBranch ? { message, action: actionWithBranch, confirm: finalize } : { message, branchId, history }) }); const ct = r.headers.get('content-type') || ''; if (ct.includes('text/event-stream') && r.body) { const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = ''; let ai = -1; for (;;) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true }); const lines = buf.split('\n'); buf = lines.pop() || ''; for (const line of lines) { if (!line.startsWith('data: ')) continue; try { const e = JSON.parse(line.slice(6)); if (e.type === 'token') setMessages((items) => { const copy = [...items]; if (ai < 0) { ai = copy.length; copy.push({ role: 'assistant', text: e.text }); } else copy[ai] = { ...copy[ai], text: copy[ai].text + e.text }; return copy; }); else if (e.type === 'done' && e.action) setMessages((items) => items.map((x, i) => i === ai ? { ...x, action: e.action, text: '' } : x)); else if (e.type === 'done' && e.success) setMessages((items) => [...items, { role: 'assistant', text: e.reply || 'تم التنفيذ بنجاح.', success: true, nav: e.navigation }]); else if (e.type === 'error') setMessages((items) => [...items, { role: 'assistant', text: e.error || 'تعذر تنفيذ الطلب.' }]); } catch {} } } if (ai < 0) setMessages((items) => [...items, { role: 'assistant', text: 'تم استلام الطلب.' }]); } else { const d = await r.json(); setMessages((m) => [...m, { role: 'assistant', text: d.reply || d.error || 'تعذر تنفيذ الطلب.', action: d.action, success: d.success, nav: d.navigation }]); } } catch { setMessages((m) => [...m, { role: 'assistant', text: 'تعذر الاتصال بالمساعد حاليًا.' }]); } finally { setBusy(false); } };
   const confirm = async (action: Action) => submit('تأكيد وتنفيذ', action, true);
