@@ -22,7 +22,8 @@ export async function POST(){
     const d=await r.json().catch(()=>null);
     if(!r.ok) {
       const endpoint=new URL(assistantChatUrl(s.baseUrl));
-      const details=typeof d?.error?.message==='string'?d.error.message:typeof d?.message==='string'?d.message:'الخدمة لم تُرجع تفاصيل. راجع عنوان API والموديل.';
+      const errorData=Array.isArray(d)?d[0]:d;
+      const details=typeof errorData?.error?.message==='string'?errorData.error.message:typeof errorData?.message==='string'?errorData.message:'الخدمة لم تُرجع تفاصيل. راجع عنوان API والموديل.';
       return NextResponse.json({ok:false,error:'فشل الاتصال بالـAPI (HTTP '+r.status+').',details,endpoint:endpoint.origin+endpoint.pathname,model:result.model},{status:502});
     }
     const response=d?.choices?.[0]?.message?.content;
