@@ -70,7 +70,7 @@ export const GET = handle(async (_req: Request, { params }: { params: Promise<{ 
   );
 
   return json({
-    files: rows.map((file) => ({
+    files: rows.map((file: ClientFileRow) => ({
       ...file,
       url: clientFileContentUrl(id, file.id, file.url),
     })),
