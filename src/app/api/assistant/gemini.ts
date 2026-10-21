@@ -66,6 +66,69 @@ async function geminiStream(message:string, c:any, history:Array<{role:'user'|'a
   if(!r.body)throw new Error('ASSISTANT_NO_STREAM');
   return r.body;
 }
+
+function normalizeArabicQuery(value:string) {
+  return value.toLocaleLowerCase('ar-EG')
+    .replace(/[\\u064B-\\u065F\\u0670]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/\\s+/g, ' ')
+    .trim();
+}
+
+async function answerTodayScheduleIfRequested(message:string, branchId?:string):Promise<string|null> {
+  const query=normalizeArabicQuery(message);
+  const asksToday=['اليوم','النهارده','نهارده','today'].some((word)=>query.includes(normalizeArabicQuery(word)));
+  const asksSchedule=['مواعيد','موعد','جلسه','جلسات','مهمه','مهام','تكليف','tasks','agenda'].some((word)=>query.includes(normalizeArabicQuery(word)));
+  if(!asksToday||!asksSchedule)return null;
+
+  const date=today();
+  const rows=branchId
+    ? await prisma.$queryRawUnsafe<Array<{id:string}>>(
+        `SELECT "id" FROM "tasks"
+         WHERE COALESCE("branch_id",'branch_main')=$1
+           AND "scheduledDate"::date=$2::date
+           AND "status" NOT IN ('COMPLETED','CANCELLED')
+         ORDER BY "scheduledTime" ASC NULLS LAST
+         LIMIT 250`,
+        branchId,date,
+      )
+    : await prisma.$queryRawUnsafe<Array<{id:string}>>(
+        `SELECT "id" FROM "tasks"
+         WHERE "scheduledDate"::date=$1::date
+           AND "status" NOT IN ('COMPLETED','CANCELLED')
+         ORDER BY "scheduledTime" ASC NULLS LAST
+         LIMIT 250`,
+        date,
+      );
+  const ids=rows.map((row)=>row.id);
+  const tasks=ids.length
+    ? await prisma.task.findMany({
+        where:{id:{in:ids}},
+        orderBy:[{scheduledTime:'asc'},{description:'asc'}],
+        include:{
+          location:{select:{name:true}},
+          caseRecord:{select:{name:true,number:true,clientName:true}},
+          assignees:{select:{lawyer:{select:{fullName:true}}}},
+        },
+      })
+    : [];
+  const dateLabel=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date());
+  if(!tasks.length)return `لا توجد مواعيد أو مهام مفتوحة مسجلة ليوم ${dateLabel}.`;
+  const lines=tasks.map((task,index)=>{
+    const time=task.scheduledTime?String(task.scheduledTime).slice(0,5):'بدون وقت محدد';
+    const details=[
+      task.location?.name? 'المكان: '+task.location.name:null,
+      task.caseRecord?.name? 'القضية: '+task.caseRecord.name+(task.caseRecord.number?' — '+task.caseRecord.number:''):null,
+      task.caseRecord?.clientName?'العميل: '+task.caseRecord.clientName:null,
+      task.assignees.length?'المحامي: '+task.assignees.map((x)=>x.lawyer.fullName).join('، '):null,
+    ].filter(Boolean);
+    return `${index+1}) ${time} — ${task.description}${details.length?'\\n   '+details.join(' | '):''}`;
+  });
+  return `مواعيد ومهام اليوم — ${dateLabel} (إجمالي ${tasks.length}):\\n\\n`+lines.join('\\n');
+}
+
 async function executeAction(session:any,a:any){const senior=await isSeniorManagement(session);if(!senior&&session.role==='lawyer'){const rid=await createOfficeRequest({type:a.type==='create_session'?'TASK_CREATE_SESSION':'TASK_CREATE',title:a.type==='create_session'?'طلب إضافة جلسة':'طلب إضافة تكليف',reason:String(a.description||''),payload:a,targetEntityType:'task',session});await notifySenior('طلب تنفيذ جديد',String(a.description||'طلب جديد'),'/admin/office').catch(()=>undefined);return{ok:true,requiresApproval:true,requestId:rid,reply:'تم إرسال الطلب للإدارة العليا للموافقة.'};}const description=String(a.description||'مهمة جديدة').trim();const locationId=a.locationId?String(a.locationId):null;const date=a.scheduledDate?String(a.scheduledDate):null;const time=a.scheduledTime?String(a.scheduledTime):null;const lawyerIds=Array.isArray(a.lawyerIds)?a.lawyerIds.map(String):[];const branchId=await branchForWrite(session,typeof a.branchId==='string'?a.branchId:null);if(!branchId)return{error:'لا يوجد فرع محدد لهذا الحساب'};if(a.type==='create_session'&&(!locationId||!date||!time||!lawyerIds.length))return{error:'بيانات الجلسة ناقصة'};if(!locationId)return{error:'مكان العمل مطلوب'};const caseId=typeof a.caseId==='string'&&a.caseId.trim()?a.caseId.trim():null;if(caseId){const caseRows=await prisma.$queryRawUnsafe<Array<{id:string}>>(`SELECT "id" FROM "case_records" WHERE "id"=$1 AND COALESCE("branch_id",'branch_main')=$2 LIMIT 1`,caseId,branchId);if(!caseRows.length)return{error:'القضية المحددة غير موجودة في هذا الفرع'};}const id=officeId('task');await prisma.$executeRawUnsafe(`INSERT INTO "tasks" ("id","locationId","caseId","description","notes","scheduledDate","scheduledTime","status","createdById","authorId","branch_id","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::date,$7,'PENDING',$8,$9,$10,NOW(),NOW())`,id,locationId,caseId,description,a.notes?String(a.notes):null,date,time,session.role==='admin'?session.userId:null,session.role==='lawyer'?session.lawyerId:null,branchId);for(const lid of lawyerIds)await prisma.$executeRawUnsafe(`INSERT INTO "task_assignments" ("id","taskId","lawyerId","createdAt") VALUES ($1,$2,$3,NOW()) ON CONFLICT ("taskId","lawyerId") DO NOTHING`,officeId('assign'),id,lid);await logActivity({action:'CREATED',summary:`أنشأ ${a.type==='create_session'?'جلسة':'مهمة'}: ${description}`,taskId:id,locationId,byUserId:session.role==='admin'?session.userId:undefined,byLawyerId:session.role==='lawyer'?session.lawyerId:undefined}).catch(()=>undefined);if(lawyerIds.length)await notifyTaskAssigned(lawyerIds,description,date?(date+(time?` — ${time}`:'')):'بالتنسيق',`/sessions/${id}`).catch(()=>undefined);let branchName='المقر الرئيسي';try{const rows=await prisma.$queryRawUnsafe<Array<{name_ar:string}>>(`SELECT "name_ar" FROM "office_branches" WHERE "id"=$1 LIMIT 1`,branchId);branchName=rows[0]?.name_ar||branchName;}catch{}const location=locationId?await prisma.location.findUnique({where:{id:locationId},select:{name:true}}):null;const assignedLawyers=lawyerIds.length?await prisma.lawyer.findMany({where:{id:{in:lawyerIds}},select:{id:true,fullName:true}}):[];const lawyerNames=lawyerIds.map((lid)=>assignedLawyers.find((l)=>l.id===lid)?.fullName).filter(Boolean) as string[];const caseName=String(a.caseName||'').trim();const caseNumber=String(a.caseNumber||'').trim();const caseLabel=caseName&&caseNumber&&!caseName.includes(caseNumber)?caseName+' — '+caseNumber:(caseName||caseNumber);const telegramMessage=[a.type==='create_session'?'📅 جلسة جديدة':'📌 تكليف جديد','', 'التكليف: '+description,a.taskType?'النوع: '+String(a.taskType):null,location?.name?'المكان: '+location.name:null,caseLabel?'القضية: '+caseLabel:null,a.clientName?'العميل: '+String(a.clientName):null,date?'التاريخ: '+date:null,time?'الوقت: '+time:null,lawyerNames.length?'المحامي / المحامون: '+lawyerNames.join('، '):null,'الفرع: '+branchName,'أنشأه: '+session.name,'','فتح التكليف: '+appOrigin()+'/sessions/'+id].filter(Boolean).join('\n');let telegramSent=true;try{await sendTelegramGroupNotification(escapeTelegramHtml(telegramMessage));}catch(error){telegramSent=false;console.error('Assistant Telegram notification failed:',error);}return{ok:true,success:true,telegramSent,reply:telegramSent?(a.type==='create_session'?'تمت إضافة الجلسة بنجاح.':'تم إنشاء المهمة بنجاح.'):'تم حفظ الإجراء، لكن فشل إرسال إشعار تيليجرام. راجع إعدادات البوت وصلاحياته في المجموعة.',navigation:{path:`/sessions/${id}`,label:a.type==='create_session'?'فتح الجلسة':'فتح المهمة'}};}
 export async function GET(){const session=await user();if(!session)return NextResponse.json({error:'يجب تسجيل الدخول'},{status:401});const settings=await getAssistantSettings();return NextResponse.json({configured:Boolean(settings.apiKey),model:settings.model,provider:settings.baseUrl,apiKeyConfigured:Boolean(settings.apiKey)});}
 export async function POST(req:Request){const session=await user();if(!session)return NextResponse.json({error:'يجب تسجيل الدخول'},{status:401});let body;try{body=bodySchema.parse(await req.json())}catch{return NextResponse.json({error:'طلب غير صالح'},{status:400})}const urlBranchId=new URL(req.url).searchParams.get('branchId')?.trim()||undefined;
@@ -84,6 +147,13 @@ if(body.confirm&&body.action){
     console.error('[assistant-action]',error);
     return NextResponse.json({ok:false,error:'فشل تنفيذ المهمة بسبب خطأ داخلي. لم يتم تأكيد التنفيذ؛ راجع سجل النظام قبل إعادة المحاولة.'},{status:500});
   }
+}
+try {
+  const directTodayAnswer=await answerTodayScheduleIfRequested(body.message,effectiveBranchId);
+  if(directTodayAnswer!==null)return NextResponse.json({reply:directTodayAnswer,provider:'database',configured:true,aiAvailable:false});
+} catch(error) {
+  console.error('[assistant-today-schedule]',error);
+  return NextResponse.json({reply:'تعذر تحميل مواعيد اليوم من قاعدة بيانات المكتب. حاول فتح «مواعيد اليوم» من الاختيارات المباشرة.',provider:'database',configured:true,aiAvailable:false},{status:500});
 }
 const c=await context(effectiveBranchId);
 const history=(body.history||[]).filter((item)=>item.content.trim()).slice(-12);try {const upstream=await geminiStream(body.message,c,history,AbortSignal.timeout(45000));const reader=upstream.getReader();const decoder=new TextDecoder();const encoder=new TextEncoder();let buffer='';return new Response(new ReadableStream({async start(controller){try{for(;;){const{value,done}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const blocks=buffer.split(/\r?\n\r?\n/);buffer=blocks.pop()||'';for(const block of blocks){for(const line of block.split('\n')){if(!line.startsWith('data:'))continue;const raw=line.slice(5).trim();if(!raw||raw==='[DONE]')continue;try{const j=JSON.parse(raw);const text=j.choices?.[0]?.delta?.content||j.choices?.[0]?.message?.content||'';if(text)controller.enqueue(encoder.encode(event({type:'token',text})));}catch{}}}}controller.enqueue(encoder.encode(event({type:'done',configured:true})));controller.close();}catch(e){console.error('[assistant]',e);controller.enqueue(encoder.encode(event({type:'error',error:'تعذر الاتصال بخدمة المساعد حالياً.'})));controller.close();}}}),{headers:{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'}});}catch(e){
