@@ -57,6 +57,7 @@ export const GET = handle(async (_request: Request, { params }: Ctx) => {
   return json({
     files: rows.map((file) => ({
       ...file,
+      size_bytes: file.size_bytes === null ? null : Number(file.size_bytes),
       url: parsePrivateS3UrlForPrefix(file.url, prefix)
         ? `/api/cases/${encodeURIComponent(id)}/files/${encodeURIComponent(file.id)}/content`
         : null,
