@@ -21,7 +21,7 @@ export function AssistantSettings(){
       if(!r.ok)throw new Error(d.error||'تعذر تحميل الإعدادات.');
       setBaseUrl(d.baseUrl||'');
       setModel(d.model||'');
-      setConfigured(Boolean(d.keyConfigured||d.configured));
+      setConfigured(Boolean(d.keyConfigured));
     }catch(e){setMsg(e instanceof Error?e.message:'تعذر تحميل إعدادات المساعد.');}
     finally{setBusy(false);}
   },[]);
@@ -33,7 +33,7 @@ export function AssistantSettings(){
       const r=await fetch('/api/admin/assistant-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseUrl,model,apiKey:apiKey.trim()||undefined})});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error||'تعذر حفظ الإعدادات.');
-      setConfigured(Boolean(d.keyConfigured||d.configured));
+      setConfigured(Boolean(d.keyConfigured));
       setApiKey('');
       setMsg('تم حفظ إعدادات المساعد بنجاح.');
     }catch(e){setMsg(e instanceof Error?e.message:'تعذر حفظ الإعدادات.');}
