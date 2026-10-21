@@ -14,12 +14,11 @@ export async function POST(){
     if(!(await authorized()))return NextResponse.json({ok:false,error:'غير مصرح'},{status:403});
     const s=await getAssistantSettings();
     if(!s.apiKey)return NextResponse.json({ok:false,error:'مفتاح API غير مضبوط.'},{status:503});
-    const r=await fetch(assistantChatUrl(s.baseUrl),{
-      method:'POST',
-      headers:{Authorization:'Bearer '+s.apiKey,'Content-Type':'application/json'},
-      body:JSON.stringify({model:s.model,messages:[{role:'user',content:'Reply with exactly: الاتصال يعمل'}],temperature:0,max_tokens:32,stream:false}),
-      cache:'no-store',
-    });
+    const result=await fetchAssistantChat(s,{
+      messages:[{role:'user',content:'Reply with exactly: AI_OK'}],
+      temperature:0,max_tokens:32,stream:false,
+    },AbortSignal.timeout(15000));
+    const r=result.response;
     const d=await r.json().catch(()=>null);
     if(!r.ok)return NextResponse.json({ok:false,error:'فشل الاتصال بالـAPI (HTTP '+r.status+').',details:typeof d?.error?.message==='string'?d.error.message:undefined},{status:502});
     const response=d?.choices?.[0]?.message?.content;
