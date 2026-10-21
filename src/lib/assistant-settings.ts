@@ -32,13 +32,21 @@ function normalizeBaseUrl(value:string) {
   if(url.hostname==='generativelanguage.googleapis.com') return DEFAULT_ASSISTANT_BASE_URL;
   return url.toString().replace(/\/$/,'').replace(/\/chat\/completions$/,'');
 }
+function normalizeStoredBaseUrl(value:string) {
+  try {
+    return normalizeBaseUrl(value);
+  } catch {
+    return value.trim();
+  }
+}
 export async function getAssistantSettings() {
   const rows=await prisma.$queryRawUnsafe<Array<{base_url:string;model:string;api_key_encrypted:string|null}>>(
     'SELECT "base_url","model","api_key_encrypted" FROM "assistant_settings" WHERE "id"=$1 LIMIT 1','default',
   );
   const row=rows[0];
+  const rawBaseUrl=row?.base_url || process.env.ASSISTANT_API_BASE_URL || DEFAULT_ASSISTANT_BASE_URL;
   return {
-    baseUrl: row?.base_url || process.env.ASSISTANT_API_BASE_URL || DEFAULT_ASSISTANT_BASE_URL,
+    baseUrl: normalizeStoredBaseUrl(rawBaseUrl),
     model: row?.model || process.env.ASSISTANT_MODEL || DEFAULT_ASSISTANT_MODEL,
     apiKey: row?.api_key_encrypted ? decrypt(row.api_key_encrypted) : (process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || ''),
     configured: Boolean(row?.api_key_encrypted || process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY),
