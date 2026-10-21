@@ -1,43 +1,28 @@
 import 'server-only';
 
 import {
-  DeleteObjectCommand,
-  GetBucketCorsCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutBucketCorsCommand,
-  S3Client,
-  type CORSRule,
+  DeleteObjectCommand, GetBucketCorsCommand, GetObjectCommand,
+  HeadObjectCommand, PutBucketCorsCommand, S3Client, type CORSRule,
 } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider';
 
 export const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
-const POST_BODY_OVERHEAD_BYTES = 1024 * 1024;
-const UPLOAD_URL_TTL_SECONDS = 10 * 60;
-
-let s3Client: S3Client | undefined;
-let corsSetup: Promise<void> | undefined;
+let client: S3Client | undefined;
+let corsPromise: Promise<void> | undefined;
 
 export function getS3BucketName() {
   const bucket = process.env.S3_BUCKET_NAME?.trim();
-  if (!bucket) throw new Error('إعداد Amazon S3 غير مكتمل: متغير S3_BUCKET_NAME غير موجود.');
+  if (!bucket) throw new Error('إعداد Amazon S3 غير مكتمل: S3_BUCKET_NAME غير موجود.');
   return bucket;
 }
 
 export function getS3Client() {
   const region = process.env.AWS_REGION?.trim();
   const roleArn = process.env.AWS_ROLE_ARN?.trim();
-  if (!region || !roleArn) {
-    throw new Error('إعداد Amazon S3 غير مكتمل: اربط مخزن S3 بمشروع Vercel في بيئة Production.');
-  }
-  if (!s3Client) {
-    s3Client = new S3Client({
-      region,
-      credentials: awsCredentialsProvider({ roleArn }),
-    });
-  }
-  return s3Client;
+  if (!region || !roleArn) throw new Error('اربط تكامل Amazon S3 بمشروع Vercel في بيئة Production.');
+  if (!client) client = new S3Client({ region, credentials: awsCredentialsProvider({ roleArn }) });
+  return client;
 }
 
 export function makePrivateS3Url(key: string) {
@@ -46,84 +31,77 @@ export function makePrivateS3Url(key: string) {
 
 export function parsePrivateS3Url(value: string | null | undefined, clientId?: string) {
   const bucket = process.env.S3_BUCKET_NAME?.trim();
-  if (!value || !bucket) return null;
-  const prefix = 's3://' + bucket + '/';
-  if (!value.startsWith(prefix)) return null;
-
-  const key = value.slice(prefix.length);
-  const parts = key.split('/');
-  if (
-    !key ||
-    key.includes('\\') ||
-    key.includes('?') ||
-    key.includes('#') ||
-    parts.some((part) => !part || part === '.' || part === '..') ||
-    (clientId && !key.startsWith('clients/' + clientId + '/'))
-  ) {
-    return null;
-  }
+  if (!value || !bucket || !value.startsWith('s3://' + bucket + '/')) return null;
+  const key = value.slice(('s3://' + bucket + '/').length);
+  if (!key || key.includes('\\') || key.includes('?') || key.includes('#') ||
+      key.split('/').some((part) => !part || part === '.' || part === '..') ||
+      (clientId && !key.startsWith('clients/' + clientId + '/'))) return null;
   return { bucket, key };
 }
 
 function appOrigin() {
-  const candidate = process.env.NEXT_PUBLIC_APP_URL || proces...[truncated]          console.error('[client-file-s3] Could not read S3 CORS configuration:', error);
-          throw new Error('تعذر التحقق من إعدادات CORS في Amazon S3. تأكد من صلاحيات إعدادات الـ Bucket.');
-        }
-      }
+  const value = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://dr-hossam-lotfy-hw88.vercel.app';
+  try { return new URL(value).origin; } catch { return 'https://dr-hossam-lotfy-hw88.vercel.app'; }
+}
 
-      rules.push({
-        AllowedOrigins: [appOrigin()],
-        AllowedMethods: ['POST'],
-        AllowedHeaders: ['*'],
-        ExposeHeaders: ['ETag'],
-        MaxAgeSeconds: 3600,
-      });
-      try {
-        await s3.send(new PutBucketCorsCommand({
-          Bucket: bucket,
-          CORSConfiguration: { CORSRules: rules },
-        }));
-        console.info('[client-file-s3] Configured browser upload CORS for the production app origin.');
-      } catch (error) {
-        console.error('[client-file-s3] Could not configure S3 CORS:', error);
-        throw new Error('Amazon S3 متصل، لكن دور AWS لا يسمح بضبط CORS تلقائيًا. يلزم السماح بطلبات POST من نطاق الموقع داخل إعدادات Bucket.');
+function allowsUpload(rule: CORSRule) {
+  return !!rule.AllowedOrigins?.some((v) => v === '*' || v === appOrigin()) &&
+    !!rule.AllowedMethods?.includes('POST') &&
+    !!rule.AllowedHeaders?.some((v) => v === '*' || v.toLowerCase() === 'content-type');
+}
+
+async function ensureBrowserCors() {
+  if (!corsPromise) corsPromise = (async () => {
+    const s3 = getS3Client();
+    const bucket = getS3BucketName();
+    let rules: CORSRule[] = [];
+    try {
+      const current = await s3.send(new GetBucketCorsCommand({ Bucket: bucket }));
+      rules = current.CORSRules ?? [];
+      if (rules.some(allowsUpload)) return;
+    } catch (error) {
+      const e = error as { name?: string; $metadata?: { httpStatusCode?: number } };
+      if (e.$metadata?.httpStatusCode !== 404 && e.name !== 'NoSuchCORSConfiguration') {
+        console.error('[client-file-s3] Cannot read bucket CORS:', error);
+        throw new Error('تعذر قراءة إعدادات CORS في Amazon S3. تحقق من صلاحيات دور AWS.');
       }
-    })().catch((error) => {
-      corsSetup = undefined;
-      throw error;
-    });
-  }
-  await corsSetup;
+    }
+    rules.push({ AllowedOrigins: [appOrigin()], AllowedMethods: ['POST'], AllowedHeaders: ['*'], ExposeHeaders: ['ETag'], MaxAgeSeconds: 3600 });
+    try {
+      await s3.send(new PutBucketCorsCommand({ Bucket: bucket, CORSConfiguration: { CORSRules: rules } }));
+    } catch (error) {
+      console.error('[client-file-s3] Cannot set bucket CORS:', error);
+      throw new Error('يلزم السماح بطلبات POST من نطاق الموقع في إعدادات CORS الخاصة بـ Amazon S3.');
+    }
+  })().catch((error) => { corsPromise = undefined; throw error; });
+  await corsPromise;
 }
 
 export async function createClientFileUploadPost(key: string, contentType: string) {
-  await ensureS3BrowserUploadCors();
-  const { url, fields } = await createPresignedPost(getS3Client(), {
-    Bucket: getS3BucketName(),
-    Key: key,
-    Expires: UPLOAD_URL_TTL_SECONDS,
+  await ensureBrowserCors();
+  const signed = await createPresignedPost(getS3Client(), {
+    Bucket: getS3BucketName(), Key: key, Expires: 600,
     Fields: { 'Content-Type': contentType },
-    Conditions: [
-      ['eq', '$Content-Type', contentType],
-      ['content-length-range', 1, MAX_CLIENT_FILE_BYTES + POST_BODY_OVERHEAD_BYTES],
-    ],
+    Conditions: [['eq', '$Content-Type', contentType], ['content-length-range', 1, MAX_CLIENT_FILE_BYTES + 1024 * 1024]],
   });
-  return { url, fields, expiresIn: UPLOAD_URL_TTL_SECONDS };
+  return { url: signed.url, fields: signed.fields, expiresIn: 600 };
 }
 
-export async function verifyUploadedClientFile(
-  value: string,
-  clientId: string,
-  expectedSize: number,
-  expectedContentType: string,
-) {
+export async function verifyUploadedClientFile(value: string, clientId: string, expectedSize: number, expectedContentType: string) {
   const object = parsePrivateS3Url(value, clientId);
   if (!object) return false;
-
-  const head = await getS3Client().send(new HeadObjectCommand({
-    Bucket: object.bucket,
-    Key: object.key,
-  }));
-
+  const head = await getS3Client().send(new HeadObjectCommand({ Bucket: object.bucket, Key: object.key }));
   const size = head.ContentLength ?? -1;
-  const contentType = (head.ContentTyp...[truncated]
+  const mime = (head.ContentType || '').split(';', 1)[0].trim().toLowerCase();
+  const valid = size > 0 && size <= MAX_CLIENT_FILE_BYTES && size === expectedSize && mime === expectedContentType.toLowerCase();
+  if (!valid) await getS3Client().send(new DeleteObjectCommand({ Bucket: object.bucket, Key: object.key })).catch((error) => {
+    console.error('[client-file-s3] Could not delete invalid uploaded object:', error);
+  });
+  return valid;
+}
+
+export async function getPrivateS3Object(value: string, clientId: string) {
+  const object = parsePrivateS3Url(value, clientId);
+  if (!object) return null;
+  return getS3Client().send(new GetObjectCommand({ Bucket: object.bucket, Key: object.key }));
+}
