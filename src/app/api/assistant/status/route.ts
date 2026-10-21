@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { user } from '@/lib/api';
-import { assistantChatUrl, fetchAssistantChat, getAssistantSettings, saveAssistantSettings } from '@/lib/assistant-settings';
+import { assistantChatUrl, fetchAssistantChat, getAssistantSettings } from '@/lib/assistant-settings';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -44,14 +44,11 @@ export async function POST() {
       return NextResponse.json({ ok: false, error: 'وصل رد من API لكن محتواه غير متوقع.' }, { status: 502 });
     }
 
-    if (usedFallbackModel) {
-      await saveAssistantSettings({ baseUrl: settings.baseUrl, model });
-    }
     return NextResponse.json({
       ok: true,
       model,
       usedFallbackModel,
-      note: usedFallbackModel ? 'تم الاتصال بالموديل البديل وحفظ إعداداته للاستخدام في المرات القادمة.' : undefined,
+      note: usedFallbackModel ? 'تم الاتصال بالموديل البديل. يمكن للإدارة حفظه من إعدادات النظام.' : undefined,
     });
   } catch (error) {
     console.error('[assistant-status]', error);
