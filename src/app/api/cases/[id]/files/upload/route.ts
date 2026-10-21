@@ -37,7 +37,7 @@ export const POST = handle(async (request: Request, { params }: { params: Promis
   }
 
   const prefix = `cases/${id}/`;
-  if (!pathname.startsWith(prefix) || pathname.includes('\\\\') || pathname.includes('?') ||
+  if (!pathname.startsWith(prefix) || pathname.includes('\\') || pathname.includes('?') ||
       pathname.includes('#') || pathname.split('/').some((part: string) => !part || part === '.' || part === '..')) {
     throw new ApiError(400, 'مسار الملف غير صالح');
   }
