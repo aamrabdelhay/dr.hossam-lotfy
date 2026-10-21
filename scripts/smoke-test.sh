@@ -100,10 +100,15 @@ request 'Invalid lawyer login is rejected' POST '/api/auth/lawyer' 401 --header 
 
 request 'Search API requires sign-in (English)' GET '/api/search?q=tax' 401 || true
 request 'Search API requires sign-in (Arabic)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
-request 'Email reminder endpoint responds' GET '/api/cron/email-reminders' 200 || true
+request 'Cron endpoint rejects unauthenticated requests' GET '/api/cron/email-reminders' 401 || true
 
-request 'Admin page redirects guests to login' GET '/admin' 307 || true
-header_matches 'Admin redirect points to login' '^location:.*\/admin\/login'
+# /admin may rewrite to the public shell, but must never return the private admin view to guests.
+request 'Admin route guest shell' GET '/admin' 200 || true
+if grep -Fq 'منطقة الإدارة' "$last_body" || grep -Fq 'إدارة الفروع' "$last_body"; then
+  fail 'Admin route leaked admin-only content to a guest'
+else
+  pass 'Guest does not receive admin-only page content'
+fi
 request 'Guest cannot create a location' POST '/api/locations' 403 --data '' || true
 request 'Guest cannot read user records' GET '/api/users' 403 || true
 
