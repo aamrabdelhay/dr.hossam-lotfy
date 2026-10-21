@@ -20,9 +20,14 @@ export async function POST(){
     },AbortSignal.timeout(15000));
     const r=result.response;
     const d=await r.json().catch(()=>null);
-    if(!r.ok)return NextResponse.json({ok:false,error:'فشل الاتصال بالـAPI (HTTP '+r.status+').',details:typeof d?.error?.message==='string'?d.error.message:undefined},{status:502});
+    if(!r.ok) {
+      const endpoint=new URL(assistantChatUrl(s.baseUrl));
+      const details=typeof d?.error?.message==='string'?d.error.message:typeof d?.message==='string'?d.message:'الخدمة لم تُرجع تفاصيل. راجع عنوان API والموديل.';
+      return NextResponse.json({ok:false,error:'فشل الاتصال بالـAPI (HTTP '+r.status+').',details,endpoint:endpoint.origin+endpoint.pathname,model:result.model},{status:502});
+    }
     const response=d?.choices?.[0]?.message?.content;
-    return NextResponse.json({ok:true,model:s.model,response:typeof response==='string'?response:'تم الاتصال بنجاح.'});
+    if(result.usedFallbackModel) await saveAssistantSettings({baseUrl:s.baseUrl,model:result.model});
+    return NextResponse.json({ok:true,model:result.model,response:typeof response==='string'?response:'تم الاتصال بنجاح.',note:result.usedFallbackModel?'تم التحويل إلى الموديل البديل العامل وحفظ الإعدادات.':undefined});
   }catch(e){
     console.error('[assistant-test]',e);
     return NextResponse.json({ok:false,error:'تعذر اختبار اتصال الـAPI.'},{status:500});
