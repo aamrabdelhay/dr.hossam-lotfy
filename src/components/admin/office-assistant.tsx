@@ -241,9 +241,9 @@ export function OfficeAssistant() {
     try {
       const r = await fetch('/api/assistant/status', { method: 'POST', cache: 'no-store' });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d.ok) throw new Error([d.error || 'فشل اختبار الاتصال.', d.details].filter(Boolean).join(' — '));
+      if (!r.ok || !d.ok) throw new Error([d.error || 'فشل اختبار الاتصال.', d.details, d.endpoint ? 'العنوان: ' + d.endpoint : ''].filter(Boolean).join(' — '));
       setConfigured(true);
-      setMessages([{ role: 'assistant', text: `الاتصال يعمل بنجاح. الموديل: ${d.model || 'الموديل المضبوط'}.` }]);
+      setMessages([{ role: 'assistant', text: `الاتصال يعمل بنجاح. الموديل: ${d.model || 'الموديل المضبوط'}.${d.note ? ' ' + d.note : ''}` }]);
     } catch (e) {
       setMessages([{ role: 'assistant', text: `فشل اختبار الاتصال: ${e instanceof Error ? e.message : 'تعذر الوصول إلى الخدمة'}` }]);
     } finally {

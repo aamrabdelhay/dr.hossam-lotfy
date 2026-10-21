@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 
 export const DEFAULT_ASSISTANT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
-export const DEFAULT_ASSISTANT_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_ASSISTANT_MODEL = 'gemini-3.8-flash';
 
 function encryptionKey() {
   const secret = process.env.SESSION_SECRET;
@@ -29,15 +29,24 @@ function decrypt(value:string):string|null {
 function normalizeBaseUrl(value:string) {
   const url=new URL(value.trim());
   if(url.protocol!=='https:'&&url.hostname!=='localhost'&&url.hostname!=='127.0.0.1') throw new Error('عنوان API يجب أن يستخدم HTTPS.');
+  if(url.hostname==='generativelanguage.googleapis.com') return DEFAULT_ASSISTANT_BASE_URL;
   return url.toString().replace(/\/$/,'').replace(/\/chat\/completions$/,'');
+}
+function normalizeStoredBaseUrl(value:string) {
+  try {
+    return normalizeBaseUrl(value);
+  } catch {
+    return value.trim();
+  }
 }
 export async function getAssistantSettings() {
   const rows=await prisma.$queryRawUnsafe<Array<{base_url:string;model:string;api_key_encrypted:string|null}>>(
     'SELECT "base_url","model","api_key_encrypted" FROM "assistant_settings" WHERE "id"=$1 LIMIT 1','default',
   );
   const row=rows[0];
+  const rawBaseUrl=row?.base_url || process.env.ASSISTANT_API_BASE_URL || DEFAULT_ASSISTANT_BASE_URL;
   return {
-    baseUrl: row?.base_url || process.env.ASSISTANT_API_BASE_URL || DEFAULT_ASSISTANT_BASE_URL,
+    baseUrl: normalizeStoredBaseUrl(rawBaseUrl),
     model: row?.model || process.env.ASSISTANT_MODEL || DEFAULT_ASSISTANT_MODEL,
     apiKey: row?.api_key_encrypted ? decrypt(row.api_key_encrypted) : (process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || ''),
     configured: Boolean(row?.api_key_encrypted || process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY),
@@ -57,5 +66,52 @@ export async function saveAssistantSettings(input:{baseUrl:string;model:string;a
   return getAssistantSettings();
 }
 export function assistantChatUrl(baseUrl:string) {
-  return baseUrl.replace(/\/$/,'') + '/chat/completions';
+  const trimmed = baseUrl.trim().replace(/\/$/, '');
+  try {
+    const url = new URL(trimmed);
+    // The app sends OpenAI-compatible chat/completions payloads. Google exposes
+    // that compatibility API under /v1beta/openai, not the native /v1beta path.
+    if (url.hostname === 'generativelanguage.googleapis.com') {
+      return 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+    }
+  } catch {
+    // Preserve a useful URL construction error for invalid custom providers.
+  }
+  return trimmed.replace(/\/chat\/completions$/, '') + '/chat/completions';
+}
+
+export function isGeminiApiBaseUrl(baseUrl:string) {
+  try {
+    return new URL(baseUrl).hostname === 'generativelanguage.googleapis.com';
+  } catch {
+    return false;
+  }
+}
+
+/** Retry a Google OpenAI-compatible request with the currently recommended model
+ * if an older model returns 404. Never retry non-Google providers or other errors.
+ */
+export async function fetchAssistantChat(
+  settings: { baseUrl: string; model: string; apiKey: string },
+  payload: Record<string, unknown>,
+  signal?: AbortSignal,
+) {
+  const models = isGeminiApiBaseUrl(settings.baseUrl) && settings.model !== 'gemini-3.8-flash'
+    ? [settings.model, 'gemini-3.8-flash']
+    : [settings.model];
+
+  for (let i = 0; i < models.length; i++) {
+    const response = await fetch(assistantChatUrl(settings.baseUrl), {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + settings.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, model: models[i] }),
+      signal,
+      cache: 'no-store',
+    });
+    if (response.status !== 404 || i === models.length - 1) {
+      return { response, model: models[i], usedFallbackModel: i > 0 };
+    }
+    await response.body?.cancel().catch(() => undefined);
+  }
+  throw new Error('ASSISTANT_NO_MODEL_CANDIDATE');
 }
