@@ -17,13 +17,22 @@ const TELEGRAM_DAILY_KEY_PREFIX = 'telegram_daily_summary:';
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return true;
+  if (!secret) {
+    console.error('[cron] CRON_SECRET is not configured; refusing unauthenticated execution.');
+    return false;
+  }
   return req.headers.get('authorization') === `Bearer ${secret}`;
 }
 
 function isNightRun(): boolean {
-  const hour = new Date().getUTCHours();
-  return hour >= 16 && hour < 18;
+  // Use Cairo local time, not a fixed UTC window, so this stays aligned with
+  // Egypt's seasonal UTC offset. Runs at 23:00 or 00:00 are treated as night.
+  const hour = Number(new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    hour: '2-digit',
+    hour12: false,
+  }).format(new Date()));
+  return hour === 23 || hour === 0;
 }
 
 function cairoDateKey(date = new Date()): string {
