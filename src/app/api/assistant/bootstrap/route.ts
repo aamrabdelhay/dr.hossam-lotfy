@@ -23,26 +23,17 @@ export async function GET(req: Request) {
   }
 
   const today = cairoToday();
-  const [branchTaskRows, todayTaskRows] = await Promise.all([
-    branchId
-      ? prisma.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT "id" FROM "tasks" WHERE COALESCE("branch_id",'branch_main')=$1`,
-          branchId,
-        )
-      : Promise.resolve(undefined),
-    prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `SELECT "id" FROM "tasks"
-       WHERE "status" NOT IN ('COMPLETED','CANCELLED')
-         AND ("scheduledDate"=$1::date OR
-              ("scheduledDate" IS NULL AND ("createdAt" AT TIME ZONE 'Africa/Cairo')::date=$1::date))
-         AND ($2::text IS NULL OR COALESCE("branch_id",'branch_main')=$2)
-       ORDER BY "scheduledTime" ASC NULLS LAST, "createdAt" DESC
-       LIMIT 100`,
-      today,
-      branchId,
-    ),
-  ]);
-  const taskIds = branchTaskRows?.map((row) => row.id);
+  const todayTaskRows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT "id" FROM "tasks"
+     WHERE "status" NOT IN ('COMPLETED','CANCELLED')
+       AND ("scheduledDate"=$1::date OR
+            ("scheduledDate" IS NULL AND ("createdAt" AT TIME ZONE 'Africa/Cairo')::date=$1::date))
+       AND ($2::text IS NULL OR COALESCE("branch_id",'branch_main')=$2)
+     ORDER BY "scheduledTime" ASC NULLS LAST, "createdAt" DESC
+     LIMIT 100`,
+    today,
+    branchId,
+  );
   const todayTaskIds = todayTaskRows.map((row) => row.id);
 
   const [lawyers, locations, cases, todayTasks] = await Promise.all([
@@ -78,7 +69,6 @@ export async function GET(req: Request) {
     prisma.task.findMany({
       where: {
         id: { in: todayTaskIds },
-        ...(taskIds ? { id: { in: todayTaskIds.filter((id) => taskIds.includes(id)) } } : {}),
         status: { notIn: ['COMPLETED', 'CANCELLED'] },
       },
       orderBy: [{ scheduledTime: 'asc' }, { createdAt: 'desc' }],
