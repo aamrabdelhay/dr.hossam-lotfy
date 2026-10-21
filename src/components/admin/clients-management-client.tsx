@@ -134,7 +134,6 @@ export function ClientsManagementClient({
           access: 'private',
           handleUploadUrl: `/api/clients/${id}/files/upload`,
           contentType: fileType.mime,
-          multipart: file.size > 4 * 1024 * 1024,
           clientPayload: JSON.stringify({ clientId: id }),
           onUploadProgress: ({ percentage }) => {
             onProgress?.('uploading', percentage);
