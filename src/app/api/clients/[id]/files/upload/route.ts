@@ -13,11 +13,11 @@ const FILE_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
   '.pdf': 'application/pdf',
   '.doc': 'application/msword',
-  '.mp4': { mime: 'video/mp4', kind: 'video' },
-  '.webm': { mime: 'video/webm', kind: 'video' },
-  '.mp3': { mime: 'audio/mpeg', kind: 'audio' },
-  '.wav': { mime: 'audio/wav', kind: 'audio' },
-  '.ogg': { mime: 'audio/ogg', kind: 'audio' },
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
