@@ -98,7 +98,7 @@ export async function fetchAssistantChat(
 ) {
   const isGoogle = isGeminiApiBaseUrl(settings.baseUrl);
   const candidates = isGoogle
-    ? [settings.model, 'gemini-3.8-flash', 'gemini-3.6-flash']
+    ? [settings.model, 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']
     : [settings.model];
   const models = candidates.filter((model, index) => Boolean(model) && candidates.indexOf(model) === index);
   const retryableGoogleStatuses = new Set([404, 429, 500, 502, 503, 504]);
