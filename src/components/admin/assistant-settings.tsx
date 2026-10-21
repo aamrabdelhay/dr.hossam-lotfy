@@ -46,7 +46,7 @@ export function AssistantSettings(){
       const r=await fetch('/api/admin/assistant-test',{method:'POST'});
       const d=await r.json();
       setStatus(Boolean(d.ok));
-      setMsg(d.ok?'الاتصال يعمل مع الموديل '+(d.model||model)+'.':(d.error||'فشل اختبار الاتصال.')+(d.details?' — '+d.details:''));
+      setMsg(d.ok?'الاتصال يعمل مع الموديل '+(d.model||model)+'.'+(d.note?' '+d.note:''):(d.error||'فشل اختبار الاتصال.')+(d.details?' — '+d.details:'')+(d.endpoint?' — العنوان: '+d.endpoint:''));
     }catch{setStatus(false);setMsg('تعذر الوصول إلى خدمة اختبار الاتصال.')}
     finally{setTesting(false);}
   };
@@ -60,7 +60,7 @@ export function AssistantSettings(){
     <div className="mt-5 grid gap-4">
       <div><label className="mb-1.5 block text-[11px] font-bold text-navy-700">عنوان الـAPI</label><input value={baseUrl} onChange={e=>setBaseUrl(e.target.value)} dir="ltr" className="w-full rounded-xl border border-navy-200 bg-white px-3 py-2.5 font-mono text-xs text-navy-900 outline-none focus:border-gold-500" placeholder="https://api.example.com/v1"/></div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div><label className="mb-1.5 block text-[11px] font-bold text-navy-700">اسم الموديل</label><input value={model} onChange={e=>setModel(e.target.value)} dir="ltr" className="w-full rounded-xl border border-navy-200 bg-white px-3 py-2.5 font-mono text-xs text-navy-900 outline-none focus:border-gold-500" placeholder="gemini-2.5-flash"/></div>
+        <div><label className="mb-1.5 block text-[11px] font-bold text-navy-700">اسم الموديل</label><input value={model} onChange={e=>setModel(e.target.value)} dir="ltr" className="w-full rounded-xl border border-navy-200 bg-white px-3 py-2.5 font-mono text-xs text-navy-900 outline-none focus:border-gold-500" placeholder="gemini-3.8-flash"/></div>
         <div><label className="mb-1.5 block text-[11px] font-bold text-navy-700">مفتاح API</label><input value={apiKey} onChange={e=>setApiKey(e.target.value)} type="password" dir="ltr" autoComplete="new-password" className="w-full rounded-xl border border-navy-200 bg-white px-3 py-2.5 font-mono text-xs text-navy-900 outline-none focus:border-gold-500" placeholder={configured?'اتركه فارغاً للإبقاء على المفتاح الحالي':'ضع مفتاح API هنا'}/></div>
       </div>
     </div>
