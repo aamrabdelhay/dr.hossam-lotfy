@@ -228,9 +228,10 @@ function HelpResults({ onAsk }: { onAsk: (question: string) => void }) { const i
 export function OfficeAssistant() {
   const searchParams = useSearchParams();
   const branchId = searchParams.get('branchId') || undefined;
+  const branchCacheKey = `${CACHE_KEY}:${branchId || 'all'}`;
   const [open, setOpen] = React.useState(false); const [input, setInput] = React.useState(''); const [busy, setBusy] = React.useState(false); const [messages, setMessages] = React.useState<Msg[]>([]); const [configured, setConfigured] = React.useState<boolean | null>(null); const [directory, setDirectory] = React.useState<Directory | null>(null);
   const resetHome = () => { setMessages([]); setInput(''); setBusy(false); };
-  const loadDirectory = React.useCallback(async () => { try { const raw = localStorage.getItem(CACHE_KEY); if (raw) { const parsed = JSON.parse(raw); if (parsed?.data?.lawyers && Date.now() - Number(parsed.savedAt || 0) < 6 * 60 * 60 * 1000) setDirectory(parsed.data); } } catch {} try { const r = await fetch(branchId ? `/api/assistant/bootstrap?branchId=${encodeURIComponent(branchId)}` : '/api/assistant/bootstrap', { cache: 'no-store' }); if (!r.ok) throw new Error(); const d = await r.json(); const next: Directory = { lawyers: d.lawyers || [], locations: d.locations || [], cases: d.cases || [], todayTasks: d.todayTasks || [] }; setDirectory(next); try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {} } catch {} }, [branchId]);
+  const loadDirectory = React.useCallback(async () => { try { const raw = localStorage.getItem(branchCacheKey); if (raw) { const parsed = JSON.parse(raw); if (parsed?.data?.lawyers && Date.now() - Number(parsed.savedAt || 0) < 6 * 60 * 60 * 1000) setDirectory(parsed.data); } } catch {} try { const r = await fetch(branchId ? `/api/assistant/bootstrap?branchId=${encodeURIComponent(branchId)}` : '/api/assistant/bootstrap', { cache: 'no-store' }); if (!r.ok) throw new Error(); const d = await r.json(); const next: Directory = { lawyers: d.lawyers || [], locations: d.locations || [], cases: d.cases || [], todayTasks: d.todayTasks || [] }; setDirectory(next); try { localStorage.setItem(branchCacheKey, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {} } catch {} }, [branchId]);
   React.useEffect(() => { void loadDirectory(); }, [loadDirectory, branchId]);
   React.useEffect(() => { if (!open || configured !== null) return; fetch('/api/assistant', { cache: 'no-store' }).then(async (r) => { const d = await r.json(); setConfigured(Boolean(d.configured)); }).catch(() => setConfigured(false)); }, [open, configured]);
   const localAction = (type: 'task' | 'session'): Action | null => directory ? { type: type === 'task' ? 'create_task' : 'create_session', lawyerIds: [], choices: directory } : null;
@@ -262,7 +263,7 @@ export function OfficeAssistant() {
         if (!r.ok) throw new Error(d.error || 'تعذر تحميل مواعيد اليوم.');
         const next: Directory = { lawyers: d.lawyers || [], locations: d.locations || [], cases: d.cases || [], todayTasks: d.todayTasks || [] };
         setDirectory(next);
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {}
+        try { localStorage.setItem(branchCacheKey, JSON.stringify({ savedAt: Date.now(), data: next })); } catch {}
         setMessages([{ role: 'assistant', text: 'هذه مواعيد ومهام اليوم المحفوظة في المكتب:', local: 'today' }]);
       } catch (e) {
         setMessages([{ role: 'assistant', text: e instanceof Error ? e.message : 'تعذر تحديث مواعيد اليوم.', local: 'today' }]);
