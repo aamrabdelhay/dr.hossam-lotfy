@@ -29,6 +29,7 @@ type NavbarProps = {
     isOffice?: boolean;
   } | null;
   unread: number;
+  logoDataUrl?: string | null;
 };
 
 const COPY = {
@@ -55,7 +56,7 @@ const COPY = {
   back: 'رجوع',
 } as const;
 
-export function Navbar({ lawyers, locations, branches, session, unread }: NavbarProps) {
+export function Navbar({ lawyers, locations, branches, session, unread, logoDataUrl }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -188,7 +189,7 @@ export function Navbar({ lawyers, locations, branches, session, unread }: Navbar
     <header ref={wrapRef} className="fixed inset-x-0 top-2 z-50 mx-auto w-[calc(100%-1rem)] max-w-[1440px] rounded-2xl border border-navy-100 bg-white/95 shadow-lg backdrop-blur sm:top-3 sm:w-[calc(100%-2rem)]">
       <div className="relative flex min-h-14 items-center gap-1 px-2 sm:px-4">
         <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full text-navy-400 lg:hidden" onClick={() => setMobileOpen((value) => !value)} aria-label={COPY.menu}>{mobileOpen ? <X size={18} /> : <Menu size={18} />}</button>
-        <Link href="/" className="flex shrink-0 items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy-950 text-xs font-bold text-gold-400">LL</span><span className="hidden text-[12px] font-extrabold tracking-wider text-navy-950 sm:block">Loutfi</span></Link>
+        <Link href="/" className="flex shrink-0 items-center gap-2"><span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-navy-950 text-xs font-bold text-gold-400">{logoDataUrl ? <img src={logoDataUrl} alt="شعار مكتب لوتفي" className="h-full w-full object-contain" /> : 'LL'}</span><span className="hidden text-[12px] font-extrabold tracking-wider text-navy-950 sm:block">Loutfi</span></Link>
         <form onSubmit={doSearch} className="mx-2 hidden min-w-0 max-w-[360px] flex-1 xl:flex"><div className="relative w-full"><Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-navy-300" /><input value={q} onChange={(event) => setQ(event.target.value)} placeholder={COPY.searchPlaceholder} className="h-9 w-full rounded-full border border-navy-200 bg-ivory-50 ps-9 pe-3 text-[12px] text-navy-900 outline-none focus:border-gold-500" /></div></form>
         <nav className="hidden items-center gap-1 lg:flex">
           <div className="relative">
