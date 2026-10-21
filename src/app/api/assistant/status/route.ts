@@ -24,10 +24,11 @@ export async function POST() {
 
     const data = await response.json().catch(() => null);
     if (!response.ok) {
-      const details = typeof data?.error?.message === 'string'
-        ? data.error.message.slice(0, 240)
-        : typeof data?.message === 'string'
-          ? data.message.slice(0, 240)
+      const errorData = Array.isArray(data) ? data[0] : data;
+      const details = typeof errorData?.error?.message === 'string'
+        ? errorData.error.message.slice(0, 240)
+        : typeof errorData?.message === 'string'
+          ? errorData.message.slice(0, 240)
           : undefined;
       const endpoint = new URL(assistantChatUrl(settings.baseUrl));
       return NextResponse.json({
