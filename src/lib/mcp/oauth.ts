@@ -43,7 +43,7 @@ export async function exchangeAuthorizationCode(input:{code:string;clientId:stri
   const rows=await prisma.$queryRawUnsafe<any[]>('SELECT * FROM "mcp_oauth_codes" WHERE "codeHash"=$1 LIMIT 1',hash(input.code)); const row=rows[0];
   if(!row || row.usedAt || row.expiresAt<new Date() || row.clientId!==input.clientId || row.redirectUri!==input.redirectUri || row.resource!==input.resource || pkceChallenge(input.codeVerifier)!==row.codeChallenge) throw new Error('invalid_grant');
   const used=await prisma.$executeRawUnsafe('UPDATE "mcp_oauth_codes" SET "usedAt"=NOW() WHERE "id"=$1 AND "usedAt" IS NULL',row.id);
-  if(used.count!==1) throw new Error('invalid_grant');
+  if(used!==1) throw new Error('invalid_grant');
   const accessToken=token('mcpat'), refreshToken=token('mcprt');
   await prisma.$executeRawUnsafe('INSERT INTO "mcp_oauth_tokens" ("id","accessTokenHash","refreshTokenHash","authSessionId","clientId","scope","resource","expiresAt","refreshExpiresAt","createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())','tok_'+crypto.randomUUID(),hash(accessToken),hash(refreshToken),row.authSessionId,row.clientId,row.scope,row.resource,new Date(Date.now()+ACCESS_TTL_MS),new Date(Date.now()+REFRESH_TTL_MS));
   return {accessToken,refreshToken,scope:row.scope};
