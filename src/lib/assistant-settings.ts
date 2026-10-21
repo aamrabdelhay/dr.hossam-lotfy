@@ -45,12 +45,15 @@ export async function getAssistantSettings() {
   );
   const row=rows[0];
   const rawBaseUrl=row?.base_url || process.env.ASSISTANT_API_BASE_URL || DEFAULT_ASSISTANT_BASE_URL;
+  const decryptedKey = row?.api_key_encrypted ? decrypt(row.api_key_encrypted) : null;
+  const environmentKey = process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || '';
+  const apiKey = decryptedKey || environmentKey;
   return {
     baseUrl: normalizeStoredBaseUrl(rawBaseUrl),
     model: row?.model || process.env.ASSISTANT_MODEL || DEFAULT_ASSISTANT_MODEL,
-    apiKey: row?.api_key_encrypted ? decrypt(row.api_key_encrypted) : (process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY || ''),
-    configured: Boolean(row?.api_key_encrypted || process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY),
-    source: row ? 'database' : (process.env.ASSISTANT_API_KEY || process.env.GEMINI_API_KEY ? 'environment' : 'none'),
+    apiKey,
+    configured: Boolean(apiKey),
+    source: decryptedKey ? 'database' : (environmentKey ? 'environment' : 'none'),
   };
 }
 export async function saveAssistantSettings(input:{baseUrl:string;model:string;apiKey?:string}) {
