@@ -4,6 +4,7 @@ import { ApiError, handle, json, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { officeId } from '@/lib/office-workflow';
 import { clientFileContentUrl, isPrivateBlobUrl, requireClientFileAccess } from '@/lib/client-file-access';
+import { parsePrivateS3Url, verifyUploadedClientFile, MAX_CLIENT_FILE_BYTES as S3_MAX_CLIENT_FILE_BYTES } from '@/lib/client-file-s3';
 
 type ClientFileRow = {
   id: string;
@@ -16,7 +17,7 @@ type ClientFileRow = {
   created_at: Date | string;
 };
 
-const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
+const MAX_CLIENT_FILE_BYTES = S3_MAX_CLIENT_FILE_BYTES;
 const MAX_SERVER_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 const FILE_TYPES: Record<string, { mime: string; kind: string }> = {
@@ -139,7 +140,8 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
     size = Number(body.size || 0);
 
     if (UPLOADED_FILE_KINDS.has(kind)) {
-      if (!url || !isPrivateBlobUrl(url, id)) {
+      const s3Object = parsePrivateS3Url(url, id);
+      if (!url || (!isPrivateBlobUrl(url, id) && !s3Object)) {
         throw new ApiError(400, 'رابط الملف الخاص غير صالح أو لا يتبع هذا العميل.');
       }
       const fileType = typeFromPrivateUrl(url);
@@ -149,7 +151,15 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
       if (!Number.isInteger(size) || size <= 0 || size > MAX_CLIENT_FILE_BYTES) {
         throw new ApiError(413, 'حجم الملف غير صالح أو يتجاوز الحد الأقصى البالغ 100 ميجابايت.');
       }
+      if (s3Object) {
+        const verified = await verifyUploadedClientFile(url, id, size, fileType.mime);
+        if (!verified) {
+          throw new ApiError(400, 'لم يتم العثور على الملف الصحيح في Amazon S3. أعد رفع الملف ثم حاول مرة أخرى.');
+        }
+      }
       kind = fileType.kind;
+    } else if (url?.startsWith('s3://') && !parsePrivateS3Url(url, id)) {
+      throw new ApiError(400, 'لا يمكن ربط ملف مخزّن في Amazon S3 بعميل آخر أو بمخزن مختلف.');
     } else if (url?.includes('.private.blob.vercel-storage.com') && !isPrivateBlobUrl(url, id)) {
       throw new ApiError(400, 'لا يمكن ربط ملف خاص بعميل آخر أو بمخزن مختلف.');
     }

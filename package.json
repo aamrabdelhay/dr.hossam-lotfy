@@ -37,7 +37,10 @@
     "react-dom": "^19.2.0",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.4.0",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "@aws-sdk/client-s3": "^3.1154.0",
+    "@aws-sdk/s3-presigned-post": "^3.1154.0",
+    "@vercel/oidc-aws-credentials-provider": "^3.3.14"
   },
   "devDependencies": {
     "@embedded-postgres/linux-x64": "18.4.0-beta.17",

@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { upload as uploadPrivateBlob } from '@vercel/blob/client';
 import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
@@ -125,30 +124,47 @@ export function ClientsManagementClient({
         return false;
       }
 
-      const pathname=`clients/${id}/${crypto.randomUUID()}-${safeClientFilename(file.name)}`;
+      const pathname='clients/'+id+'/'+crypto.randomUUID()+'-'+safeClientFilename(file.name);
       onProgress?.('preparing',0);
-
-      let blob: { url: string };
+      let signed: { uploadUrl: string; fields: Record<string, string>; storedUrl: string };
       try {
-        blob = await uploadPrivateBlob(pathname, file, {
-          access: 'private',
-          handleUploadUrl: `/api/clients/${id}/files/upload`,
-          contentType: fileType.mime,
-          clientPayload: JSON.stringify({ clientId: id }),
-          onUploadProgress: ({ percentage }) => {
-            onProgress?.('uploading', percentage);
-          },
+        const response = await fetch('/api/clients/'+id+'/files/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pathname, contentType: fileType.mime, size: file.size }),
         });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'تعذر تجهيز رابط الرفع من Amazon S3.');
+        signed = result as typeof signed;
       } catch (error) {
-        console.error('[client-file-upload] Vercel Blob client upload failed:', error);
-        throw error instanceof Error ? error : new Error('تعذر نقل الملف إلى مخزن الملفات الخاص.');
+        console.error('[client-file-s3-upload] Could not get an Amazon S3 upload form:', error);
+        throw error instanceof Error ? error : new Error('تعذر الحصول على تصريح رفع الملف من Amazon S3.');
       }
+      await new Promise<void>((resolve, reject) => {
+        const form = new FormData();
+        for (const [key, value] of Object.entries(signed.fields)) form.append(key, value);
+        form.append('file', file);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', signed.uploadUrl);
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) onProgress?.('uploading', Math.round((event.loaded / event.total) * 100));
+        };
+        xhr.onerror = () => reject(new Error('تعذر الاتصال بـ Amazon S3. تحقق من إعدادات CORS في مخزن الملفات ثم أعد المحاولة.'));
+        xhr.onabort = () => reject(new Error('تم إلغاء رفع الملف.'));
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            onProgress?.('uploading',100);
+            resolve();
+          } else reject(new Error('رفض Amazon S3 رفع الملف (HTTP '+xhr.status+'). راجع إعدادات المخزن وحاول مرة أخرى.'));
+        };
+        xhr.send(form);
+      });
 
       onProgress?.('saving',100);
       payload={
         name:file.name,
         kind:fileType.kind,
-        url:blob.url,
+        url:signed.storedUrl,
         mimeType:fileType.mime,
         size:file.size,
       };
