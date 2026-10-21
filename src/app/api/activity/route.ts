@@ -8,7 +8,7 @@ export const GET = handle(async (req: Request) => {
   if (branchId) {
     const { getBranchScope } = await import('@/lib/branch-access');
     const scope = await getBranchScope(session);
-    if (!scope.allBranches && !scope.branchIds.includes(branchId)) return json({ error: 'غير مصرح لهذا الفرع' }, 403);
+    if (!scope.allBranches && !scope.branchIds.includes(branchId)) return json({ error: 'غير مصرح لهذا الفرع' }, { status: 403 });
     const [taskRows, lawyerRows] = await Promise.all([
       prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "tasks" WHERE "branch_id"=$1', branchId),
       prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "lawyer_id" AS "id" FROM "office_branch_lawyers" WHERE "branch_id"=$1', branchId),
