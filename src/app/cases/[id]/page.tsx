@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
 import { CaseFilesPanel } from '@/components/case-files-panel';
+import { clientFileContentUrl } from '@/lib/client-file-access';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ملف القضية' };
@@ -23,6 +24,7 @@ type CaseRow = {
 };
 type EventRow = { id: string; description: string; type: string; authorName: string | null; createdAt: Date };
 type TaskRow = { id: string; description: string; notes: string | null; scheduledDate: Date | null; scheduledTime: string | null; status: string; locationName: string | null };
+type FileRow = { id: string; name: string; kind: string; mime_type: string | null; size_bytes: number | null; url: string | null; text_content: string | null; created_at: Date };
 
 
 function fmtDate(value: Date | null | undefined) {
@@ -44,7 +46,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
   const caseRow = rows[0];
   if (!caseRow) notFound();
 
-  const [events, tasks, clientRows] = await Promise.all([
+  const [events, tasks, files, clientRows] = await Promise.all([
     prisma.$queryRawUnsafe<EventRow[]>(
       'SELECT "id","description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=$1 ORDER BY "createdAt" DESC',
       id,
@@ -54,6 +56,12 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
       id,
     ),
     caseRow.clientId
+      ? prisma.$queryRawUnsafe<FileRow[]>(
+          'SELECT "id","name","kind","mime_type","size_bytes","url","text_content","created_at" FROM "client_files" WHERE "client_id"=$1 AND "deleted_at" IS NULL ORDER BY "created_at" DESC',
+          caseRow.clientId,
+        )
+      : [],
+    caseRow.clientId
       ? prisma.$queryRawUnsafe<Array<{ id: string; name: string; phone: string | null; email: string | null }>>(
           'SELECT "id","name","phone","email" FROM "clients" WHERE "id"=$1 LIMIT 1',
           caseRow.clientId,
@@ -61,6 +69,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
       : [],
   ]);
   const clientRow = clientRows[0];
+  const clientFiles = clientRow ? files.map((file) => ({ ...file, url: clientFileContentUrl(clientRow.id, file.id, file.url) })) : [];
 
   return (
     <main dir="rtl" className="mx-auto w-full max-w-[1250px] px-4 py-7 sm:px-6 lg:px-8">
@@ -105,6 +114,13 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
       </div>
 
       <CaseFilesPanel caseId={id} />
+      <Card className="mt-5 overflow-hidden">
+        <div className="border-b border-navy-100 px-5 py-4">
+          <h2 className="flex items-center gap-2 text-sm font-black text-navy-950"><FolderOpen size={17} className="text-gold-600"/> ملفات العميل المرتبط بالقضية</h2>
+          <p className="mt-1 text-[10px] text-navy-400">المرفقات المحفوظة في ملف العميل. تُدار الإضافة من صفحة العميل، وتظل منفصلة عن ملفات القضية.</p>
+        </div>
+        {clientFiles.length === 0 ? <div className="p-7"><EmptyState title="لا توجد ملفات محفوظة في ملف العميل المرتبط بالقضية." /></div> : <div className="grid gap-2 p-5 sm:grid-cols-2">{clientFiles.map((file) => <div key={file.id} className="flex items-center justify-between gap-3 rounded-xl border border-navy-100 bg-ivory-50 px-3 py-3"><div className="flex min-w-0 items-center gap-2"><FileText size={15} className="shrink-0 text-gold-600"/><div className="min-w-0"><p className="truncate text-xs font-extrabold text-navy-800">{file.name}</p><p className="mt-1 text-[9px] text-navy-400">{file.kind}{file.size_bytes ? ' · ' + Math.round(Number(file.size_bytes) / 1024) + ' ك.ب' : ''}</p></div></div>{file.url && <a href={file.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-full border border-navy-200 bg-white px-2.5 py-1.5 text-[9px] font-bold text-navy-600">فتح</a>}</div>)}</div>}
+      </Card>
     </main>
   );
 }
