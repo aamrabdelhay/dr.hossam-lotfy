@@ -3,6 +3,7 @@ import 'server-only';
 import { ApiError, requirePermission, user } from '@/lib/api';
 import { getBranchScope } from '@/lib/branch-access';
 import { prisma } from '@/lib/prisma';
+import { parsePrivateS3Url } from '@/lib/client-file-s3';
 
 export async function requireClientFileAccess(clientId: string) {
   const session = await user();
@@ -52,6 +53,15 @@ export function isPrivateBlobUrl(value: string | null | undefined, clientId?: st
 
 export function clientFileContentUrl(clientId: string, fileId: string, storedUrl: string | null) {
   if (!storedUrl) return storedUrl;
+
+  // S3 objects are stored privately in the database using an s3:// URI.
+  // Never expose that internal URI to the browser. Route reads/downloads
+  // through our authenticated endpoint so branch/client access is enforced.
+  if (storedUrl.startsWith('s3://')) {
+    if (!parsePrivateS3Url(storedUrl, clientId)) return null;
+    return `/api/clients/${encodeURIComponent(clientId)}/files/${encodeURIComponent(fileId)}/content`;
+  }
+
   if (storedUrl.includes('.private.blob.vercel-storage.com')) {
     if (!isPrivateBlobUrl(storedUrl, clientId)) return null;
     return `/api/clients/${encodeURIComponent(clientId)}/files/${encodeURIComponent(fileId)}/content`;
