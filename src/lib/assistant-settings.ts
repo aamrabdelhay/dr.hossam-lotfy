@@ -29,6 +29,7 @@ function decrypt(value:string):string|null {
 function normalizeBaseUrl(value:string) {
   const url=new URL(value.trim());
   if(url.protocol!=='https:'&&url.hostname!=='localhost'&&url.hostname!=='127.0.0.1') throw new Error('عنوان API يجب أن يستخدم HTTPS.');
+  if(url.hostname==='generativelanguage.googleapis.com') return DEFAULT_ASSISTANT_BASE_URL;
   return url.toString().replace(/\/$/,'').replace(/\/chat\/completions$/,'');
 }
 export async function getAssistantSettings() {
