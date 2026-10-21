@@ -27,13 +27,18 @@ const FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   '.webp': { mime: 'image/webp', kind: 'image' },
   '.pdf': { mime: 'application/pdf', kind: 'pdf' },
   '.doc': { mime: 'application/msword', kind: 'word' },
+  '.mp4': { mime: 'video/mp4', kind: 'video' },
+  '.webm': { mime: 'video/webm', kind: 'video' },
+  '.mp3': { mime: 'audio/mpeg', kind: 'audio' },
+  '.wav': { mime: 'audio/wav', kind: 'audio' },
+  '.ogg': { mime: 'audio/ogg', kind: 'audio' },
   '.docx': {
     mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     kind: 'word',
   },
 };
 
-const UPLOADED_FILE_KINDS = new Set(['image', 'pdf', 'word', 'file']);
+const UPLOADED_FILE_KINDS = new Set(['image', 'pdf', 'word', 'video', 'audio', 'file']);
 
 function safeFilename(name: string) {
   return name
@@ -97,7 +102,7 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
     const extension = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
     const fileType = FILE_TYPES[extension];
     if (!fileType) {
-      throw new ApiError(400, 'نوع الملف غير مدعوم. استخدم صورة PNG أو JPG أو WebP أو PDF أو Word.');
+      throw new ApiError(400, 'نوع الملف غير مدعوم. استخدم صورة أو PDF أو Word أو فيديو MP4/WebM أو صوت MP3/WAV/OGG.');
     }
     if (file.type && file.type !== fileType.mime) {
       throw new ApiError(400, 'نوع الملف لا يتوافق مع امتداده. اختر الملف الأصلي وحاول مرة أخرى.');
