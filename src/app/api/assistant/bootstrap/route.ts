@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { user } from '@/lib/api';
 import { getBranchScope } from '@/lib/branch-access';
 
+export const dynamic = 'force-dynamic';
+
 function cairoToday() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
@@ -21,12 +23,27 @@ export async function GET(req: Request) {
   }
 
   const today = cairoToday();
-  const taskIds = branchId
-    ? await prisma.$queryRawUnsafe<string[]>(
-        `SELECT "id" FROM "tasks" WHERE COALESCE("branch_id",'branch_main')=$1`,
-        branchId,
-      )
-    : undefined;
+  const [branchTaskRows, todayTaskRows] = await Promise.all([
+    branchId
+      ? prisma.$queryRawUnsafe<Array<{ id: string }>>(
+          `SELECT "id" FROM "tasks" WHERE COALESCE("branch_id",'branch_main')=$1`,
+          branchId,
+        )
+      : Promise.resolve(undefined),
+    prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "tasks"
+       WHERE "status" NOT IN ('COMPLETED','CANCELLED')
+         AND ("scheduledDate"=$1::date OR
+              ("scheduledDate" IS NULL AND ("createdAt" AT TIME ZONE 'Africa/Cairo')::date=$1::date))
+         AND ($2::text IS NULL OR COALESCE("branch_id",'branch_main')=$2)
+       ORDER BY "scheduledTime" ASC NULLS LAST, "createdAt" DESC
+       LIMIT 100`,
+      today,
+      branchId,
+    ),
+  ]);
+  const taskIds = branchTaskRows?.map((row) => row.id);
+  const todayTaskIds = todayTaskRows.map((row) => row.id);
 
   const [lawyers, locations, cases, todayTasks] = await Promise.all([
     branchId
@@ -60,9 +77,9 @@ export async function GET(req: Request) {
         }),
     prisma.task.findMany({
       where: {
-        ...(taskIds ? { id: { in: taskIds } } : {}),
+        id: { in: todayTaskIds },
+        ...(taskIds ? { id: { in: todayTaskIds.filter((id) => taskIds.includes(id)) } } : {}),
         status: { notIn: ['COMPLETED', 'CANCELLED'] },
-        scheduledDate: new Date(`${today}T00:00:00`),
       },
       orderBy: [{ scheduledTime: 'asc' }, { createdAt: 'desc' }],
       take: 50,
@@ -88,5 +105,5 @@ export async function GET(req: Request) {
       caseNumber: item.caseRecord?.number || null,
       lawyers: item.assignees.map((x) => x.lawyer.fullName),
     })),
-  }, { headers: { 'Cache-Control': 'private, max-age=1800, stale-while-revalidate=3600' } });
+  }, { headers: { 'Cache-Control': 'private, no-store, max-age=0' } });
 }
