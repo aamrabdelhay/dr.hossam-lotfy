@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { isSeniorManagement } from '@/lib/office-workflow';
-import { assistantChatUrl, getAssistantSettings } from '@/lib/assistant-settings';
+import { assistantChatUrl, fetchAssistantChat, getAssistantSettings, saveAssistantSettings } from '@/lib/assistant-settings';
 
 async function authorized(){const session=await getCurrentUser();if(!session)return false;return session.role==='admin'||await isSeniorManagement(session);}
 export async function GET(){
