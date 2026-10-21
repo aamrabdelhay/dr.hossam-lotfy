@@ -13,7 +13,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
-  "connect-src 'self' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com",
+  "connect-src 'self' https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.private.blob.vercel-storage.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
