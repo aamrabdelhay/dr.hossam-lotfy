@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     `SELECT "id" FROM "tasks"
      WHERE "status" NOT IN ('COMPLETED','CANCELLED')
        AND ("scheduledDate"=$1::date OR
-            ("scheduledDate" IS NULL AND ("createdAt" AT TIME ZONE 'Africa/Cairo')::date=$1::date))
+            ("scheduledDate" IS NULL AND (("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Africa/Cairo')::date=$1::date))
        AND ($2::text IS NULL OR COALESCE("branch_id",'branch_main')=$2)
      ORDER BY "scheduledTime" ASC NULLS LAST, "createdAt" DESC
      LIMIT 100`,
