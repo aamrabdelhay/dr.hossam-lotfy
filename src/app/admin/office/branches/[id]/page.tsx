@@ -41,13 +41,14 @@ export default async function BranchDetailsPage({params}:{params:Promise<{id:str
 
   const adminIdentity=await getAdminIdentity(session);
   const taskIds=await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "tasks" WHERE "branch_id"=$1 ORDER BY "createdAt" DESC LIMIT 1000',id);
+  const branchLawyerRows=await prisma.$queryRawUnsafe<Array<{id:string}>>('SELECT "lawyer_id" AS "id" FROM "office_branch_lawyers" WHERE "branch_id"=$1',id);
   const [stats,lawyers,locations,cases,categories,activity,notifications,feed]=await Promise.all([
     getBranchAdminStats(id),
     prisma.$queryRawUnsafe<any[]>(`SELECT l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."googleEmail",l."specialization",l."bio",l."position",l."profilePhotoUrl" AS "photo",l."isPrincipal",l."active",l."approvedAt",COUNT(ta."id") FILTER (WHERE ta."completedAt" IS NULL AND t."status" NOT IN ('CANCELLED') AND (t."scheduledDate" >= CURRENT_DATE OR t."scheduledDate" IS NULL))::int AS "upcoming" FROM "office_branch_lawyers" bl INNER JOIN "lawyers" l ON l."id"=bl."lawyer_id" LEFT JOIN "task_assignments" ta ON ta."lawyerId"=l."id" LEFT JOIN "tasks" t ON t."id"=ta."taskId" AND t."branch_id"=$1 WHERE bl."branch_id"=$1 GROUP BY l."id",l."slug",l."fullName",l."title",l."phone",l."email",l."googleEmail",l."specialization",l."bio",l."position",l."profilePhotoUrl",l."isPrincipal",l."active",l."approvedAt" ORDER BY l."sortOrder",l."fullName"`,id),
     prisma.$queryRawUnsafe<any[]>(`SELECT "id","slug","name","nameEn","type","subType","governorate","city","district","workingHours","jurisdiction","distanceBucket","services","description" FROM "locations" ORDER BY "type","name"`),
     prisma.$queryRawUnsafe<any[]>(`SELECT c."id",c."name",c."number",c."clientName",c."category_id",COALESCE(c."workflow_status",'UNDER_REVIEW') AS "workflow_status" FROM "case_records" c WHERE c."branch_id"=$1 ORDER BY c."id" DESC LIMIT 100`,id),
     prisma.$queryRawUnsafe<any[]>(`SELECT "id","name_ar","name_en","sort_order","active" FROM "office_case_categories" ORDER BY "sort_order","name_ar"`),
-    prisma.activityLog.findMany({where:taskIds.length?{OR:[{taskId:{in:taskIds}},{lawyerId:{in:lawyers.map((l)=>l.id)}}]}:undefined,orderBy:{createdAt:'desc'},take:12}),
+    prisma.activityLog.findMany({where:taskIds.length?{OR:[{taskId:{in:taskIds}},{lawyerId:{in:branchLawyerRows.map((l)=>l.id)}}]}:undefined,orderBy:{createdAt:'desc'},take:12}),
     prisma.notification.findMany({where:{userId:adminIdentity.userId},orderBy:{createdAt:'desc'},take:30}),
     getFeed({taskIds,limit:15}),
   ]);
