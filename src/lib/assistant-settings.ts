@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 
 export const DEFAULT_ASSISTANT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
-export const DEFAULT_ASSISTANT_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_ASSISTANT_MODEL = 'gemini-3.8-flash';
 
 function encryptionKey() {
   const secret = process.env.SESSION_SECRET;
@@ -57,5 +57,52 @@ export async function saveAssistantSettings(input:{baseUrl:string;model:string;a
   return getAssistantSettings();
 }
 export function assistantChatUrl(baseUrl:string) {
-  return baseUrl.replace(/\/$/,'') + '/chat/completions';
+  const trimmed = baseUrl.trim().replace(/\/$/, '');
+  try {
+    const url = new URL(trimmed);
+    // The app sends OpenAI-compatible chat/completions payloads. Google exposes
+    // that compatibility API under /v1beta/openai, not the native /v1beta path.
+    if (url.hostname === 'generativelanguage.googleapis.com') {
+      return 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+    }
+  } catch {
+    // Preserve a useful URL construction error for invalid custom providers.
+  }
+  return trimmed.replace(/\/chat\/completions$/, '') + '/chat/completions';
+}
+
+export function isGeminiApiBaseUrl(baseUrl:string) {
+  try {
+    return new URL(baseUrl).hostname === 'generativelanguage.googleapis.com';
+  } catch {
+    return false;
+  }
+}
+
+/** Retry a Google OpenAI-compatible request with the currently recommended model
+ * if an older model returns 404. Never retry non-Google providers or other errors.
+ */
+export async function fetchAssistantChat(
+  settings: { baseUrl: string; model: string; apiKey: string },
+  payload: Record<string, unknown>,
+  signal?: AbortSignal,
+) {
+  const models = isGeminiApiBaseUrl(settings.baseUrl) && settings.model !== 'gemini-3.8-flash'
+    ? [settings.model, 'gemini-3.8-flash']
+    : [settings.model];
+
+  for (let i = 0; i < models.length; i++) {
+    const response = await fetch(assistantChatUrl(settings.baseUrl), {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + settings.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, model: models[i] }),
+      signal,
+      cache: 'no-store',
+    });
+    if (response.status !== 404 || i === models.length - 1) {
+      return { response, model: models[i], usedFallbackModel: i > 0 };
+    }
+    await response.body?.cancel().catch(() => undefined);
+  }
+  throw new Error('ASSISTANT_NO_MODEL_CANDIDATE');
 }
