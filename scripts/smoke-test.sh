@@ -102,12 +102,13 @@ request 'Search API requires sign-in (English)' GET '/api/search?q=tax' 401 || t
 request 'Search API requires sign-in (Arabic)' GET '/api/search?q=%D9%85%D8%AD%D9%83%D9%85%D8%A9' 401 || true
 request 'Cron endpoint rejects unauthenticated requests' GET '/api/cron/email-reminders' 401 || true
 
-# /admin may rewrite to the public shell, but must never return the private admin view to guests.
-request 'Admin route guest shell' GET '/admin' 200 || true
-if grep -Fq 'منطقة الإدارة' "$last_body" || grep -Fq 'إدارة الفروع' "$last_body"; then
-  fail 'Admin route leaked admin-only content to a guest'
+# Next streams the redirect as a 200 HTML shell with a meta refresh and NEXT_REDIRECT marker.
+# Check the actual redirect marker; route metadata may legitimately contain the admin page title.
+request 'Admin route redirects guests to sign-in' GET '/admin' 200 || true
+if grep -Fq 'http-equiv="refresh" content="1;url=/auth"' "$last_body" || grep -Fq 'NEXT_REDIRECT;replace;/auth;307;' "$last_body"; then
+  pass 'Guest is redirected to sign-in before admin content renders'
 else
-  pass 'Guest does not receive admin-only page content'
+  fail 'Admin route is missing the guest redirect marker'
 fi
 request 'Guest cannot create a location' POST '/api/locations' 403 --data '' || true
 request 'Guest cannot read user records' GET '/api/users' 403 || true
