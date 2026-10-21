@@ -100,8 +100,12 @@ export async function verifyUploadedClientFile(value: string, clientId: string, 
   return valid;
 }
 
-export async function getPrivateS3Object(value: string, clientId: string) {
+export async function getPrivateS3Object(value: string, clientId: string, range?: string) {
   const object = parsePrivateS3Url(value, clientId);
   if (!object) return null;
-  return getS3Client().send(new GetObjectCommand({ Bucket: object.bucket, Key: object.key }));
+  return getS3Client().send(new GetObjectCommand({
+    Bucket: object.bucket,
+    Key: object.key,
+    ...(range ? { Range: range } : {}),
+  }));
 }

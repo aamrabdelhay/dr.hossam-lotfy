@@ -13,6 +13,11 @@ const FILE_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
   '.pdf': 'application/pdf',
   '.doc': 'application/msword',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
@@ -46,7 +51,7 @@ export const POST = handle(async (request: Request, { params }: { params: Promis
   const leaf = pathname.slice(prefix.length);
   if (!/^[a-f0-9-]{36}-/i.test(leaf)) throw new ApiError(400, 'اسم الملف غير صالح');
   const contentType = fileTypeFromPath(leaf);
-  if (!contentType) throw new ApiError(400, 'نوع الملف غير مدعوم. استخدم PNG أو JPG أو WebP أو PDF أو Word.');
+  if (!contentType) throw new ApiError(400, 'نوع الملف غير مدعوم. استخدم صورة أو PDF أو Word أو فيديو MP4/WebM أو صوت MP3/WAV/OGG.');
   if (requestedContentType !== contentType) throw new ApiError(400, 'نوع الملف لا يتوافق مع امتداده. اختر الملف الأصلي وحاول مرة أخرى.');
 
   try {

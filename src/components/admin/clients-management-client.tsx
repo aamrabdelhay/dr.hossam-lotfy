@@ -10,6 +10,11 @@ const CLIENT_FILE_TYPES: Record<string, { mime: string; kind: string }> = {
   '.jpg': { mime: 'image/jpeg', kind: 'image' },
   '.jpeg': { mime: 'image/jpeg', kind: 'image' },
   '.webp': { mime: 'image/webp', kind: 'image' },
+  '.mp4': { mime: 'video/mp4', kind: 'video' },
+  '.webm': { mime: 'video/webm', kind: 'video' },
+  '.mp3': { mime: 'audio/mpeg', kind: 'audio' },
+  '.wav': { mime: 'audio/wav', kind: 'audio' },
+  '.ogg': { mime: 'audio/ogg', kind: 'audio' },
   '.pdf': { mime: 'application/pdf', kind: 'pdf' },
   '.doc': { mime: 'application/msword', kind: 'word' },
   '.docx': { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', kind: 'word' },
@@ -373,7 +378,7 @@ function ClientRow({
       {showAdd&&(
         <div className="mt-3 rounded-xl bg-ivory-50 p-3">
           <div className="grid gap-2 sm:grid-cols-3">
-            <label className="rounded-xl border bg-white p-3 text-xs font-bold">رفع ملف (حتى 100 ميجابايت)<input type="file" accept="image/png,image/jpeg,image/webp,.pdf,.doc,.docx" onChange={e=>setFile(e.target.files?.[0]||null)} className="mt-2 w-full text-[10px]"/></label>
+            <label className="rounded-xl border bg-white p-3 text-xs font-bold">رفع ملف (حتى 100 ميجابايت)<input type="file" accept="image/png,image/jpeg,image/webp,.pdf,.doc,.docx,.mp4,.webm,.mp3,.wav,.ogg" onChange={e=>setFile(e.target.files?.[0]||null)} className="mt-2 w-full text-[10px]"/></label>
             <label className="rounded-xl border bg-white p-3 text-xs font-bold">رابط<input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" className="mt-2 w-full rounded-lg border p-2 text-xs"/></label>
             <label className="rounded-xl border bg-white p-3 text-xs font-bold">ملاحظة<textarea value={text} onChange={e=>setText(e.target.value)} className="mt-2 w-full rounded-lg border p-2 text-xs" placeholder="نص أو ملاحظة"/></label>
           </div>
@@ -418,15 +423,87 @@ function ClientRow({
 }
 
 function FilePreview({item,onClose}:{item:any;onClose:()=>void}) {
+  const name = String(item.name || 'ملف');
+  const extension = name.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
+  const kind = item.kind || '';
+  const isImage = kind === 'image' || ['.png','.jpg','.jpeg','.webp'].includes(extension);
+  const isPdf = kind === 'pdf' || extension === '.pdf';
+  const isVideo = kind === 'video' || ['.mp4','.webm'].includes(extension);
+  const isAudio = kind === 'audio' || ['.mp3','.wav','.ogg'].includes(extension);
+  const isWord = kind === 'word' || ['.doc','.docx'].includes(extension);
+  const isLink = kind === 'link';
+  const url = typeof item.url === 'string' ? item.url : '';
+  const downloadUrl = url.startsWith('/api/clients/')
+    ? url + (url.includes('?') ? '&' : '?') + 'download=1'
+    : url;
+
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-navy-950/60 p-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-2xl bg-white p-4">
-        <div className="flex items-center justify-between"><b>{item.name}</b><button onClick={onClose}><X size={18}/></button></div>
-        {item.url
-          ? (item.kind==='image'
-            ? <img src={item.url} alt={item.name} className="mx-auto mt-4 max-h-[70vh] max-w-full"/>
-            : <iframe title={item.name} src={item.url} className="mt-4 h-[70vh] w-full rounded-lg border"/>)
-          : <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-ivory-50 p-4 text-sm leading-7">{item.text||'لا يوجد محتوى نصي.'}</pre>}
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-navy-950/75 p-2 sm:p-4" role="dialog" aria-modal="true" aria-label={'معاينة '+name}>
+      <div className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-navy-100 px-4 py-3">
+          <div className="min-w-0">
+            <b className="block truncate text-sm text-navy-950">{name}</b>
+            <span className="text-[11px] text-navy-400">
+              {isPdf ? 'عارض PDF' : isImage ? 'عارض الصور' : isVideo ? 'مشغل فيديو' : isAudio ? 'مشغل صوت' : isWord ? 'مستند Word' : isLink ? 'رابط خارجي' : 'معاينة الملف'}
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {url && !isLink && <a href={downloadUrl} className="inline-flex items-center gap-1 rounded-lg border border-navy-200 px-3 py-2 text-xs font-bold text-navy-800 hover:bg-navy-50"><Download size={14}/>تحميل</a>}
+            <button type="button" onClick={onClose} aria-label="إغلاق المعاينة" className="rounded-lg border border-navy-200 p-2 text-navy-700 hover:bg-navy-50"><X size={18}/></button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-auto bg-slate-100 p-2 sm:p-4">
+          {url && isImage ? (
+            <div className="flex min-h-[40vh] items-center justify-center">
+              <img src={url} alt={name} className="max-h-[78vh] max-w-full rounded-lg object-contain" />
+            </div>
+          ) : url && isPdf ? (
+            <iframe
+              title={'عارض PDF: '+name}
+              src={url+'#toolbar=1&navpanes=0&view=FitH'}
+              className="h-[78vh] min-h-[420px] w-full rounded-lg border border-slate-200 bg-white"
+              referrerPolicy="same-origin"
+            />
+          ) : url && isVideo ? (
+            <div className="flex min-h-[40vh] items-center justify-center">
+              <video controls playsInline preload="metadata" src={url} className="max-h-[78vh] w-full max-w-4xl rounded-xl bg-black">
+                المتصفح لا يدعم تشغيل هذا الفيديو.
+              </video>
+            </div>
+          ) : url && isAudio ? (
+            <div className="flex min-h-[40vh] flex-col items-center justify-center gap-5 rounded-xl bg-white p-6">
+              <div className="flex size-20 items-center justify-center rounded-full bg-navy-50 text-navy-800"><FileText size={32}/></div>
+              <div className="text-center">
+                <b className="text-sm text-navy-950">{name}</b>
+                <p className="mt-1 text-xs text-navy-500">تشغيل الملف الصوتي</p>
+              </div>
+              <audio controls preload="metadata" src={url} className="w-full max-w-2xl">
+                المتصفح لا يدعم تشغيل هذا الملف الصوتي.
+              </audio>
+            </div>
+          ) : url && isWord ? (
+            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-xl bg-white p-8 text-center">
+              <FileText size={42} className="text-navy-500"/>
+              <h3 className="mt-4 text-base font-extrabold text-navy-950">مستند Word</h3>
+              <p className="mt-2 max-w-md text-sm leading-7 text-navy-500">المتصفح لا يعرض ملفات DOC وDOCX بشكل موثوق داخل المشغل. حمّل المستند لفتحه كاملًا مع الحفاظ على تنسيقه.</p>
+              <a href={downloadUrl} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy-950 px-5 py-3 text-sm font-bold text-white"><Download size={16}/>تحميل المستند</a>
+            </div>
+          ) : url && isLink ? (
+            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-xl bg-white p-8 text-center">
+              <p className="text-sm font-bold text-navy-800">هذا عنصر محفوظ كرابط خارجي.</p>
+              <a href={url} target="_blank" rel="noopener noreferrer" className="mt-4 break-all text-sm font-bold text-blue-700 underline">فتح الرابط في علامة تبويب جديدة</a>
+            </div>
+          ) : url ? (
+            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-xl bg-white p-8 text-center">
+              <FileText size={42} className="text-navy-500"/>
+              <p className="mt-3 text-sm text-navy-600">لا يوجد مشغل مناسب لهذا النوع من الملفات.</p>
+              <a href={downloadUrl} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy-950 px-5 py-3 text-sm font-bold text-white"><Download size={16}/>تحميل الملف</a>
+            </div>
+          ) : (
+            <pre className="whitespace-pre-wrap rounded-xl bg-white p-4 text-sm leading-7 text-navy-900">{item.text||'لا يوجد محتوى نصي.'}</pre>
+          )}
+        </div>
       </div>
     </div>
   );
