@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { handle, json, readJson, user } from '@/lib/api';
 import { can } from '@/lib/rbac';
 import { getBranchScope } from '@/lib/branch-access';
+import { isSeniorManagement } from '@/lib/office-workflow';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -25,7 +26,8 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
     linked.push(...primary.filter((client) => !linkedIds.has(client.id)));
   }
   const scope = await getBranchScope(session);
-  const canEdit = session.role === 'admin' && can(session.userRole, 'writeTasks') &&
+  const senior = await isSeniorManagement(session);
+  const canEdit = (session.role === 'admin' ? can(session.userRole, 'writeTasks') : senior) &&
     (scope.allBranches || !scope.officeManager || scope.officeManagerBranchIds.includes(caseRow.branch_id || 'branch_main'));
   let options: Array<{id:string;name:string;phone:string|null;email:string|null}> = [];
   if (canEdit) {
@@ -42,7 +44,8 @@ const schema = z.object({ clientIds: z.array(z.string().trim().min(1)).max(100) 
 export const PUT = handle(async (req: Request, ctx: Ctx) => {
   const session = await user();
   if (!session) return json({ error: 'يجب تسجيل الدخول' }, { status: 401 });
-  if (session.role !== 'admin' || !can(session.userRole, 'writeTasks')) {
+  const senior = await isSeniorManagement(session);
+  if (session.role === 'admin' ? !can(session.userRole, 'writeTasks') : !senior) {
     return json({ error: 'لا تملك صلاحية تعديل العملاء المرتبطين بالقضية' }, { status: 403 });
   }
   const { id } = await ctx.params;
