@@ -77,6 +77,8 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
     setDropdown(null);
   }, [pathname]);
 
+  if (pathname === '/auth') return null;
+
   const doSearch = (event?: React.FormEvent) => {
     event?.preventDefault();
     const value = q.trim();
@@ -158,7 +160,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
               <span className="min-w-0">
                 <span className="block text-[12px] font-extrabold text-navy-800">{branch.name_ar}</span>
                 <span className="mt-0.5 block truncate text-[10px] text-navy-400">{branch.address}</span>
-                {branch.is_main && <span className="mt-1 inline-block text-[9px] font-bold text-gold-700">المقر الرئيسي</span>}
+                {branch.is_main && <span className="mt-1 inline-block text-[9px] font-bold text-gold-700">المقر الرئيس</span>}
               </span>
             </Link>
           </li>

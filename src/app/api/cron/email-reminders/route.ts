@@ -87,7 +87,7 @@ async function getTelegramSessionRows(dateKeys: string[]): Promise<TelegramSessi
        cr."number" AS "case_number",
        cr."clientName" AS "client_name",
        string_agg(DISTINCT lw."fullName",'، ' ORDER BY lw."fullName") AS "lawyer_names",
-       COALESCE(b."name_ar",'المقر الرئيسي') AS "branch_name"
+       COALESCE(b."name_ar",'المقر الرئيس') AS "branch_name"
      FROM "tasks" t
      LEFT JOIN "locations" l ON l."id"=t."locationId"
      LEFT JOIN "case_records" cr ON cr."id"=t."caseId"

@@ -19,7 +19,7 @@ export default async function AuthPage({
   const branches = await getAllBranches();
 
   return (
-    <div className="relative mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="auth-page relative mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
       <div className="mx-auto max-w-md">
         {error && (
           <p className="relative mb-5 rounded-xl border border-red-600/20 bg-red-600/[0.06] px-4 py-3 text-center text-[12.5px] font-semibold text-red-700">
