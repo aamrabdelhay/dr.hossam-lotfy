@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     const data = z.object({ id:z.string(), nameAr:z.string().trim().min(2).max(120).optional(), nameEn:z.string().trim().max(120).optional(), address:z.string().trim().min(5).max(300).optional(), active:z.boolean().optional() }).parse(body);
     const existing = await prisma.$queryRawUnsafe<Array<{id:string;is_main:boolean}>>('SELECT "id","is_main" FROM "office_branches" WHERE "id"=$1 LIMIT 1',data.id);
     if (!existing[0]) return NextResponse.json({ error:'الفرع غير موجود' },{status:404});
-    if (existing[0].is_main && data.active===false) return NextResponse.json({ error:'لا يمكن تعطيل المقر الرئيسي' },{status:400});
+    if (existing[0].is_main && data.active===false) return NextResponse.json({ error:'لا يمكن تعطيل المقر الرئيس' },{status:400});
     await prisma.$executeRawUnsafe('UPDATE "office_branches" SET "name_ar"=COALESCE($2,"name_ar"),"name_en"=COALESCE($3,"name_en"),"address"=COALESCE($4,"address"),"active"=COALESCE($5,"active"),"updated_at"=NOW() WHERE "id"=$1',data.id,data.nameAr?.trim()||null,data.nameEn?.trim()||null,data.address?.trim()||null,data.active??null);
     return NextResponse.json({ok:true});
   }
