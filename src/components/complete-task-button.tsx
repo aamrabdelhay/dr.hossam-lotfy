@@ -18,12 +18,14 @@ export function CompleteTaskButton({
   size = 'sm',
   variant = 'gold',
   className,
+  completed = false,
 }: {
   taskId: string;
   label?: string;
   size?: 'sm' | 'md';
   variant?: 'gold' | 'outline' | 'ghost';
   className?: string;
+  completed?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
@@ -31,10 +33,12 @@ export function CompleteTaskButton({
   const complete = async () => {
     if (busy) return;
     setBusy(true);
-    const res = await fetch(`/api/tasks/${taskId}/complete`, { method: 'POST' });
+    let res: Response;
+    try { res = await fetch(`/api/tasks/${taskId}/complete`, { method: completed ? 'DELETE' : 'POST' }); }
+    catch { setBusy(false); toastError('تعذر الاتصال بالخادم. حاول مرة أخرى.'); return; }
     setBusy(false);
     if (res.ok) {
-      toastSuccess('تم تسجيل تنفيذ المهمة ✓');
+      toastSuccess(completed ? 'تم التراجع عن تسجيل التنفيذ.' : 'تم تسجيل تنفيذ المهمة ✓');
       router.refresh();
     } else {
       const d = await res.json().catch(() => ({}));
@@ -43,9 +47,9 @@ export function CompleteTaskButton({
   };
 
   return (
-    <Button size={size} variant={variant} onClick={() => void complete()} disabled={busy} className={cn('ms-auto', className)}>
+    <Button size={size} variant={completed ? 'outline' : variant} onClick={() => void complete()} disabled={busy} className={cn('ms-auto', completed && 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:text-white', className)} title={completed ? 'تم التنفيذ — اضغط للتراجع' : label}>
       {busy ? <Loader2 size={13} className="animate-spin" /> : <CheckCheck size={14} />}
-      {label}
+      {busy ? (completed ? 'جارٍ التراجع…' : 'جارٍ التنفيذ…') : completed ? 'تم التنفيذ ✓' : label}
     </Button>
   );
 }
