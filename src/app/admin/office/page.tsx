@@ -48,7 +48,7 @@ export default async function OfficeManagementPage() {
                     <h2 className="mt-2 text-lg font-black group-hover:text-gold-300">{branch.name_ar}</h2>
                     <p className="mt-1 text-[11px] text-ivory-300">{branch.address}</p>
                   </div>
-                  {branch.is_main && <span className="rounded-full bg-gold-500/15 px-2.5 py-1 text-[9px] font-black text-gold-300">المقر الرئيسي</span>}
+                  {branch.is_main && <span className="rounded-full bg-gold-500/15 px-2.5 py-1 text-[9px] font-black text-gold-300">المقر الرئيس</span>}
                 </div>
               </div>
               <div className="flex items-center justify-between p-4">
