@@ -30,8 +30,8 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
   let options: Array<{id:string;name:string;phone:string|null;email:string|null}> = [];
   if (canEdit) {
     options = await prisma.$queryRawUnsafe<Array<{id:string;name:string;phone:string|null;email:string|null}>>(
-      'SELECT "id","name","phone","email" FROM "clients" WHERE COALESCE("status",\'MAIN\') NOT IN (\'DELETED\',\'REJECTED\') AND ($1::boolean OR COALESCE("branch_id",\'branch_main\')=ANY($2::text[])) ORDER BY lower("name") LIMIT 500',
-      scope.allBranches, scope.allBranches ? [] : scope.branchIds
+      'SELECT "id","name","phone","email" FROM "clients" WHERE COALESCE("status",$3) <> ALL($4::text[]) AND ($1::boolean OR COALESCE("branch_id",$5)=ANY($2::text[])) ORDER BY lower("name") LIMIT 500',
+      scope.allBranches, scope.allBranches ? [] : scope.branchIds, 'MAIN', ['DELETED','REJECTED'], 'branch_main'
     );
   }
   return json({ clients: linked, options, canEdit });
