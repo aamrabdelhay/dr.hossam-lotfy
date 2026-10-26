@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2 } from 'lucide-react';
+import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2, UserRound } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
 const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
@@ -327,7 +327,7 @@ function ClientRow({
     <div className="rounded-2xl border border-navy-100 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="notranslate text-sm font-extrabold text-navy-950" translate="no">{client.name}</div>
+          <a href={`/admin/clients/${client.id}`} className="notranslate text-sm font-extrabold text-navy-950 underline-offset-4 hover:text-gold-700 hover:underline" translate="no">{client.name}</a>
           <div className="mt-1 text-[11px] text-navy-400">{client.phone||'—'} • {client.email||'—'} • {client.caseCount} قضية</div>
           {client.nextAppointment&&(
             <div className="mt-2 rounded-xl border border-gold-200 bg-gold-50/50 p-3 text-[11px] font-bold text-navy-700">
@@ -351,7 +351,7 @@ function ClientRow({
           <button onClick={()=>onStatus(client.id,'POTENTIAL')} title="تصنيف كعميل محتمل" className={`rounded-lg p-2 ${client.status==='POTENTIAL'?'bg-gold-50 text-gold-700':'border text-navy-500'}`}>محتمل</button>
           <button onClick={()=>onStatus(client.id,'MAIN')} title="تصنيف كعميل" className={`rounded-lg p-2 ${client.status==='MAIN'?'bg-emerald-50 text-emerald-700':'border text-navy-500'}`}>عميل</button>
           <button onClick={()=>onStatus(client.id,'FOLLOW_UP')} title="وضع تحت المتابعة" className={`rounded-lg p-2 ${client.status==='FOLLOW_UP'?'bg-amber-50 text-amber-700':'border text-navy-500'}`}>متابعة</button>
-          <button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="ملفات العميل"><FileText size={15}/></button>
+          <a href={`/admin/clients/${client.id}`} className="rounded-lg border p-2 text-navy-600" title="فتح الملف الكامل للعميل" aria-label="فتح الملف الكامل للعميل"><UserRound size={15}/></a><button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="إدارة ملفات العميل"><FileText size={15}/></button>
           <button onClick={()=>void onDelete(client.id)} title="حذف ونقل إلى الأرشيف" className="rounded-lg border border-red-200 p-2 text-red-600"><Trash2 size={15}/></button>
         </div>
       </div>
