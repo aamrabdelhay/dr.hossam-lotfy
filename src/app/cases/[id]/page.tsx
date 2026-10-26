@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
 import { CaseFilesPanel } from '@/components/case-files-panel';
 import { CaseClientsPanel } from '@/components/case-clients-panel';
+import { CaseDevelopmentForm } from '@/components/case-development-form';
 import { clientFileContentUrl } from '@/lib/client-file-access';
 
 export const dynamic = 'force-dynamic';
@@ -105,6 +106,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
         <Card className="overflow-hidden">
           <div className="border-b border-navy-100 px-5 py-4"><h2 className="flex items-center gap-2 text-sm font-black text-navy-950"><History size={17} className="text-gold-600"/>سجل القضية</h2></div>
           {events.length === 0 ? <div className="p-7"><EmptyState title="لا يوجد سجل مسجل لهذه القضية حتى الآن." /></div> : <div className="space-y-4 p-5">{events.map((event) => <div key={event.id} className="relative border-s border-navy-200 pb-4 pe-4 last:pb-0"><span className="absolute -start-[5px] top-1 h-2 w-2 rounded-full bg-gold-500"/><p className="text-xs font-extrabold text-navy-800">{event.description}</p><p className="mt-1 text-[10px] text-navy-400">{fmtDate(event.createdAt)}{event.authorName ? ' · ' + event.authorName : ''}</p></div>)}</div>}
+          <CaseDevelopmentForm caseId={id} />
         </Card>
 
         <Card className="overflow-hidden">
