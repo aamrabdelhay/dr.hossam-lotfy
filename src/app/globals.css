@@ -16,3 +16,5 @@ html{scroll-behavior:smooth} body{background-color:#eef2f8;color:var(--color-nav
 @media(max-width:639px){.site-floating-nav{left:6px;right:6px;top:6px;border-radius:22px}.site-floating-nav::before{border-radius:21px}}
 
 .page-content{animation:page-enter .22s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform}@keyframes page-enter{from{opacity:.72;transform:translateY(4px)}to{opacity:1;transform:none}}.scroll-reveal{opacity:0;transform:translateY(12px);transition:opacity .34s ease,transform .34s cubic-bezier(.22,1,.36,1)}.scroll-reveal-visible{opacity:1!important;transform:none!important}@media(prefers-reduced-motion:reduce){.page-content{animation:none}.scroll-reveal{opacity:1!important;transform:none!important;transition:none!important}}
+/* The login screen has no global navigation or footer. */
+body:has(.auth-page){padding-top:0!important}
