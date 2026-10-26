@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2, UserRound } from 'lucide-react';
+import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2, UserRound, ChevronRight, ChevronLeft } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
 const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
@@ -54,7 +54,7 @@ export function ClientsManagementClient({
   const [clients,setClients]=React.useState(initialClients);
   const [files,setFiles]=React.useState<Record<string,any[]>>({});
   const [open,setOpen]=React.useState<string|null>(null);
-  const [preview,setPreview]=React.useState<{name:string;url:string;kind:string;text?:string}|null>(null);
+  const [preview,setPreview]=React.useState<{items:any[];index:number}|null>(null);
   const [name,setName]=React.useState('');
   const [typeTab,setTypeTab]=React.useState('POTENTIAL');
 
@@ -237,13 +237,13 @@ export function ClientsManagementClient({
             onOpen={()=>void loadFiles(c.id)}
             onStatus={setStatus}
             onDelete={deleteClient}
-            onPreview={setPreview}
+            onPreview={(item)=>{const list=files[c.id]||[];const index=list.findIndex((f:any)=>f.id===item.id);setPreview({items:list.length?list:[item],index:index>=0?index:0});}}
             onUpload={upload}
           />
         )}
       </div>
       {!current.length&&<div className="rounded-2xl border border-dashed p-8 text-center text-sm text-navy-400">لا يوجد عملاء في هذه الفئة.</div>}
-      {preview&&<FilePreview item={preview} onClose={()=>setPreview(null)}/>}
+      {preview&&<FilePreview item={preview.items[preview.index]} onClose={()=>setPreview(null)} onPrevious={()=>setPreview(p=>p?({...p,index:Math.max(0,p.index-1)}):p)} onNext={()=>setPreview(p=>p?({...p,index:Math.min(p.items.length-1,p.index+1)}):p)} canPrevious={preview.index>0} canNext={preview.index<preview.items.length-1}/>}
     </div>
   );
 }
@@ -432,7 +432,7 @@ function ClientRow({
   );
 }
 
-function FilePreview({item,onClose}:{item:any;onClose:()=>void}) {
+function FilePreview({item,onClose,onPrevious,onNext,canPrevious,canNext}:{item:any;onClose:()=>void;onPrevious:()=>void;onNext:()=>void;canPrevious:boolean;canNext:boolean}) {
   const name = String(item.name || 'ملف');
   const extension = name.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
   const kind = item.kind || '';
@@ -458,6 +458,8 @@ function FilePreview({item,onClose}:{item:any;onClose:()=>void}) {
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={onPrevious} disabled={!canPrevious} aria-label="الملف السابق" title="الملف السابق" className="rounded-lg border border-navy-200 p-2 text-navy-700 disabled:opacity-30"><ChevronRight size={18}/></button>
+            <button type="button" onClick={onNext} disabled={!canNext} aria-label="الملف التالي" title="الملف التالي" className="rounded-lg border border-navy-200 p-2 text-navy-700 disabled:opacity-30"><ChevronLeft size={18}/></button>
             {url && !isLink && <a href={downloadUrl} className="inline-flex items-center gap-1 rounded-lg border border-navy-200 px-3 py-2 text-xs font-bold text-navy-800 hover:bg-navy-50"><Download size={14}/>تحميل</a>}
             <button type="button" onClick={onClose} aria-label="إغلاق المعاينة" className="rounded-lg border border-navy-200 p-2 text-navy-700 hover:bg-navy-50"><X size={18}/></button>
           </div>
