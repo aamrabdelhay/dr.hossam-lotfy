@@ -21,7 +21,7 @@ type CompletableTask = {
 
 export function canCompleteTask(viewer: TaskCompletionViewer, task: CompletableTask): boolean {
   if (!viewer) return false;
-  if (task.status === 'COMPLETED' || task.status === 'CANCELLED') return false;
+  if (task.status === 'CANCELLED') return false;
   if (viewer.role === 'lawyer') {
     return !!viewer.lawyerId && task.lawyerIds.includes(viewer.lawyerId);
   }
