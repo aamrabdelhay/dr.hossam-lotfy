@@ -74,7 +74,7 @@ export function PostCard({ task, comments = [], sessionRole, sessionLawyerId, ca
     <div className="flex flex-wrap items-center gap-1 border-t border-navy-100 px-2 py-1.5">
       {showComments && <button onClick={toggleComments} className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold text-navy-500 hover:bg-navy-900/5"><MessageSquare size={14} />{commentsCache.length > 0 || task.commentCount > 0 ? `${task.commentCount} تعليق` : 'تعليق'}</button>}
       {canConfirm && <button onClick={confirmTask} disabled={confirmBusy || confirmed} className={cn('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-bold transition', confirmed ? 'cursor-default bg-emerald-600/10 text-emerald-700' : 'text-navy-600 hover:bg-gold-500/10 hover:text-gold-700')} title="إرسال تأكيد المهمة بالبريد الإلكتروني"><CheckCheck size={14} />{confirmBusy ? 'جارٍ التأكيد...' : confirmed ? 'تم التأكيد' : 'تأكيد'}</button>}
-      {canComplete && <CompleteTaskButton taskId={task.id} label={isAdmin ? 'إنهاء نيابةً عن المحامي' : 'تم التنفيذ'} />}
+      {canComplete && <CompleteTaskButton taskId={task.id} label={isAdmin ? 'إنهاء نيابةً عن المحامي' : 'تم التنفيذ'} completed={task.status === 'COMPLETED'} />}
       {canEdit && <Link href={`/sessions/${task.id}?edit=1`}><Button size="sm" variant="ghost" className="ms-auto"><Pencil size={13} />تعديل</Button></Link>}
       {canDelete && <button onClick={() => setConfirmDelete(true)} className="rounded-md p-2 text-navy-300 hover:bg-red-600/10 hover:text-red-600" title="حذف"><Trash2 size={14} /></button>}
     </div>
