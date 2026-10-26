@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2, UserRound } from 'lucide-react';
+import Link from 'next/link';
+import { X, Upload, Eye, Download, FileText, Plus, CalendarDays, Clock, Trash2, UserRound, ChevronRight, ChevronLeft } from 'lucide-react';
 
 type Appointment = { date: string | null; time: string | null; type: string; status: string; id?: string };
 const MAX_CLIENT_FILE_BYTES = 100 * 1024 * 1024;
@@ -54,7 +55,7 @@ export function ClientsManagementClient({
   const [clients,setClients]=React.useState(initialClients);
   const [files,setFiles]=React.useState<Record<string,any[]>>({});
   const [open,setOpen]=React.useState<string|null>(null);
-  const [preview,setPreview]=React.useState<{name:string;url:string;kind:string;text?:string}|null>(null);
+  const [preview,setPreview]=React.useState<{items:any[];index:number}|null>(null);
   const [name,setName]=React.useState('');
   const [typeTab,setTypeTab]=React.useState('POTENTIAL');
 
@@ -237,13 +238,13 @@ export function ClientsManagementClient({
             onOpen={()=>void loadFiles(c.id)}
             onStatus={setStatus}
             onDelete={deleteClient}
-            onPreview={setPreview}
+            onPreview={(item)=>{const list=files[c.id]||[];const index=list.findIndex((f:any)=>f.id===item.id);setPreview({items:list.length?list:[item],index:index>=0?index:0});}}
             onUpload={upload}
           />
         )}
       </div>
       {!current.length&&<div className="rounded-2xl border border-dashed p-8 text-center text-sm text-navy-400">لا يوجد عملاء في هذه الفئة.</div>}
-      {preview&&<FilePreview item={preview} onClose={()=>setPreview(null)}/>}
+      {preview&&<FilePreview item={preview.items[preview.index]} onClose={()=>setPreview(null)} onPrevious={()=>setPreview(p=>p?({...p,index:Math.max(0,p.index-1)}):p)} onNext={()=>setPreview(p=>p?({...p,index:Math.min(p.items.length-1,p.index+1)}):p)} canPrevious={preview.index>0} canNext={preview.index<preview.items.length-1}/>}
     </div>
   );
 }
@@ -326,7 +327,7 @@ function ClientRow({
     <div className="rounded-2xl border border-navy-100 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <a href={`/admin/clients/${client.id}`} className="notranslate text-sm font-extrabold text-navy-950 underline-offset-4 hover:text-gold-700 hover:underline" translate="no">{client.name}</a>
+          <Link href={`/admin/clients/${client.id}`} className="notranslate text-sm font-extrabold text-navy-950 underline-offset-4 hover:text-gold-700 hover:underline" translate="no">{client.name}</Link>
           <div className="mt-1 text-[11px] text-navy-400">{client.phone||'—'} • {client.email||'—'} • {client.caseCount} قضية</div>
           <div className="mt-2 rounded-xl border border-gold-200 bg-gold-50/50 p-3 text-[11px] font-bold text-navy-700">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -352,7 +353,7 @@ function ClientRow({
           <button onClick={()=>onStatus(client.id,'POTENTIAL')} title="تصنيف كعميل محتمل" className={`rounded-lg p-2 ${client.status==='POTENTIAL'?'bg-gold-50 text-gold-700':'border text-navy-500'}`}>محتمل</button>
           <button onClick={()=>onStatus(client.id,'MAIN')} title="تصنيف كعميل" className={`rounded-lg p-2 ${client.status==='MAIN'?'bg-emerald-50 text-emerald-700':'border text-navy-500'}`}>عميل</button>
           <button onClick={()=>onStatus(client.id,'FOLLOW_UP')} title="وضع تحت المتابعة" className={`rounded-lg p-2 ${client.status==='FOLLOW_UP'?'bg-amber-50 text-amber-700':'border text-navy-500'}`}>متابعة</button>
-          <a href={`/admin/clients/${client.id}`} className="rounded-lg border p-2 text-navy-600" title="فتح الملف الكامل للعميل" aria-label="فتح الملف الكامل للعميل"><UserRound size={15}/></a><button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="إدارة ملفات العميل"><FileText size={15}/></button>
+          <Link href={`/admin/clients/${client.id}`} className="rounded-lg border p-2 text-navy-600" title="فتح الملف الكامل للعميل" aria-label="فتح الملف الكامل للعميل"><UserRound size={15}/></Link><button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="إدارة ملفات العميل"><FileText size={15}/></button>
           <button onClick={()=>void onDelete(client.id)} title="حذف ونقل إلى الأرشيف" className="rounded-lg border border-red-200 p-2 text-red-600"><Trash2 size={15}/></button>
         </div>
       </div>
@@ -432,7 +433,7 @@ function ClientRow({
   );
 }
 
-function FilePreview({item,onClose}:{item:any;onClose:()=>void}) {
+function FilePreview({item,onClose,onPrevious,onNext,canPrevious,canNext}:{item:any;onClose:()=>void;onPrevious:()=>void;onNext:()=>void;canPrevious:boolean;canNext:boolean}) {
   const name = String(item.name || 'ملف');
   const extension = name.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
   const kind = item.kind || '';
@@ -458,6 +459,8 @@ function FilePreview({item,onClose}:{item:any;onClose:()=>void}) {
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={onPrevious} disabled={!canPrevious} aria-label="الملف السابق" title="الملف السابق" className="rounded-lg border border-navy-200 p-2 text-navy-700 disabled:opacity-30"><ChevronRight size={18}/></button>
+            <button type="button" onClick={onNext} disabled={!canNext} aria-label="الملف التالي" title="الملف التالي" className="rounded-lg border border-navy-200 p-2 text-navy-700 disabled:opacity-30"><ChevronLeft size={18}/></button>
             {url && !isLink && <a href={downloadUrl} className="inline-flex items-center gap-1 rounded-lg border border-navy-200 px-3 py-2 text-xs font-bold text-navy-800 hover:bg-navy-50"><Download size={14}/>تحميل</a>}
             <button type="button" onClick={onClose} aria-label="إغلاق المعاينة" className="rounded-lg border border-navy-200 p-2 text-navy-700 hover:bg-navy-50"><X size={18}/></button>
           </div>
