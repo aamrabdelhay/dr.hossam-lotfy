@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Users, Save, Loader2 } from 'lucide-react';
 
 type Client = { id: string; name: string; phone: string | null; email: string | null };
@@ -56,7 +57,7 @@ export function CaseClientsPanel({ caseId }: { caseId: string }) {
     {error && <p role="alert" className="px-5 py-3 text-xs text-red-700 bg-red-50">{error}</p>}
     {notice && <p role="status" className="px-5 py-3 text-xs text-emerald-700 bg-emerald-50">{notice}</p>}
     {loading ? <div className="p-6 text-xs text-navy-400">جارٍ تحميل العملاء…</div> : <div className="p-5">
-      {clients.length ? <div className="mb-4 flex flex-wrap gap-2">{clients.map(client => <a key={client.id} href={'/admin/clients/'+client.id} className="rounded-xl border border-navy-100 bg-ivory-50 px-3 py-2 text-xs font-bold text-navy-800 hover:border-gold-400">{client.name}{client.phone ? ' · '+client.phone : ''}</a>)}</div> : <p className="mb-4 text-xs text-navy-400">لا يوجد عميل مرتبط بالقضية حاليًا.</p>}
+      {clients.length ? <div className="mb-4 flex flex-wrap gap-2">{clients.map(client => <Link key={client.id} href={'/admin/clients/'+client.id} className="rounded-xl border border-navy-100 bg-ivory-50 px-3 py-2 text-xs font-bold text-navy-800 hover:border-gold-400">{client.name}{client.phone ? ' · '+client.phone : ''}</Link>)}</div> : <p className="mb-4 text-xs text-navy-400">لا يوجد عميل مرتبط بالقضية حاليًا.</p>}
       {canEdit && <div className="space-y-3"><p className="text-xs font-extrabold text-navy-700">حدد كل العملاء المرتبطين</p><div className="grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">{options.map(client => <label key={client.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-navy-100 p-2 text-xs"><input type="checkbox" checked={selected.includes(client.id)} onChange={event => setSelected(current => event.target.checked ? [...current, client.id] : current.filter(id => id !== client.id))}/><span className="font-bold">{client.name}</span><span className="ms-auto text-[10px] text-navy-400">{client.phone || ''}</span></label>)}</div><button type="button" onClick={() => void save()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-navy-950 px-4 py-2.5 text-xs font-extrabold text-white disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>}حفظ العملاء</button></div>}
     </div>}
   </section>;
