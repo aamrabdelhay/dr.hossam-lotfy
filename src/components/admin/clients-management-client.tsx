@@ -328,20 +328,22 @@ function ClientRow({
         <div>
           <a href={`/admin/clients/${client.id}`} className="notranslate text-sm font-extrabold text-navy-950 underline-offset-4 hover:text-gold-700 hover:underline" translate="no">{client.name}</a>
           <div className="mt-1 text-[11px] text-navy-400">{client.phone||'—'} • {client.email||'—'} • {client.caseCount} قضية</div>
-          {client.nextAppointment&&(
-            <div className="mt-2 rounded-xl border border-gold-200 bg-gold-50/50 p-3 text-[11px] font-bold text-navy-700">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="inline-flex items-center gap-1.5 text-gold-700"><CalendarDays size={13}/>طلب موعد</span>
-                <span className="text-navy-500">{APPOINTMENT_TYPE_LABELS[client.nextAppointment.type] || client.nextAppointment.type}</span>
-                {client.nextAppointment.date && <span>{client.nextAppointment.date}</span>}
-                {client.nextAppointment.time && <span className="inline-flex items-center gap-1"><Clock size={12}/>{client.nextAppointment.time}</span>}
-                {!client.nextAppointment.date && <span className="text-amber-700">بانتظار تحديد الموعد</span>}
-              </div>
-              {!client.nextAppointment.date && (
-                <button onClick={()=>setSchedule(true)} className="mt-2 rounded-lg bg-navy-950 px-3 py-2 text-[10px] font-extrabold text-white">تحديد الموعد</button>
-              )}
+          <div className="mt-2 rounded-xl border border-gold-200 bg-gold-50/50 p-3 text-[11px] font-bold text-navy-700">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="inline-flex items-center gap-1.5 text-gold-700"><CalendarDays size={13}/>{client.nextAppointment ? 'موعد العميل' : 'المواعيد'}</span>
+              {client.nextAppointment ? (
+                <>
+                  <span className="text-navy-500">{APPOINTMENT_TYPE_LABELS[client.nextAppointment.type] || client.nextAppointment.type}</span>
+                  {client.nextAppointment.date && <span>{client.nextAppointment.date}</span>}
+                  {client.nextAppointment.time && <span className="inline-flex items-center gap-1"><Clock size={12}/>{client.nextAppointment.time}</span>}
+                  {!client.nextAppointment.date && <span className="text-amber-700">بانتظار تحديد الموعد</span>}
+                </>
+              ) : <span className="text-navy-500">لا يوجد موعد محدد لهذا العميل</span>}
             </div>
-          )}
+            {(!client.nextAppointment || !client.nextAppointment.date) && (
+              <button onClick={()=>setSchedule(true)} className="mt-2 rounded-lg bg-navy-950 px-3 py-2 text-[10px] font-extrabold text-white">تحديد الموعد</button>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="rounded-full bg-navy-50 px-2.5 py-1 text-[10px] font-extrabold text-navy-600">
@@ -355,15 +357,24 @@ function ClientRow({
         </div>
       </div>
 
-      {schedule&&client.nextAppointment&&(
+      {schedule&&(
         <div className="mt-3 rounded-xl border border-navy-100 bg-ivory-50 p-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="text-xs font-bold">التاريخ<input type="date" value={date} onChange={e=>setDate(e.target.value)} className="mt-1 w-full rounded-lg border bg-white p-2"/></label>
             <label className="text-xs font-bold">الوقت<input type="time" value={time} onChange={e=>setTime(e.target.value)} className="mt-1 w-full rounded-lg border bg-white p-2"/></label>
           </div>
           <button disabled={!date||!time} onClick={async()=>{
-            const r=await fetch('/api/client-appointments/'+(client.nextAppointment?.id||''),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,time})});
-            if(r.ok){setSchedule(false); window.location.reload();} else alert('تعذر تحديد الموعد');
+            try {
+              const existingId=client.nextAppointment?.id;
+              const r=await fetch(existingId ? '/api/client-appointments/'+existingId : '/api/client-appointments',{
+                method:existingId ? 'PATCH' : 'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(existingId ? {date,time} : {clientId:client.id,date,time,type:'LEGAL_CONSULTATION'})
+              });
+              const result=await r.json().catch(()=>({}));
+              if(r.ok){setSchedule(false); window.location.reload();}
+              else alert(result.error || 'تعذر تحديد الموعد');
+            } catch { alert('تعذر الاتصال بالخادم لتحديد الموعد'); }
           }} className="mt-2 rounded-lg bg-gold-500 px-4 py-2 text-xs font-extrabold text-navy-950 disabled:opacity-50">تأكيد الموعد</button>
         </div>
       )}
