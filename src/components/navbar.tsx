@@ -82,7 +82,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
   const doSearch = (event?: React.FormEvent) => {
     event?.preventDefault();
     const value = q.trim();
-    window.location.assign(value ? '/search?q=' + encodeURIComponent(value) + '&type=all' : '/search');
+    router.push(value ? '/search?q=' + encodeURIComponent(value) + '&type=all' : '/search');
   };
 
   const logout = () => {
