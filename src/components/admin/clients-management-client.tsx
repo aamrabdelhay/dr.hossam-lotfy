@@ -56,7 +56,7 @@ export function ClientsManagementClient({
   const [open,setOpen]=React.useState<string|null>(null);
   const [preview,setPreview]=React.useState<{name:string;url:string;kind:string;text?:string}|null>(null);
   const [name,setName]=React.useState('');
-  const [typeTab,setTypeTab]=React.useState('ALL');
+  const [typeTab,setTypeTab]=React.useState('POTENTIAL');
 
   const add=async()=>{
     if(!name.trim())return;
@@ -210,9 +210,8 @@ export function ClientsManagementClient({
     }
   };
 
-  const appointmentType = (c: Client) => c.nextAppointment ? (APPOINTMENT_TYPE_LABELS[c.nextAppointment.type] || c.nextAppointment.type) : 'OTHER';
-  const sections=[['ALL','كل طلبات المواعيد'],['LEGAL_CONSULTATION','استشارة قانونية'],['CASE_FOLLOW_UP','متابعة ملف'],['OTHER','أخرى']];
-  const current=clients.filter(c=>typeTab==='ALL' || appointmentType(c)===APPOINTMENT_TYPE_LABELS[typeTab] || (typeTab==='OTHER' && appointmentType(c)==='أخرى'));
+  const sections=[['POTENTIAL','عميل محتمل'],['MAIN','عميل'],['FOLLOW_UP','متابعة']] as const;
+  const current=clients.filter(c=>(c.status || 'MAIN')===typeTab);
 
 
   return (
@@ -220,7 +219,7 @@ export function ClientsManagementClient({
       <div className="flex flex-wrap gap-2">
         {sections.map(([id,label])=>
           <button key={id} onClick={()=>setTypeTab(id)} className={`rounded-full px-4 py-2 text-xs font-extrabold ${typeTab===id?'bg-navy-950 text-white':'border border-navy-200 bg-white text-navy-600'}`}>
-            {label} ({clients.filter(c=>id==='ALL' ? !!c.nextAppointment : appointmentType(c)===APPOINTMENT_TYPE_LABELS[id]).length})
+            {label} ({clients.filter(c=>(c.status || 'MAIN')===id).length})
           </button>
         )}
       </div>
@@ -243,7 +242,7 @@ export function ClientsManagementClient({
           />
         )}
       </div>
-      {!current.length&&<div className="rounded-2xl border border-dashed p-8 text-center text-sm text-navy-400">لا توجد عملاء في هذا القسم.</div>}
+      {!current.length&&<div className="rounded-2xl border border-dashed p-8 text-center text-sm text-navy-400">لا يوجد عملاء في هذه الفئة.</div>}
       {preview&&<FilePreview item={preview} onClose={()=>setPreview(null)}/>}
     </div>
   );
