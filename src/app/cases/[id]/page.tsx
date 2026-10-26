@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
 import { CaseFilesPanel } from '@/components/case-files-panel';
+import { CaseClientsPanel } from '@/components/case-clients-panel';
 import { clientFileContentUrl } from '@/lib/client-file-access';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ type CaseRow = {
 };
 type EventRow = { id: string; description: string; type: string; authorName: string | null; createdAt: Date };
 type TaskRow = { id: string; description: string; notes: string | null; scheduledDate: Date | null; scheduledTime: string | null; status: string; locationName: string | null };
-type FileRow = { id: string; name: string; kind: string; mime_type: string | null; size_bytes: number | null; url: string | null; text_content: string | null; created_at: Date };
+type FileRow = { id: string; name: string; kind: string; mime_type: string | null; size_bytes: number | null; url: string | null; text_content: string | null; created_at: Date; client_id: string; client_name: string };
 
 
 function fmtDate(value: Date | null | undefined) {
@@ -46,7 +47,12 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
   const caseRow = rows[0];
   if (!caseRow) notFound();
 
-  const [events, tasks, files, clientRows] = await Promise.all([
+  const clientRows = await prisma.$queryRawUnsafe<Array<{ id: string; name: string; phone: string | null; email: string | null }>>(
+    'SELECT DISTINCT c."id",c."name",c."phone",c."email" FROM "clients" c LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" AND cc."case_id"=$1 WHERE cc."client_id" IS NOT NULL OR c."id"=$2 ORDER BY c."name"',
+    id, caseRow.clientId || '',
+  );
+  const clientIds = [...new Set([...clientRows.map((client) => client.id), ...(caseRow.clientId ? [caseRow.clientId] : [])])];
+  const [events, tasks, files] = await Promise.all([
     prisma.$queryRawUnsafe<EventRow[]>(
       'SELECT "id","description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=$1 ORDER BY "createdAt" DESC',
       id,
@@ -55,27 +61,21 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
       'SELECT t."id",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",l."name" AS "locationName" FROM "tasks" t LEFT JOIN "locations" l ON l."id"=t."locationId" WHERE t."caseId"=$1 ORDER BY t."scheduledDate" DESC NULLS LAST,t."createdAt" DESC',
       id,
     ),
-    caseRow.clientId
+    clientIds.length
       ? prisma.$queryRawUnsafe<FileRow[]>(
-          'SELECT "id","name","kind","mime_type","size_bytes","url","text_content","created_at" FROM "client_files" WHERE "client_id"=$1 AND "deleted_at" IS NULL ORDER BY "created_at" DESC',
-          caseRow.clientId,
-        )
-      : [],
-    caseRow.clientId
-      ? prisma.$queryRawUnsafe<Array<{ id: string; name: string; phone: string | null; email: string | null }>>(
-          'SELECT "id","name","phone","email" FROM "clients" WHERE "id"=$1 LIMIT 1',
-          caseRow.clientId,
+          'SELECT f."id",f."name",f."kind",f."mime_type",f."size_bytes",f."url",f."text_content",f."created_at",f."client_id",c."name" AS "client_name" FROM "client_files" f JOIN "clients" c ON c."id"=f."client_id" WHERE f."client_id"=ANY($1::text[]) AND f."deleted_at" IS NULL ORDER BY f."created_at" DESC',
+          clientIds,
         )
       : [],
   ]);
-  const clientRow = clientRows[0];
-  const clientFiles = clientRow ? files.map((file) => ({ ...file, url: clientFileContentUrl(clientRow.id, file.id, file.url) })) : [];
+  const clientRow = clientRows.find((client) => client.id === caseRow.clientId) || clientRows[0];
+  const clientFiles = files.map((file) => ({ ...file, url: clientFileContentUrl(file.client_id, file.id, file.url) }));
 
   return (
     <main dir="rtl" className="mx-auto w-full max-w-[1250px] px-4 py-7 sm:px-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <Link href="/cases" className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600"><ArrowRight size={14}/> القضايا</Link>
-        {caseRow.clientId && <Link href={'/admin/clients/' + caseRow.clientId} className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600"><UserRound size={14}/> ملف العميل</Link>}
+        {clientRow && <Link href={'/admin/clients/' + clientRow.id} className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600"><UserRound size={14}/> ملف العميل</Link>}
       </div>
 
       <section className="mb-5 overflow-hidden rounded-3xl border border-gold-200 bg-white shadow-soft">
@@ -93,7 +93,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Info label="العميل" value={clientRow?.name || caseRow.clientName || 'غير مرتبط'} />
+          <Info label="العملاء" value={clientRows.length ? clientRows.map((client) => client.name).join('، ') : caseRow.clientName || 'غير مرتبط'} />
           <Info label="الفرع" value={caseRow.branchName || 'غير محدد'} />
           <Info label="رقم القضية" value={caseRow.number} />
           <Info label="نوع القضية" value={caseRow.categoryName || 'غير مصنفة'} />
@@ -113,6 +113,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
         </Card>
       </div>
 
+      <CaseClientsPanel caseId={id} />
       <CaseFilesPanel caseId={id} />
       <Card className="mt-5 overflow-hidden">
         <div className="border-b border-navy-100 px-5 py-4">
