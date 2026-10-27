@@ -54,7 +54,7 @@ export default async function OfficeManagementPage() {
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 p-4">
                 <Link href={'/admin/office/branches/' + branch.id} className="rounded-full bg-gold-500/10 px-3 py-2 text-[10px] font-extrabold text-gold-700">فتح الفرع</Link>
-                <DirectionsButton name={branch.name_ar} address={branch.address} label="GPS إلى الفرع" />
+                <DirectionsButton name={branch.name_ar} address={branch.address} label="GPS إلى الفرع" returnToMainOffice={branch.id !== 'branch_main'} />
               </div>
             </div>
           ))}
