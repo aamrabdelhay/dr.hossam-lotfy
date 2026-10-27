@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
 
-type ImportResult = { created?: number; updated?: number; casesCreated?: number; eventsImported?: number; rowsSkipped?: number; message?: string };
+type ImportResult = { created?: number; updated?: number; casesCreated?: number; eventsImported?: number; rowsSkipped?: number; message?: string; issues?: string[] };
 
 export function ClientSpreadsheetTools() {
   const [file, setFile] = React.useState<File | null>(null);
@@ -62,7 +62,7 @@ export function ClientSpreadsheetTools() {
         <span className="max-w-full truncate text-xs text-navy-500">{file?.name ?? 'لم يتم اختيار ملف'}</span>
         <button type="button" disabled={busy || !file} onClick={() => void importFile()} className="rounded-xl bg-gold-500 px-4 py-2 text-xs font-extrabold text-navy-950 disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'جارٍ الاستيراد...' : 'استيراد إلى النظام'}</button>
       </div>
-      {message && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-800">{message}{details && <span className="block font-medium">عملاء جدد: {details.created ?? 0} · عملاء محدّثون: {details.updated ?? 0} · قضايا جديدة: {details.casesCreated ?? 0} · مستجدات مضافة: {details.eventsImported ?? 0} · صفوف متجاوزة: {details.rowsSkipped ?? 0}</span>}</p>}
+      {message && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold leading-6 text-emerald-800">{message}{details && <span className="block font-medium">عملاء جدد: {details.created ?? 0} · عملاء محدّثون: {details.updated ?? 0} · قضايا جديدة: {details.casesCreated ?? 0} · مستجدات مضافة: {details.eventsImported ?? 0} · صفوف متجاوزة: {details.rowsSkipped ?? 0}</span>}{details?.issues?.length ? <ul className="mt-2 list-inside list-disc border-t border-emerald-200 pt-2 font-medium">{details.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul> : null}</p>}
       {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</p>}
     </section>
   );
