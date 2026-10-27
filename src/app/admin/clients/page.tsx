@@ -23,7 +23,7 @@ export default async function ClientsPage() {
   const session = await getCurrentUser();
   if (!session) redirect('/auth');
   const scope = await getBranchScope(session);
-  const platformAdmin = (session.role === 'admin' && ['ADMIN', 'SUPER_ADMIN'].includes(session.userRole)) || (session.role === 'lawyer' && session.isAdmin);
+  const platformAdmin = (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) || (session.role === 'lawyer' && session.isAdmin);
   const admin = platformAdmin || scope.officeManager;
   if (!admin) redirect('/auth');
   const branchIds = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds : null;
