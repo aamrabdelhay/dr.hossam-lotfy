@@ -26,7 +26,7 @@ export const GET = handle(async (request: Request) => {
   const session = await getCurrentUser();
   if (!session) return json({ error: 'يجب تسجيل الدخول لتنزيل بيانات العملاء.' }, { status: 401 });
   const scope = await getBranchScope(session);
-  const platformAdmin = (session.role === 'admin' && ['ADMIN', 'SUPER_ADMIN'].includes(session.userRole)) || (session.role === 'lawyer' && session.isAdmin);
+  const platformAdmin = (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) || (session.role === 'lawyer' && session.isAdmin);
   const managementAccess = platformAdmin || scope.allBranches || scope.officeManager;
   const branchIds = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds : null;
   if (branchIds && branchIds.length === 0) return json({ error: 'لا يوجد فرع مسموح لهذا الحساب لتنزيل البيانات.' }, { status: 403 });
