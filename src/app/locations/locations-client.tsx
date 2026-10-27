@@ -6,6 +6,7 @@ import { Landmark, Building2, CalendarClock, Filter, RotateCcw, Search, MapPin, 
 import { Badge, Card, EmptyState, Input, Select } from '@/components/ui';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
 import { haversineKm } from '@/lib/legal-directory';
+import { DirectionsButton } from '@/components/directions-button';
 
 export type LocationRow = {
   id: string;
@@ -195,6 +196,7 @@ function LocationCard({ row, nearby }: { row: LocationRow; nearby: { lat: number
       {row.services.length > 0 && <div className="mt-3 border-t border-navy-100 pt-3"><p className="mb-1 text-[10px] font-extrabold text-navy-400">خدمات بارزة</p><div className="flex flex-wrap gap-1">{row.services.slice(0, 4).map((s) => <span key={s} className="rounded bg-navy-50 px-1.5 py-0.5 text-[10px] font-semibold text-navy-600">{s}</span>)}</div></div>}
       <div className="mt-3 flex flex-wrap gap-1.5">
         <Link href={`/locations/${row.slug}`} className="btn-bubble inline-flex items-center gap-1 rounded-full bg-navy-950 px-3 py-1.5 text-[10px] font-extrabold text-white">التفاصيل</Link>
+        <DirectionsButton name={row.name} address={[row.city,row.governorate,row.district].filter(Boolean).join("، ")} lat={row.lat} lng={row.lng} label="GPS" />
       </div>
       {(row.workingHours || row.lastVerified) && <div className="mt-2 flex flex-wrap gap-2 text-[9px] font-semibold text-navy-300">{row.workingHours && <span className="inline-flex items-center gap-1"><Clock3 size={10} />{row.workingHours}</span>}{row.lastVerified && <span>آخر تحقق: {new Date(row.lastVerified).toLocaleDateString('ar-EG')}</span>}</div>}
     </Card>

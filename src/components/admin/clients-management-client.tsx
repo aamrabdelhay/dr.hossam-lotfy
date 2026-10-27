@@ -353,7 +353,7 @@ function ClientRow({
           <button onClick={()=>onStatus(client.id,'POTENTIAL')} title="تصنيف كعميل محتمل" className={`rounded-lg p-2 ${client.status==='POTENTIAL'?'bg-gold-50 text-gold-700':'border text-navy-500'}`}>محتمل</button>
           <button onClick={()=>onStatus(client.id,'MAIN')} title="تصنيف كعميل" className={`rounded-lg p-2 ${client.status==='MAIN'?'bg-emerald-50 text-emerald-700':'border text-navy-500'}`}>عميل</button>
           <button onClick={()=>onStatus(client.id,'FOLLOW_UP')} title="وضع تحت المتابعة" className={`rounded-lg p-2 ${client.status==='FOLLOW_UP'?'bg-amber-50 text-amber-700':'border text-navy-500'}`}>متابعة</button>
-          <Link href={`/admin/clients/${client.id}`} className="rounded-lg border p-2 text-navy-600" title="فتح الملف الكامل للعميل" aria-label="فتح الملف الكامل للعميل"><UserRound size={15}/></Link><button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="إدارة ملفات العميل"><FileText size={15}/></button>
+          <Link href={`/admin/clients/${client.id}`} className="rounded-lg border p-2 text-navy-600" title="فتح الملف الكامل للعميل" aria-label="فتح الملف الكامل للعميل"><UserRound size={15}/></Link><a href={"/api/admin/clients/export?id="+client.id} className="rounded-lg border p-2 text-emerald-700" title="تحميل بيانات العميل Excel" aria-label="تحميل بيانات العميل Excel"><Download size={15}/></a><button onClick={onOpen} className="rounded-lg border p-2 text-navy-600" title="إدارة ملفات العميل"><FileText size={15}/></button>
           <button onClick={()=>void onDelete(client.id)} title="حذف ونقل إلى الأرشيف" className="rounded-lg border border-red-200 p-2 text-red-600"><Trash2 size={15}/></button>
         </div>
       </div>

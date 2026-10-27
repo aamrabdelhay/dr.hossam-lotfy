@@ -43,6 +43,7 @@ import { formatDay, formatTimeOfDay, formatDateTime } from '@/lib/dates';
 import { TITLE_LABEL, LOCATION_TYPE_LABEL } from '@/lib/constants';
 import type { TaskVM } from '@/lib/queries';
 import type { NavLocation } from '@/lib/constants';
+import { DirectionsButton } from '@/components/directions-button';
 
 type LawyerRow = {
   id: string;
@@ -678,7 +679,8 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
         <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
           <ImagePlus size={15} />
         </button>
-        <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
+        <DirectionsButton name={l.name} address={l.address || [l.city,l.governorate,l.district].filter(Boolean).join("، ")} lat={l.lat} lng={l.lng} label="GPS" />
+            <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
           <Pencil size={14} />
         </button>
         <button onClick={() => genLink(l)} className="flex items-center gap-1 rounded-md border border-gold-500/40 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-extrabold text-gold-700 hover:bg-gold-500/20" title="رابط دخول المحامي">

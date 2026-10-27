@@ -12,6 +12,8 @@ import { PostCard } from '@/components/post-card';
 import { ActivityTimeline } from '@/components/activity-timeline';
 import { Badge, Card, EmptyState } from '@/components/ui';
 import { formatFullDate } from '@/lib/dates';
+import { DirectionsButton } from '@/components/directions-button';
+import { ReportActions } from '@/components/report-actions';
 
 export const metadata: Metadata = { title: 'صفحة المكان' };
 
@@ -107,6 +109,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
               </div>
             </div>
             {location.description && <p className="mt-4 max-w-2xl text-[12.5px] leading-6 text-ivory-300">{location.description}</p>}
+            <div className="mt-4 flex flex-wrap items-center gap-2">{session && <ReportActions reportUrl={"/reports/location/"+location.id}/>}<DirectionsButton name={location.name} address={location.address} lat={location.lat} lng={location.lng} returnToMainOffice /></div>
           </div>
         </Card>
 
