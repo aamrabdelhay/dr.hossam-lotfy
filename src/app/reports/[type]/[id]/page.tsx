@@ -267,10 +267,41 @@ export default async function EntityReportPage({
   return (
     <main dir="rtl" className="mx-auto min-h-screen w-full max-w-[1100px] bg-white px-4 py-5 text-navy-950 sm:px-8 print:max-w-none print:px-0 print:py-0">
       <AutoPrint enabled={query.print === '1'} />
+      <section className="print-report" aria-label="قالب التقرير للطباعة">
+        <header className="print-report-header">
+          <div className="print-report-brand">LOUTFI LAW FIRM <span>· EST. 1949</span></div>
+          <div className="print-report-confidential">تقرير داخلي سري</div>
+          <h1>{title}</h1>
+          <h2>{name}</h2>
+          <p>{subtitle}</p>
+          <p className="print-report-date">تاريخ إعداد التقرير: {displayDate(new Date())}</p>
+        </header>
+        <h3 className="print-report-section-title">ملخص التقرير</h3>
+        <table className="print-report-table"><thead><tr><th>البند</th><th>العدد</th></tr></thead><tbody>
+          {counts.map((count) => <tr key={count.label}><td>{count.label}</td><td>{count.value}</td></tr>)}
+        </tbody></table>
+        <h3 className="print-report-section-title">البيانات الأساسية</h3>
+        <table className="print-report-table"><tbody>
+          {info.map((item) => <tr key={item.label}><th>{item.label}</th><td>{item.value}</td></tr>)}
+        </tbody></table>
+        {files.length > 0 && <>
+          <h3 className="print-report-section-title">المستندات والملفات ({files.length})</h3>
+          <table className="print-report-table"><thead><tr><th>اسم المستند</th><th>النوع / الحجم</th><th>تاريخ الإضافة</th></tr></thead><tbody>
+            {files.map((file, index) => <tr key={file.name + index}><td>{file.name}</td><td>{file.meta || '—'}</td><td>{displayDate(file.date)}</td></tr>)}
+          </tbody></table>
+        </>}
+        <h3 className="print-report-section-title">التسلسل الزمني للمستجدات ({timeline.length})</h3>
+        {timeline.length > 0 ? <table className="print-report-table"><thead><tr><th>التاريخ</th><th>السجل</th><th>التفاصيل</th><th>بيانات إضافية</th></tr></thead><tbody>
+          {timeline.map((item, index) => <tr key={index}><td>{displayDate(item.date)}</td><td>{item.title}</td><td>{item.detail || '—'}</td><td>{item.meta || '—'}</td></tr>)}
+        </tbody></table> : <p className="print-report-empty">لا توجد مستجدات مسجلة حتى الآن.</p>}
+        <footer className="print-report-footer">تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.</footer>
+      </section>
+
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href={backHref} className="rounded-full border border-navy-200 px-4 py-2 text-xs font-bold text-navy-600">العودة للملف</Link>
         <a href="?print=1" className="rounded-full bg-navy-950 px-4 py-2 text-xs font-extrabold text-white">حفظ PDF / طباعة</a>
       </div>
+      <div className="screen-report">
       <header className="border-b-2 border-navy-950 pb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -316,9 +347,29 @@ export default async function EntityReportPage({
       <footer className="mt-8 border-t border-navy-200 pt-3 text-[9px] leading-5 text-navy-400">
         هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.
       </footer>
+      </div>
       <style>{`
         @page { size: A4; margin: 13mm 12mm 15mm; }
+        .print-report { display: none; }
         @media print {
+          .screen-report { display: none !important; }
+          .print-report { display: block !important; direction: rtl; color: #18263a; font-family: Arial, sans-serif; font-size: 9pt; }
+          .print-report-header { border-bottom: 2px solid #18263a; padding-bottom: 12pt; margin-bottom: 16pt; }
+          .print-report-brand { font-size: 10pt; font-weight: 800; letter-spacing: 1px; }
+          .print-report-brand span { color: #8a6a3a; }
+          .print-report-confidential { float: left; font-size: 8pt; color: #6b6b6b; }
+          .print-report-header h1 { margin-top: 12pt; font-size: 18pt; font-weight: 800; }
+          .print-report-header h2 { margin-top: 5pt; font-size: 13pt; font-weight: 700; }
+          .print-report-header p { margin-top: 4pt; line-height: 1.6; }
+          .print-report-date { font-size: 8pt; color: #555; }
+          .print-report-section-title { margin: 14pt 0 6pt; padding-right: 7pt; border-right: 3px solid #8a6a3a; font-size: 11pt; font-weight: 800; break-after: avoid; }
+          .print-report-table { width: 100%; border-collapse: collapse; table-layout: auto; margin-bottom: 8pt; }
+          .print-report-table th, .print-report-table td { border: 1px solid #d7dce2; padding: 5pt 6pt; text-align: right; vertical-align: top; line-height: 1.5; overflow-wrap: anywhere; }
+          .print-report-table thead th { background: #18263a !important; color: #fff !important; font-weight: 700; }
+          .print-report-table tbody th { width: 26%; background: #f7f5f0 !important; font-weight: 700; }
+          .print-report-table tr { break-inside: avoid; page-break-inside: avoid; }
+          .print-report-empty { padding: 10pt; border: 1px dashed #d7dce2; }
+          .print-report-footer { margin-top: 18pt; padding-top: 7pt; border-top: 1px solid #cbd2da; color: #555; font-size: 8pt; line-height: 1.6; }
           html, body { background: #fff !important; color: #18263a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           body { font-size: 10pt; }
           main { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
