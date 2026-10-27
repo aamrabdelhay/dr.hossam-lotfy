@@ -7,8 +7,9 @@ import { prisma } from '@/lib/prisma';
 import { Card } from '@/components/ui';
 import { ClientProfileEditor } from '@/components/admin/client-profile-editor';
 import { ReportActions } from '@/components/report-actions';
+import { getBranchScope } from '@/lib/branch-access';
 export const metadata: Metadata = { title: 'ملف العميل — الإدارة' };
-type Client = { id:string; name:string; phone:string|null; email:string|null; nationalId:string|null; address:string|null; notes:string|null; assignedLawyerId:string|null; createdAt:Date; updatedAt:Date };
+type Client = { id:string; name:string; phone:string|null; email:string|null; nationalId:string|null; address:string|null; notes:string|null; assignedLawyerId:string|null; branch_id:string|null; createdAt:Date; updatedAt:Date };
 type CaseRow = { id:string; name:string; number:string; description:string|null; clientName:string|null; createdAt:Date|null; eventCount:number; taskCount:number };
 type EventRow = { id:string; caseId:string; description:string; type:string; authorName:string|null; createdAt:Date };
 type TaskRow = { id:string; caseId:string|null; description:string; notes:string|null; scheduledDate:Date|null; scheduledTime:string|null; status:string; createdAt:Date; locationName:string|null };
@@ -20,8 +21,9 @@ function fmtDate(value: Date|null|undefined){if(!value)return 'غير محدد';
 function statusLabel(value:string){return ({PENDING:'قيد التنفيذ',IN_PROGRESS:'جاري التنفيذ',COMPLETED:'تم التنفيذ',CANCELLED:'ملغي'} as Record<string,string>)[value]??value;}
 export default async function ClientProfilePage({params}:{params:Promise<{id:string}>}){
  const session=await getCurrentUser(); if(!session)redirect('/auth'); const {id}=await params;
- const clients=await prisma.$queryRawUnsafe<Client[]>(`SELECT "id","name","phone","email","nationalId","address","notes","assignedLawyerId","createdAt","updatedAt" FROM "clients" WHERE "id"=$1 LIMIT 1`,id); const client=clients[0]; if(!client)notFound();
+ const clients=await prisma.$queryRawUnsafe<Client[]>(`SELECT "id","name","phone","email","nationalId","address","notes","assignedLawyerId","branch_id","createdAt","updatedAt" FROM "clients" WHERE "id"=$1 LIMIT 1`,id); const client=clients[0]; if(!client)notFound();
  const isAdmin=session.role==='admin'||!!session.isAdmin; const isAssignedLawyer=session.role==='lawyer'&&session.lawyerId===client.assignedLawyerId; if(!isAdmin&&!isAssignedLawyer)redirect('/auth');
+ const branchScope=await getBranchScope(session); if(!branchScope.allBranches && branchScope.branchIds.length>0 && !branchScope.branchIds.includes(client.branch_id||'branch_main'))redirect('/auth');
  const lawyers=await prisma.$queryRawUnsafe<LawyerRow[]>(`SELECT "id","fullName" AS "name" FROM "lawyers" WHERE "active"=true ORDER BY "fullName" ASC`);
  const cases=await prisma.$queryRawUnsafe<CaseRow[]>(`SELECT cr."id",cr."name",cr."number",cr."description",cr."clientName",MIN(ce."createdAt") AS "createdAt",COUNT(DISTINCT ce."id")::int AS "eventCount",COUNT(DISTINCT t."id")::int AS "taskCount" FROM "case_records" cr LEFT JOIN "case_events" ce ON ce."caseId"=cr."id" LEFT JOIN "tasks" t ON t."caseId"=cr."id" WHERE cr."clientId"=$1 GROUP BY cr."id" ORDER BY COALESCE(MIN(ce."createdAt"),TIMESTAMP '1970-01-01') DESC, cr."id" DESC`,id);
  const events=await prisma.$queryRawUnsafe<EventRow[]>(`SELECT ce."id",ce."caseId",ce."description",ce."type",ce."authorName",ce."createdAt" FROM "case_events" ce INNER JOIN "case_records" cr ON cr."id"=ce."caseId" WHERE cr."clientId"=$1 ORDER BY ce."createdAt" DESC`,id);
