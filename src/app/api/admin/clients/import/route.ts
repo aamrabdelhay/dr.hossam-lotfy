@@ -210,11 +210,18 @@ export const POST = handle(async (request: Request) => {
             importedCount++;
           }
         } else if (updateLines.length) {
-          const updateNote = 'مستجدات مستوردة' + (input.updateDate ? ' (' + input.updateDate + ')' : '') + ': ' + updateLines.join('\n');
-          const existingNotes = await tx.$queryRawUnsafe<Array<{ notes: string | null }>>('SELECT "notes" FROM "clients" WHERE "id"=$1 LIMIT 1', clientId);
-          const oldNotes = existingNotes[0]?.notes || '';
-          if (!oldNotes.includes(updateNote)) {
-            await tx.$executeRawUnsafe('UPDATE "clients" SET "notes"=concat_ws(E\'\\n\',NULLIF("notes",\'\'),$2) WHERE "id"=$1', clientId, updateNote);
+          const createdAt = parseEventDate(input.updateDate || '') || new Date();
+          for (const description of updateLines) {
+            const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+              'SELECT "id" FROM "client_events" WHERE "client_id"=$1 AND "description"=$2 AND ("type"=\\'import\\' OR "author_name"=\\'استيراد Excel\\') LIMIT 1',
+              clientId, description,
+            );
+            if (duplicate.length) continue;
+            await tx.$executeRawUnsafe(
+              'INSERT INTO "client_events" ("id","client_id","description","type","author_name","created_at") VALUES ($1,$2,$3,$4,$5,$6)',
+              'cev_' + crypto.randomUUID().replace(/-/g, ''), clientId, description, input.updateType || 'import', 'استيراد Excel', createdAt,
+            );
+            importedCount++;
           }
         }
         return { created: wasCreated, caseCreated: wasCaseCreated, eventsImported: importedCount };
