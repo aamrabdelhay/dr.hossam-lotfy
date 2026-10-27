@@ -112,7 +112,10 @@ export const POST = handle(async (request: Request) => {
   }
 
   const scope = await getBranchScope(session);
-  const allowedBranchIds = scope.branchIds;
+  const allowedBranchIds = scope.officeManagerBranchIds;
+  if (!scope.allBranches && !scope.officeManager) {
+    return json({ error: 'استيراد بيانات العملاء متاح للإدارة العليا ومدير المكتب فقط.' }, { status: 403 });
+  }
   if (!scope.allBranches && allowedBranchIds.length > 1) {
     return json({ error: 'هذا الحساب يدير أكثر من فرع؛ افتح صفحة الفرع المطلوب قبل استيراد البيانات.' }, { status: 403 });
   }
