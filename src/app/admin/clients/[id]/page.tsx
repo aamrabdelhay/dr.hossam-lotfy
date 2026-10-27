@@ -23,7 +23,7 @@ export default async function ClientProfilePage({params}:{params:Promise<{id:str
  const session=await getCurrentUser(); if(!session)redirect('/auth'); const {id}=await params;
  const clients=await prisma.$queryRawUnsafe<Client[]>(`SELECT "id","name","phone","email","nationalId","address","notes","assignedLawyerId","branch_id","createdAt","updatedAt" FROM "clients" WHERE "id"=$1 LIMIT 1`,id); const client=clients[0]; if(!client)notFound();
  const branchScope=await getBranchScope(session);
- const platformAdmin=(session.role==='admin'&&['ADMIN','SUPER_ADMIN'].includes(session.userRole))||(session.role==='lawyer'&&session.isAdmin);
+ const platformAdmin=(session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN'))||(session.role==='lawyer'&&session.isAdmin);
  const isAdmin=platformAdmin||branchScope.officeManager;
  const isAssignedLawyer=session.role==='lawyer'&&session.lawyerId===client.assignedLawyerId;
  if(!isAdmin&&!isAssignedLawyer)redirect('/auth');
