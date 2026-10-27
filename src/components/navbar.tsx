@@ -215,7 +215,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
         </nav>
         <div className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {session && <NotificationBell unread={unread} />}
-          {session && isManagement && <Link href="/admin/office" className="hidden items-center gap-1.5 rounded-full bg-navy-950 px-3 py-2 text-[10px] font-extrabold text-white hover:bg-navy-900 xl:inline-flex"><ShieldCheck size={13} className="text-gold-400" />دخول الإدارة</Link>}
+          {session && isManagement && <Link href="/admin/office" className="inline-flex shrink-0 items-center gap-1 rounded-full bg-navy-950 px-2 py-2 text-[10px] font-extrabold text-white hover:bg-navy-900 sm:gap-1.5 sm:px-3" title="دخول الإدارة"><ShieldCheck size={14} className="shrink-0 text-gold-400" /><span className="hidden sm:inline">دخول الإدارة</span><span className="sm:hidden">الإدارة</span></Link>}
           {session && <Link href="/profile" className="flex items-center gap-1 rounded-full border border-navy-200 bg-white px-2.5 py-2 text-[11px] font-bold text-navy-700 hover:border-gold-400"><UserCircle2 size={14} className="text-gold-600" /><span className="hidden max-w-28 truncate sm:inline">{COPY.profile}</span></Link>}
           {!session ? (
             <Link href="/auth" prefetch={false} className="rounded-full px-3 py-2 text-[10px] font-bold text-navy-500"><KeyRound size={13} className="inline me-1" />دخول</Link>
