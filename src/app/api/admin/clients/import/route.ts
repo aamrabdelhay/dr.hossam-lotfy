@@ -216,7 +216,7 @@ export const POST = handle(async (request: Request) => {
           const createdAt = parseEventDate(input.updateDate || '') || new Date();
           for (const description of updateLines) {
             const duplicate = await tx.$queryRawUnsafe<Array<{ id: string }>>(
-              'SELECT "id" FROM "client_events" WHERE "client_id"=$1 AND "description"=$2 AND ("type"=\\'import\\' OR "author_name"=\\'استيراد Excel\\') LIMIT 1',
+              'SELECT "id" FROM "client_events" WHERE "client_id"=$1 AND "description"=$2 AND ("type"=\'import\' OR "author_name"=\'استيراد Excel\') LIMIT 1',
               clientId, description,
             );
             if (duplicate.length) continue;
