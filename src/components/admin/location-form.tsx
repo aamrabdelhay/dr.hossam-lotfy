@@ -19,6 +19,9 @@ export const GOVERNORATES = [
 
 /** A location row as managed inside the admin area (superset of NavLocation). */
 export type AdminLocationRow = NavLocation & {
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   nameEn?: string | null;
   city?: string | null;
   district?: string | null;

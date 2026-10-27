@@ -9,6 +9,7 @@ import { CaseFilesPanel } from '@/components/case-files-panel';
 import { CaseClientsPanel } from '@/components/case-clients-panel';
 import { CaseDevelopmentForm } from '@/components/case-development-form';
 import { clientFileContentUrl } from '@/lib/client-file-access';
+import { ReportActions } from '@/components/report-actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ملف القضية' };
@@ -75,6 +76,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
   return (
     <main dir="rtl" className="mx-auto w-full max-w-[1250px] px-4 py-7 sm:px-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-center gap-2">
+        <ReportActions reportUrl={"/reports/case/"+caseRow.id}/>
         <Link href="/cases" className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600"><ArrowRight size={14}/> القضايا</Link>
         {clientRow && <Link href={'/admin/clients/' + clientRow.id} className="inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-4 py-2 text-[11px] font-bold text-navy-600"><UserRound size={14}/> ملف العميل</Link>}
       </div>

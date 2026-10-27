@@ -5,6 +5,7 @@ import { Building2, ShieldCheck } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { getAllBranches, getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement, isFinanceManagement, isOfficeManager } from '@/lib/office-workflow';
+import { DirectionsButton } from '@/components/directions-button';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'مركز إدارة الفروع' };
@@ -40,7 +41,7 @@ export default async function OfficeManagementPage() {
       {branches.length ? (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {branches.map((branch) => (
-            <Link key={branch.id} href={'/admin/office/branches/' + branch.id} className="group overflow-hidden rounded-3xl border border-navy-100 bg-white shadow-soft transition hover:border-gold-400 hover:shadow-lift">
+            <div key={branch.id} className="group overflow-hidden rounded-3xl border border-navy-100 bg-white shadow-soft transition hover:border-gold-400 hover:shadow-lift">
               <div className="bg-navy-950 p-5 text-white">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -51,11 +52,11 @@ export default async function OfficeManagementPage() {
                   {branch.is_main && <span className="rounded-full bg-gold-500/15 px-2.5 py-1 text-[9px] font-black text-gold-300">المقر الرئيس</span>}
                 </div>
               </div>
-              <div className="flex items-center justify-between p-4">
-                <span className="text-[11px] font-bold text-navy-500">فتح الصفحة الكاملة للفرع</span>
-                <span className="rounded-full bg-gold-500/10 px-3 py-1.5 text-[10px] font-extrabold text-gold-700">فتح الفرع</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 p-4">
+                <Link href={'/admin/office/branches/' + branch.id} className="rounded-full bg-gold-500/10 px-3 py-2 text-[10px] font-extrabold text-gold-700">فتح الفرع</Link>
+                <DirectionsButton name={branch.name_ar} address={branch.address} label="GPS إلى الفرع" returnToMainOffice={branch.id !== 'branch_main'} />
               </div>
-            </Link>
+            </div>
           ))}
         </section>
       ) : (
