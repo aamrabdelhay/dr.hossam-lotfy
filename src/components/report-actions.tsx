@@ -17,7 +17,7 @@ export function ReportActions({
       <a href={reportUrl + '?print=1'} target="_blank" rel="noreferrer" className={base + ' bg-navy-950 text-white hover:bg-navy-800'} title="فتح التقرير المنظم وحفظه PDF من نافذة الطباعة">
         <Download size={13}/>{compact ? 'PDF' : 'حفظ PDF'}
       </a>
-      <button type="button" onClick={() => window.print()} className={base + ' border border-navy-200 bg-white text-navy-700 hover:border-gold-500'} title="طباعة الصفحة مباشرة">
+      <button type="button" onClick={() => window.open(reportUrl + '?print=1', '_blank', 'noopener,noreferrer')} className={base + ' border border-navy-200 bg-white text-navy-700 hover:border-gold-500'} title="طباعة الصفحة مباشرة">
         <Printer size={13}/>{compact ? 'طباعة' : 'طباعة مباشرة'}
       </button>
       {excelUrl && (
