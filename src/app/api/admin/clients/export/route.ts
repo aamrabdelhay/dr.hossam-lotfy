@@ -25,8 +25,9 @@ function dateText(value: Date | string | null | undefined): string {
 export const GET = handle(async (request: Request) => {
   const session = await getCurrentUser();
   if (!session) return json({ error: 'يجب تسجيل الدخول لتنزيل بيانات العملاء.' }, { status: 401 });
-  const managementAccess = session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin);
   const scope = await getBranchScope(session);
+  const platformAdmin = (session.role === 'admin' && ['ADMIN', 'SUPER_ADMIN'].includes(session.userRole)) || (session.role === 'lawyer' && session.isAdmin);
+  const managementAccess = platformAdmin || scope.allBranches || scope.officeManager;
   const branchIds = !scope.allBranches && (scope.officeManager || scope.financeManager) ? scope.branchIds : null;
   if (branchIds && branchIds.length === 0) return json({ error: 'لا يوجد فرع مسموح لهذا الحساب لتنزيل البيانات.' }, { status: 403 });
   const requestedId = new URL(request.url).searchParams.get('id');
