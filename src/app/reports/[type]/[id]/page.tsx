@@ -316,7 +316,35 @@ export default async function EntityReportPage({
       <footer className="mt-8 border-t border-navy-200 pt-3 text-[9px] leading-5 text-navy-400">
         هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.
       </footer>
-      <style>{'@page { size: A4; margin: 14mm; } @media print { html,body { background: white !important; } a { color: inherit !important; text-decoration: none !important; } }'}</style>
+      <style>{`
+        @page { size: A4; margin: 13mm 12mm 15mm; }
+        @media print {
+          html, body { background: #fff !important; color: #18263a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { font-size: 10pt; }
+          main { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+          a { color: inherit !important; text-decoration: none !important; }
+          header { padding-bottom: 10pt !important; border-bottom: 2px solid #18263a !important; break-after: avoid; }
+          header h1 { font-size: 19pt !important; line-height: 1.35 !important; }
+          header h2 { font-size: 14pt !important; }
+          header p { line-height: 1.5 !important; }
+          main > section { margin-top: 14pt !important; }
+          main > section > h3, main > section > div > h3 { font-size: 11pt !important; }
+          main section .grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6pt !important; }
+          main section .grid > div { border: 1px solid #d7dce2 !important; border-radius: 3pt !important; padding: 7pt !important; background: #fff !important; }
+          main section .grid > div p:last-child { font-size: 9pt !important; line-height: 1.55 !important; overflow-wrap: anywhere; }
+          main section .space-y-2 > div { border: 0 !important; border-bottom: 1px solid #e2e6eb !important; border-radius: 0 !important; padding: 6pt 0 !important; }
+          main section article { break-inside: avoid; page-break-inside: avoid; padding-right: 18pt !important; }
+          main section article > div { border: 0 !important; border-bottom: 1px solid #e2e6eb !important; border-radius: 0 !important; padding: 7pt 0 !important; background: #fff !important; }
+          main section article p { font-size: 9pt !important; line-height: 1.55 !important; }
+          main section article h4 { font-size: 9.5pt !important; }
+          .rounded-xl, .rounded-2xl, .rounded-lg { border-radius: 3pt !important; }
+          .bg-ivory-50 { background: #f7f5f0 !important; }
+          .text-navy-400, .text-navy-500 { color: #515b68 !important; }
+          footer { margin-top: 18pt !important; padding-top: 7pt !important; border-top: 1px solid #cbd2da !important; font-size: 8pt !important; }
+          .print\\:hidden { display: none !important; }
+          .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+        }
+      `}</style>
     </main>
   );
 }
