@@ -21,10 +21,12 @@ type AppointmentRow = {
 
 export default async function ClientsPage() {
   const session = await getCurrentUser();
-  const admin = !!session && (session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin));
-  if (!admin) redirect('/auth');
+  if (!session) redirect('/auth');
   const scope = await getBranchScope(session);
-  const branchIds = !scope.allBranches && (scope.officeManager || scope.financeManager) ? scope.branchIds : null;
+  const platformAdmin = (session.role === 'admin' && ['ADMIN', 'SUPER_ADMIN'].includes(session.userRole)) || (session.role === 'lawyer' && session.isAdmin);
+  const admin = platformAdmin || scope.officeManager;
+  if (!admin) redirect('/auth');
+  const branchIds = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds : null;
 
   const [clients, cases, lawyers, appointments] = await Promise.all([
     prisma.$queryRawUnsafe<Array<{
