@@ -14,6 +14,7 @@ type EventRow = { id: string; caseId: string; description: string; type: string;
 type TaskRow = { id: string; caseId: string | null; description: string; notes: string | null; scheduledDate: Date | null; scheduledTime: string | null; status: string; locationName: string | null; lawyerName: string | null; createdAt: Date };
 type FileRow = { id: string; client_id: string; name: string; kind: string; size_bytes: number | null; created_at: Date };
 type AppointmentRow = { id: string; client_id: string; appointment_date: Date | null; appointment_time: string | null; appointment_type: string; status: string };
+type ClientEventRow = { id: string; client_id: string; description: string; type: string; author_name: string | null; created_at: Date };
 
 function dateText(value: Date | string | null | undefined): string {
   if (!value) return '';
@@ -55,7 +56,7 @@ export const GET = handle(async (request: Request) => {
     clientIds, branchIds,
   );
   const caseIds = cases.map((item) => item.id);
-  const [events, tasks, files, appointments] = await Promise.all([
+  const [events, tasks, files, appointments, clientEvents] = await Promise.all([
     caseIds.length ? prisma.$queryRawUnsafe<EventRow[]>(
       'SELECT "id","caseId","description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=ANY($1::text[]) ORDER BY "createdAt" ASC LIMIT 15000',
       caseIds,
@@ -70,6 +71,10 @@ export const GET = handle(async (request: Request) => {
     ),
     prisma.$queryRawUnsafe<AppointmentRow[]>(
       'SELECT "id","client_id","appointment_date","appointment_time","appointment_type","status" FROM "client_appointments" WHERE "client_id"=ANY($1::text[]) ORDER BY "appointment_date" ASC NULLS LAST LIMIT 15000',
+      clientIds,
+    ),
+    prisma.$queryRawUnsafe<ClientEventRow[]>(
+      'SELECT "id","client_id","description","type","author_name","created_at" FROM "client_events" WHERE "client_id"=ANY($1::text[]) ORDER BY "created_at" ASC LIMIT 15000',
       clientIds,
     ),
   ]);
@@ -111,6 +116,10 @@ export const GET = handle(async (request: Request) => {
     }
     for (const appointment of appointments.filter((item) => item.client_id === client.id)) {
       addRow(client, { recordType: 'موعد العميل', details: appointment.appointment_type, date: dateText(appointment.appointment_date) + (appointment.appointment_time ? ' ' + appointment.appointment_time : ''), status: appointment.status });
+      recordCount++;
+    }
+    for (const event of clientEvents.filter((item) => item.client_id === client.id)) {
+      addRow(client, { recordType: 'مستجد العميل', details: event.description, date: dateText(event.created_at), status: event.type, lawyer: event.author_name ?? '' });
       recordCount++;
     }
     for (const file of files.filter((item) => item.client_id === client.id)) {
