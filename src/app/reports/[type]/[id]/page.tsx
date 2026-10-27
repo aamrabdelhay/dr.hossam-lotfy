@@ -87,7 +87,7 @@ export default async function EntityReportPage({
       id,
     );
     const caseIds = cases.map((item) => item.id);
-    const [events, tasks, appointments, clientFiles] = await Promise.all([
+    const [events, tasks, appointments, clientFiles, clientEvents] = await Promise.all([
       caseIds.length ? prisma.$queryRawUnsafe<Array<{caseId:string;description:string;type:string;authorName:string|null;createdAt:Date}>>(
         'SELECT "caseId","description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=ANY($1::text[]) ORDER BY "createdAt" ASC',
         caseIds,
@@ -104,8 +104,13 @@ export default async function EntityReportPage({
         'SELECT "name","kind","created_at","size_bytes" FROM "client_files" WHERE "client_id"=$1 AND "deleted_at" IS NULL ORDER BY "created_at" ASC',
         id,
       ),
+      prisma.$queryRawUnsafe<Array<{id:string;description:string;type:string;author_name:string|null;created_at:Date}>>(
+        'SELECT "id","description","type","author_name","created_at" FROM "client_events" WHERE "client_id"=$1 ORDER BY "created_at" ASC',
+        id,
+      ),
     ]);
     for (const item of cases) timeline.push(timelineItem(null, 'ملف قضية: ' + item.name, 'رقم القضية: ' + item.number + (item.description ? ' — ' + item.description : ''), 'قضية'));
+    for (const event of clientEvents) timeline.push(timelineItem(event.created_at, event.type === 'import' ? 'مستجد عميل مستورد' : 'مستجد العميل', event.description, event.author_name || ''));
     for (const event of events) {
       const linkedCase = cases.find((item) => item.id === event.caseId);
       timeline.push(timelineItem(event.createdAt, event.type === 'import' ? 'مستجد مستورد' : 'مستجد قضية', (linkedCase ? linkedCase.name + ': ' : '') + event.description, event.authorName || ''));
@@ -113,7 +118,7 @@ export default async function EntityReportPage({
     for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · ')));
     for (const appointment of appointments) timeline.push(timelineItem(appointment.appointment_date || appointment.created_at, 'موعد العميل', appointment.appointment_type, statusName(appointment.status) + (appointment.appointment_time ? ' · ' + appointment.appointment_time : '')));
     files = clientFiles.map((file) => ({ name: file.name, date: file.created_at, meta: file.kind + (file.size_bytes ? ' · ' + (file.size_bytes / 1024 / 1024).toFixed(2) + ' MB' : '') }));
-    counts = [{ label: 'القضايا', value: cases.length }, { label: 'المستجدات', value: events.length }, { label: 'الجلسات والمهام', value: tasks.length }, { label: 'المواعيد', value: appointments.length }, { label: 'المستندات', value: clientFiles.length }];
+    counts = [{ label: 'القضايا', value: cases.length }, { label: 'مستجدات القضايا', value: events.length }, { label: 'مستجدات العميل', value: clientEvents.length }, { label: 'الجلسات والمهام', value: tasks.length }, { label: 'المواعيد', value: appointments.length }, { label: 'المستندات', value: clientFiles.length }];
   } else if (type === 'case') {
     const rows = await prisma.$queryRawUnsafe<Array<{
       id:string;name:string;number:string;description:string|null;clientId:string|null;clientName:string|null;
