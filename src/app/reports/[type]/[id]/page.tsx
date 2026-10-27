@@ -43,7 +43,7 @@ export default async function EntityReportPage({
   const query = await searchParams;
   if (!['client', 'case', 'lawyer', 'location'].includes(type)) notFound();
   const scope = await getBranchScope(session);
-  const isManager = (session.role === 'admin' && ['ADMIN', 'SUPER_ADMIN'].includes(session.userRole)) || (session.role === 'lawyer' && session.isAdmin) || scope.officeManager || await isSeniorManagement(session);
+  const isManager = (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) || (session.role === 'lawyer' && session.isAdmin) || scope.officeManager || await isSeniorManagement(session);
   const reportBranchIds = scope.allBranches ? null : scope.officeManager ? scope.officeManagerBranchIds : null;
   const reportLawyerId = !isManager && session.role === 'lawyer' ? session.lawyerId : null;
 
