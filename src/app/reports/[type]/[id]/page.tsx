@@ -45,6 +45,7 @@ export default async function EntityReportPage({
   const scope = await getBranchScope(session);
   const isManager = (session.role === 'admin' && ['ADMIN', 'SUPER_ADMIN'].includes(session.userRole)) || (session.role === 'lawyer' && session.isAdmin) || scope.officeManager || await isSeniorManagement(session);
   const reportBranchIds = scope.allBranches ? null : scope.officeManager ? scope.officeManagerBranchIds : null;
+  const reportLawyerId = !isManager && session.role === 'lawyer' ? session.lawyerId : null;
 
   let title = '';
   let name = '';
@@ -131,6 +132,14 @@ export default async function EntityReportPage({
     const record = rows[0];
     if (!record) notFound();
     if (!scope.allBranches && scope.branchIds.length > 0 && !scope.branchIds.includes(record.branch_id || 'branch_main')) redirect('/auth');
+    if (!isManager) {
+      if (session.role !== 'lawyer') redirect('/auth');
+      const caseAccess = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        'SELECT ta."id" AS "id" FROM "task_assignments" ta JOIN "tasks" t ON t."id"=ta."taskId" WHERE t."caseId"=$1 AND ta."lawyerId"=$2 UNION SELECT c."id" AS "id" FROM "clients" c LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" WHERE c."assignedLawyerId"=$2 AND (c."id"=$3 OR cc."case_id"=$1) LIMIT 1',
+        id, session.lawyerId, record.clientId || '',
+      );
+      if (!caseAccess.length) redirect('/auth');
+    }
     title = 'تقرير شامل للقضية';
     backHref = '/cases/' + record.id;
     name = record.name;
@@ -144,8 +153,8 @@ export default async function EntityReportPage({
       { label: 'وصف القضية', value: clean(record.description) },
     ];
     const clientRows = await prisma.$queryRawUnsafe<Array<{name:string;phone:string|null;email:string|null}>>(
-      'SELECT DISTINCT c."name",c."phone",c."email" FROM "clients" c LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" WHERE (c."id"=$1 OR cc."case_id"=$2) AND ($3::text[] IS NULL OR COALESCE(c."branch_id",\'branch_main\')=ANY($3::text[])) ORDER BY c."name"',
-      record.clientId || '', id, reportBranchIds,
+      'SELECT DISTINCT c."name",c."phone",c."email" FROM "clients" c LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" WHERE (c."id"=$1 OR cc."case_id"=$2) AND ($3::text[] IS NULL OR COALESCE(c."branch_id",\'branch_main\')=ANY($3::text[])) AND ($4::text IS NULL OR c."assignedLawyerId"=$4) ORDER BY c."name"',
+      record.clientId || '', id, reportBranchIds, reportLawyerId,
     );
     if (clientRows.length) info.push({ label: 'بيانات العملاء', value: clientRows.map((client) => [client.name, client.phone, client.email].filter(Boolean).join(' · ')).join(' | ') });
     const [events, tasks, caseFiles, clientFiles] = await Promise.all([
@@ -156,8 +165,8 @@ export default async function EntityReportPage({
       ),
       prisma.$queryRawUnsafe<Array<{name:string;kind:string;created_at:Date;size_bytes:number|null}>>('SELECT "name","kind","created_at","size_bytes" FROM "case_files" WHERE "case_id"=$1 AND "deleted_at" IS NULL ORDER BY "created_at" ASC', id),
       clientRows.length ? prisma.$queryRawUnsafe<Array<{name:string;kind:string;created_at:Date;size_bytes:number|null}>>(
-        'SELECT f."name",f."kind",f."created_at",f."size_bytes" FROM "client_files" f JOIN "clients" c ON c."id"=f."client_id" LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" WHERE (c."id"=$1 OR cc."case_id"=$2) AND ($3::text[] IS NULL OR COALESCE(c."branch_id",\'branch_main\')=ANY($3::text[])) AND f."deleted_at" IS NULL ORDER BY f."created_at" ASC',
-        record.clientId || '', id, reportBranchIds,
+        'SELECT f."name",f."kind",f."created_at",f."size_bytes" FROM "client_files" f JOIN "clients" c ON c."id"=f."client_id" LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" WHERE (c."id"=$1 OR cc."case_id"=$2) AND ($3::text[] IS NULL OR COALESCE(c."branch_id",\'branch_main\')=ANY($3::text[])) AND ($4::text IS NULL OR c."assignedLawyerId"=$4) AND f."deleted_at" IS NULL ORDER BY f."created_at" ASC',
+        record.clientId || '', id, reportBranchIds, reportLawyerId,
       ) : [],
     ]);
     for (const event of events) timeline.push(timelineItem(event.createdAt, 'مستجد القضية', event.description, [event.type, event.authorName].filter(Boolean).join(' · ')));
@@ -208,6 +217,14 @@ export default async function EntityReportPage({
   } else {
     const location = await prisma.location.findUnique({ where: { id } });
     if (!location) notFound();
+    if (!isManager) {
+      if (session.role !== 'lawyer') redirect('/auth');
+      const locationAccess = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        'SELECT ta."id" FROM "task_assignments" ta JOIN "tasks" t ON t."id"=ta."taskId" WHERE ta."lawyerId"=$1 AND t."locationId"=$2 LIMIT 1',
+        session.lawyerId, id,
+      );
+      if (!locationAccess.length) redirect('/auth');
+    }
     title = location.type === 'COURT' ? 'تقرير شامل للمحكمة' : 'تقرير شامل للمكان';
     backHref = '/locations/' + location.slug;
     name = location.name;
@@ -228,12 +245,12 @@ export default async function EntityReportPage({
     ];
     const [tasks, activities] = await Promise.all([
       prisma.$queryRawUnsafe<Array<{id:string;caseId:string|null;description:string;notes:string|null;scheduledDate:Date|null;scheduledTime:string|null;status:string;createdAt:Date;caseName:string|null;caseNumber:string|null;clientName:string|null;lawyerName:string|null}>>(
-        'SELECT t."id",t."caseId",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",cr."name" AS "caseName",cr."number" AS "caseNumber",cr."clientName",ly."fullName" AS "lawyerName" FROM "tasks" t LEFT JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "task_assignments" ta ON ta."taskId"=t."id" LEFT JOIN "lawyers" ly ON ly."id"=ta."lawyerId" WHERE t."locationId"=$1 AND ($2::text[] IS NULL OR COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[])) ORDER BY t."createdAt" ASC LIMIT 10000',
-        id, reportBranchIds,
+        'SELECT t."id",t."caseId",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",cr."name" AS "caseName",cr."number" AS "caseNumber",cr."clientName",ly."fullName" AS "lawyerName" FROM "tasks" t LEFT JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "task_assignments" ta ON ta."taskId"=t."id" LEFT JOIN "lawyers" ly ON ly."id"=ta."lawyerId" WHERE t."locationId"=$1 AND ($2::text[] IS NULL OR COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[])) AND ($3::text IS NULL OR EXISTS (SELECT 1 FROM "task_assignments" own WHERE own."taskId"=t."id" AND own."lawyerId"=$3)) ORDER BY t."createdAt" ASC LIMIT 10000',
+        id, reportBranchIds, reportLawyerId,
       ),
       prisma.$queryRawUnsafe<Array<{id:string;action:string;summary:string;createdAt:Date}>>(
-        'SELECT al."id",al."action",al."summary",al."createdAt" FROM "activity_logs" al LEFT JOIN "tasks" t ON t."id"=al."taskId" WHERE al."locationId"=$1 AND ($2::text[] IS NULL OR (t."id" IS NOT NULL AND COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[]))) ORDER BY al."createdAt" ASC LIMIT 10000',
-        id, reportBranchIds,
+        'SELECT al."id",al."action",al."summary",al."createdAt" FROM "activity_logs" al LEFT JOIN "tasks" t ON t."id"=al."taskId" WHERE al."locationId"=$1 AND ($2::text[] IS NULL OR (t."id" IS NOT NULL AND COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[]))) AND ($3::text IS NULL OR EXISTS (SELECT 1 FROM "task_assignments" own WHERE own."taskId"=t."id" AND own."lawyerId"=$3)) ORDER BY al."createdAt" ASC LIMIT 10000',
+        id, reportBranchIds, reportLawyerId,
       ),
     ]);
     for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.clientName || '', task.description, task.notes].filter(Boolean).join(' — '), [task.lawyerName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · ')));
