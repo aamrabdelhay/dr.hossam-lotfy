@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Download, FileSpreadsheet, Printer, X, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Download, FileSpreadsheet, X, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ExportMenu } from '@/components/ExportMenu';
+import type { ReportColumn, ReportData, ReportFormat } from '@/lib/exportReport';
 
 type ReportLanguage = 'ar' | 'en' | 'fr';
-type ReportFormat = 'pdf' | 'word' | 'excel';
 type ReportSection = 'basic' | 'cases' | 'tasks' | 'attendance' | 'activity' | 'files' | 'developments' | 'appointments' | 'comments';
 type ExportRow = { section: string; date: string; title: string; detail: string; meta: string };
 
@@ -68,7 +69,8 @@ function makeReportRows(doc: Document, copy: Record<string, string>): { title: s
     if (articles.length) {
       for (const article of articles) {
         const itemTitle = textOf(article.querySelector('h4')) || heading;
-        const date = textOf(article.querySelector('time'));
+        const timeElement = article.querySelector('time');
+        const date = timeElement?.getAttribute('datetime') || textOf(timeElement);
         const paragraphs = Array.from(article.querySelectorAll('p')).map((p) => textOf(p));
         rows.push({ section: heading, date, title: itemTitle, detail: paragraphs[0] || '', meta: paragraphs.slice(1).join(' · ') });
       }
@@ -155,85 +157,37 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
     setStep('preview');
   };
   const getDocument = () => frame.current?.contentDocument ?? null;
-  const printPreview = () => {
+  const getExportData = (): ReportData => {
+    const doc = getDocument();
+    if (!doc) throw new Error('معاينة التقرير لم تكتمل بعد.');
+    const parsed = makeReportRows(doc, copy);
+    const columns: ReportColumn[] = [
+      { header: copy.row, key: 'number', width: 8, dataType: 'number' },
+      { header: copy.section, key: 'section', width: 22 },
+      { header: copy.date, key: 'date', width: 24, dataType: 'date' },
+      { header: copy.title, key: 'title', width: 28 },
+      { header: copy.detail, key: 'detail', width: 42 },
+      { header: copy.meta, key: 'meta', width: 32 },
+    ];
+    const rows = parsed.rows.map((row, index) => ({
+      number: index + 1,
+      section: row.section,
+      date: row.date || null,
+      title: row.title,
+      detail: row.detail,
+      meta: row.meta,
+    }));
+    return { title: parsed.title, columns, rows, logoDataUrl: parsed.logo };
+  };
+  const printPreview = (filename: string) => {
     const win = frame.current?.contentWindow;
-    if (!win) return;
+    const doc = getDocument();
+    if (!win || !doc) throw new Error('معاينة التقرير لم تكتمل بعد.');
+    const oldTitle = doc.title;
+    doc.title = filename.replace(/\.pdf$/i, '');
     win.focus();
     win.print();
-  };
-  const exportWord = async () => {
-    try {
-      const doc = getDocument();
-      if (!doc) throw new Error('Preview not ready');
-      const parsed = makeReportRows(doc, copy);
-      const payload = {
-        title: parsed.title,
-        language,
-        logoDataUrl: parsed.logo,
-        headers: [copy.row, copy.section, copy.date, copy.title, copy.detail, copy.meta],
-        rows: parsed.rows.map((row, index) => [String(index + 1), row.section, row.date, row.title, row.detail, row.meta]),
-      };
-      const response = await fetch('/api/reports/export/docx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const contentType = (response.headers.get('content-type') || '').toLowerCase();
-      if (!response.ok || !contentType.includes('wordprocessingml.document')) {
-        const message = await response.text().catch(() => '');
-        throw new Error('Word export failed (' + response.status + '): ' + message.slice(0, 300));
-      }
-      const blob = await response.blob();
-      const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-      if (blob.size < 100 || blob.type.includes('pdf') ||
-          signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 0x03 || signature[3] !== 0x04) {
-        throw new Error('Server returned an invalid Word document (DOCX ZIP signature missing).');
-      }
-      downloadBlob(blob, safeFileName(parsed.title) + '.docx');
-    } catch (error) {
-      const details = error instanceof Error ? error.message : '';
-      window.alert(language === 'ar'
-        ? 'تعذر إنشاء ملف Word حقيقي (.docx). ' + details
-        : language === 'fr'
-          ? 'Impossible de créer un véritable fichier Word (.docx). ' + details
-          : 'Could not create a real Word (.docx) file. ' + details);
-    }
-  };
-  const exportExcel = async () => {
-    try {
-      const doc = getDocument();
-      if (!doc) throw new Error('Preview not ready');
-      const parsed = makeReportRows(doc, copy);
-      const body = {
-        title: parsed.title,
-        sheetName: (textOf(doc.querySelector('.screen-report h1')) || 'Report').slice(0, 31),
-        language,
-        logoDataUrl: parsed.logo,
-        headers: [copy.row, copy.section, copy.date, copy.title, copy.detail, copy.meta],
-        rows: parsed.rows.map((row, i) => [String(i + 1), row.section, row.date, row.title, row.detail, row.meta]),
-      };
-      const response = await fetch('/api/reports/export/xlsx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const contentType = (response.headers.get('content-type') || '').toLowerCase();
-      if (!response.ok || !contentType.includes('spreadsheetml.sheet')) {
-        const message = await response.text().catch(() => '');
-        throw new Error('Excel export failed (' + response.status + '): ' + message.slice(0, 300));
-      }
-      const blob = await response.blob();
-      const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
-      if (blob.size < 100 || blob.type.includes('pdf') ||
-          signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 0x03 || signature[3] !== 0x04) {
-        throw new Error('Server returned an invalid Excel workbook (XLSX ZIP signature missing).');
-      }
-      downloadBlob(blob, safeFileName(parsed.title) + '.xlsx');
-    } catch (error) {
-      const details = error instanceof Error ? error.message : '';
-      window.alert(copy.downloadError + (details ? ' ' + details : ''));
-    }
-  };
-  const exportSelected = () => {
-    if (format === 'pdf') printPreview();
-    else if (format === 'word') void exportWord();
-    else void exportExcel();
+    window.setTimeout(() => { doc.title = oldTitle; }, 2500);
   };
   const toggleSection = (value: ReportSection) => {
     setSections((old) => old.includes(value) ? old.filter((x) => x !== value) : availableSections.filter((x) => x === value || old.includes(x)));
@@ -297,12 +251,14 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-navy-100 bg-ivory-50 px-4 py-2">
                   <button type="button" onClick={() => setStep('options')} className="inline-flex items-center gap-1 rounded-full border border-navy-200 bg-white px-3 py-2 text-[11px] font-bold text-navy-700"><ChevronRight size={13}/>{copy.settings}</button>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={exportSelected} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'pdf' ? 'bg-navy-950 text-white' : format === 'word' ? 'bg-navy-950 text-white' : 'bg-emerald-800 text-white')}>
-                      {format === 'pdf' ? <Printer size={14}/> : format === 'word' ? <Download size={14}/> : <FileSpreadsheet size={14}/>}
-                      {format === 'pdf' ? copy.pdf : format === 'word' ? copy.word + ' (.docx)' : copy.excel + ' (.xlsx)'}
-                    </button>
-                  </div>
+                  <ExportMenu
+                    title={copy.summary}
+                    language={language}
+                    selectedFormat={format}
+                    onFormatChange={setFormat}
+                    getReportData={getExportData}
+                    onPdfExport={printPreview}
+                  />
                 </div>
                 <div className="min-h-0 flex-1 bg-[#eef2f8] p-1 sm:p-3">
                   {previewUrl ? <iframe ref={frame} key={previewUrl} src={previewUrl} title={copy.previewTitle} className="h-full w-full rounded-lg border border-navy-100 bg-white"/> : <div className="grid h-full place-items-center text-xs font-bold text-navy-500">{copy.loading}</div>}
