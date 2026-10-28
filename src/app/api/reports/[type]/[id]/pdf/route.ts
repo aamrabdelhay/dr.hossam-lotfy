@@ -162,9 +162,9 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
 
     const document = h(Document, { title, author: 'Loutfi Law Firm' },
       h(Page, { size: 'A4', style: styles.page },
-        h(View, { fixed: true, style: styles.header },
+        h(View, { fixed: true, style: [styles.header, lang === 'ar' ? {} : { flexDirection: 'row' }] },
           h(View, null, h(Text, { style: styles.brand }, 'LOUTFI LAW FIRM'), h(Text, { style: styles.brandSub }, 'SINCE 1949')),
-          h(RTLText, { style: styles.confidential }, labels.confidential)),
+          h(lang === 'ar' ? RTLText : Text, { style: [styles.confidential, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.confidential)),
         h(lang === 'ar' ? RTLText : Text, { style: [styles.title, lang === 'ar' ? {} : { textAlign: 'left' }] }, title),
         h(lang === 'ar' ? RTLText : Text, { style: [styles.entity, lang === 'ar' ? {} : { textAlign: 'left' }] }, entityName),
         h(lang === 'ar' ? RTLText : Text, { style: [styles.subtitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.issued + ': ' + format(new Date(), lang) + '  |  ' + labels.issuer + ': ' + session.name),
@@ -172,7 +172,7 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
         ...info.map((item, index) => h(View, { key: 'info-' + index, style: [styles.infoRow, lang === 'ar' ? {} : { flexDirection: 'row' }], wrap: false },
           h(lang === 'ar' ? RTLText : Text, { style: [styles.infoLabel, lang === 'ar' ? {} : { textAlign: 'left' }] }, item[0]), h(lang === 'ar' ? RTLText : Text, { style: [styles.infoValue, lang === 'ar' ? {} : { textAlign: 'left' }] }, format(item[1], lang)))]) : []),
         ...sections.map((section) => sectionBlock(section, labels, lang)),
-        h(View, { fixed: true, style: styles.footer },
+        h(View, { fixed: true, style: [styles.footer, lang === 'ar' ? {} : { flexDirection: 'row' }] },
           h(RTLText, { style: styles.footerText }, labels.confidential),
           h(Text, { style: styles.footerText, render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => String(pageNumber) + ' / ' + String(totalPages) }))));
 
@@ -181,7 +181,7 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
     const reportName = (lang === 'ar' ? 'تقرير-' + (arabicType[type] || 'عام') : (lang === 'fr' ? 'rapport-' : 'report-') + type) + '-' + safeName + '-' + new Date().toISOString().slice(0, 10);
     const escapeHtml = (value: unknown) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
     const logo = '<div style="text-align:right;font-family:Arial,sans-serif;border-bottom:2px solid #18263A;padding:0 0 10px;margin-bottom:18px"><div style="font-size:18px;font-weight:bold;color:#18263A;letter-spacing:2px">LOUTFI</div><div style="font-size:10px;color:#8A6A3A">LAW FIRM · SINCE 1949</div></div>';
-    const tableHtml = (heading: string, columns: string[], rows: string[][]) => '<h2>' + escapeHtml(heading) + '</h2><table><thead><tr>' + columns.map(x => '<th>' + escapeHtml(x) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(x => '<td>' + escapeHtml(x) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+    const tableHtml = (heading: string, columns: string[], rows: string[][]) => '<h2>' + escapeHtml(heading) + '</h2><table><thead><tr><th>' + (lang === 'ar' ? 'م' : '#') + '</th>' + columns.map(x => '<th>' + escapeHtml(x) + '</th>').join('') + '</tr></thead><tbody>' + rows.map((row, index) => '<tr><td>' + (index + 1) + '</td>' + row.map(x => '<td>' + escapeHtml(x) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
     const html = '<!doctype html><html lang="' + lang + '" dir="' + direction + '"><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;direction:' + direction + ';text-align:' + (direction === 'rtl' ? 'right' : 'left') + ';color:#242424;margin:28px}h1{color:#18263A;font-size:22px}h2{font-size:15px;color:#18263A;border-bottom:1px solid #ddd;padding-bottom:6px;margin-top:22px}table{border-collapse:collapse;width:100%;margin:8px 0 18px;direction:' + direction + '}th,td{border:1px solid #dce1e7;padding:7px;text-align:' + (direction === 'rtl' ? 'right' : 'left') + ';vertical-align:top}th{background:#18263A;color:#fff}tr{page-break-inside:avoid}.meta{color:#637083;font-size:11px;margin:8px 0 16px}</style></head><body>' + logo + '<h1>' + escapeHtml(title) + '</h1><h2>' + escapeHtml(entityName) + '</h2><div class="meta">' + escapeHtml(labels.issued + ': ' + format(new Date(), lang) + ' | ' + labels.issuer + ': ' + session.name) + '</div>' + (selectedSections.has('basic') ? tableHtml(labels.basic, [labels.item, labels.description], info.map(item => [item[0], format(item[1], lang)])) : '') + sections.map(section => tableHtml(section.title, section.columns, section.rows)).join('') + '</body></html>';
     if (exportFormat === 'doc' || exportFormat === 'xls') {
       const isWord = exportFormat === 'doc';
