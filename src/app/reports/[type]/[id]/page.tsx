@@ -35,7 +35,7 @@ export default async function EntityReportPage({
   searchParams,
 }: {
   params: Promise<{ type: string; id: string }>;
-  searchParams: Promise<{ print?: string }>;
+  searchParams: Promise<{ print?: string; preview?: string }>;
 }) {
   const session = await getCurrentUser();
   if (!session) redirect('/auth');
@@ -265,7 +265,7 @@ export default async function EntityReportPage({
   });
 
   return (
-    <main dir="rtl" className="mx-auto min-h-screen w-full max-w-[1100px] bg-white px-4 py-5 text-navy-950 sm:px-8 print:max-w-none print:px-0 print:py-0">
+    <main dir="rtl" className={`mx-auto min-h-screen w-full max-w-[1100px] bg-white px-4 py-5 text-navy-950 sm:px-8 print:max-w-none print:px-0 print:py-0 ${query.preview === '1' ? 'report-preview-mode' : ''}`}>
       <AutoPrint enabled={query.print === '1'} />
       <section className="print-report" aria-label="قالب التقرير للطباعة">
         <header className="print-report-header">
@@ -301,7 +301,7 @@ export default async function EntityReportPage({
         <Link href={backHref} className="rounded-full border border-navy-200 px-4 py-2 text-xs font-bold text-navy-600">العودة للملف</Link>
         <a href="?print=1" className="rounded-full bg-navy-950 px-4 py-2 text-xs font-extrabold text-white">حفظ PDF / طباعة</a>
       </div>
-      <div className="screen-report">
+      <div className="screen-report" contentEditable={query.preview === '1'} suppressContentEditableWarning={query.preview === '1'} spellCheck={query.preview === '1'}>
       <header className="border-b-2 border-navy-950 pb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -396,6 +396,7 @@ export default async function EntityReportPage({
           .break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
         }
       `}</style>
+      {query.preview === '1' && <style>{"\nbody:has(.report-preview-mode) { padding-top: 0 !important; background: #fff !important; background-image: none !important; }\nbody:has(.report-preview-mode) > header,\nbody:has(.report-preview-mode) > footer,\nbody:has(.report-preview-mode) > #two-week-warning,\nbody:has(.report-preview-mode) .site-floating-nav { display: none !important; }\nbody:has(.report-preview-mode) .page-content { animation: none !important; }\n.report-preview-mode { min-height: 0 !important; max-width: none !important; margin: 0 auto !important; padding: 16px !important; }\n.report-preview-mode > .mb-5 { display: none !important; }\n.report-preview-mode .print-report { display: none !important; }\n.report-preview-mode .screen-report { display: block !important; caret-color: #8a6a3a; }\n.report-preview-mode .screen-report[contenteditable=\"true\"]:focus { outline: none; }\n@media print {\n  body:has(.report-preview-mode) { padding: 0 !important; background: #fff !important; }\n  body:has(.report-preview-mode) > header,\n  body:has(.report-preview-mode) > footer,\n  body:has(.report-preview-mode) > #two-week-warning,\n  body:has(.report-preview-mode) .site-floating-nav { display: none !important; }\n  .report-preview-mode { max-width: none !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }\n  .report-preview-mode .screen-report { display: block !important; }\n  .report-preview-mode .print-report { display: none !important; }\n}"}</style>}
     </main>
   );
 }
