@@ -6,18 +6,57 @@ import { getCurrentUser } from '@/lib/auth';
 import { getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
+import { getSiteBranding } from '@/lib/site-data';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'تقرير ملف — مكتب لطفي' };
 
-type TimelineItem = { date: Date | string | null; title: string; detail: string; meta?: string };
+type TimelineItem = { date: Date | string | null; title: string; detail: string; meta?: string; category: ReportSectionKey };
 type InfoItem = { label: string; value: string };
 type FileItem = { name: string; date: Date | string | null; meta?: string };
 
-function displayDate(value: Date | string | null | undefined): string {
-  if (!value) return 'غير محدد';
+type ReportLanguage = 'ar' | 'en' | 'fr';
+type ReportSectionKey = 'basic' | 'cases' | 'tasks' | 'attendance' | 'activity' | 'files' | 'developments' | 'appointments' | 'comments';
+const REPORT_TRANSLATIONS: Record<string, { en: string; fr: string }> = {
+  'تقرير شامل للعميل': {en:'Client report',fr:'Rapport du client'}, 'تقرير شامل للقضية': {en:'Case report',fr:'Rapport du dossier'},
+  'تقرير شامل للمحامي': {en:'Lawyer report',fr:'Rapport de l’avocat'}, 'تقرير شامل للمحكمة': {en:'Court report',fr:'Rapport du tribunal'}, 'تقرير شامل للمكان': {en:'Location report',fr:'Rapport du lieu'},
+  'بيانات العميل، الملفات المرتبطة، القضايا والمواعيد والمستجدات المسجلة': {en:'Client information, linked files, cases, appointments and developments',fr:'Données du client, fichiers liés, dossiers, rendez-vous et évolutions'},
+  'البيانات الأساسية': {en:'Basic information',fr:'Informations de base'}, 'ملخص التقرير': {en:'Report summary',fr:'Résumé du rapport'},
+  'الهاتف': {en:'Phone',fr:'Téléphone'}, 'البريد الإلكتروني': {en:'Email',fr:'E-mail'}, 'الرقم القومي': {en:'National ID',fr:'Numéro national'}, 'العنوان': {en:'Address',fr:'Adresse'}, 'المحامي المسؤول': {en:'Assigned lawyer',fr:'Avocat responsable'}, 'تاريخ إنشاء الملف': {en:'File created',fr:'Création du dossier'}, 'آخر تحديث للبيانات': {en:'Last updated',fr:'Dernière mise à jour'}, 'ملاحظات العميل': {en:'Client notes',fr:'Notes du client'},
+  'رقم القضية: ': {en:'Case number: ',fr:'Numéro du dossier : '}, 'رقم القضية': {en:'Case number',fr:'Numéro du dossier'}, 'العميل': {en:'Client',fr:'Client'}, 'التصنيف': {en:'Category',fr:'Catégorie'}, 'الفرع': {en:'Branch',fr:'Agence'}, 'الحالة': {en:'Status',fr:'Statut'}, 'وصف القضية': {en:'Case description',fr:'Description du dossier'}, 'بيانات العملاء': {en:'Client details',fr:'Données des clients'},
+  'التخصص': {en:'Specialization',fr:'Spécialisation'}, 'الصفة: ': {en:'Title: ',fr:'Fonction : '}, ' · التخصص: ': {en:' · Specialization: ',fr:' · Spécialisation : '}, 'المنصب': {en:'Position',fr:'Poste'}, 'نشط': {en:'Active',fr:'Actif'}, 'غير نشط': {en:'Inactive',fr:'Inactif'},
+  'النوع': {en:'Type',fr:'Type'}, 'التصنيف الفرعي': {en:'Subcategory',fr:'Sous-catégorie'}, 'المحافظة / المدينة / الحي': {en:'Governorate / city / district',fr:'Gouvernorat / ville / quartier'}, 'ساعات العمل': {en:'Working hours',fr:'Heures d’ouverture'}, 'الاختصاص': {en:'Jurisdiction',fr:'Compétence'}, 'الخدمات': {en:'Services',fr:'Services'}, 'رابط الخرائط': {en:'Map link',fr:'Lien cartographique'}, 'آخر تحقق': {en:'Last verified',fr:'Dernière vérification'}, 'الوصف': {en:'Description',fr:'Description'},
+  'القضايا': {en:'Cases',fr:'Dossiers'}, 'مستجدات القضايا': {en:'Case developments',fr:'Évolutions des dossiers'}, 'مستجدات العميل': {en:'Client developments',fr:'Évolutions du client'}, 'مستجدات': {en:'Developments',fr:'Évolutions'}, 'الجلسات والمهام': {en:'Sessions and tasks',fr:'Audiences et tâches'}, 'المهام والجلسات': {en:'Tasks and sessions',fr:'Tâches et audiences'}, 'المواعيد': {en:'Appointments',fr:'Rendez-vous'}, 'المستندات': {en:'Documents',fr:'Documents'}, 'سجلات النشاط': {en:'Activity records',fr:'Entrées du journal d’activité'}, 'التعليقات': {en:'Comments',fr:'Commentaires'}, 'تسجيل الدخول والخروج': {en:'Sign-in and sign-out',fr:'Connexions et déconnexions'},
+  'ملف قضية: ': {en:'Case file: ',fr:'Dossier : '}, 'مستجد عميل مستورد': {en:'Imported client development',fr:'Évolution client importée'}, 'مستجد العميل': {en:'Client development',fr:'Évolution du client'}, 'مستجد مستورد': {en:'Imported development',fr:'Évolution importée'}, 'مستجد قضية': {en:'Case development',fr:'Évolution du dossier'}, 'جلسة / مهمة': {en:'Session / task',fr:'Audience / tâche'}, 'مهمة / جلسة': {en:'Task / session',fr:'Tâche / audience'}, 'موعد العميل': {en:'Client appointment',fr:'Rendez-vous client'}, 'مستجد القضية': {en:'Case development',fr:'Évolution du dossier'}, 'نشاط مسجل': {en:'Recorded activity',fr:'Activité enregistrée'}, 'سجل النشاط': {en:'Activity log',fr:'Journal d’activité'}, 'تعليق على مهمة: ': {en:'Comment on task: ',fr:'Commentaire sur la tâche : '}, 'قضية: ': {en:'Case: ',fr:'Dossier : '}, 'مهمة/جلسة: ': {en:'Task/session: ',fr:'Tâche/audience : '}, 'تسجيل الدخول': {en:'Sign in',fr:'Connexion'}, 'تسجيل الخروج': {en:'Sign out',fr:'Déconnexion'}, 'مدة الجلسة: ': {en:'Session duration: ',fr:'Durée de session : '}, 'تسجيل الخروج: ': {en:'Sign-out: ',fr:'Déconnexion : '}, 'لم يُسجّل بعد': {en:'Not recorded yet',fr:'Pas encore enregistrée'},
+  'قيد التنفيذ': {en:'In progress',fr:'En cours'}, 'جارٍ التنفيذ': {en:'In progress',fr:'En cours'}, 'تم التنفيذ': {en:'Completed',fr:'Terminé'}, 'ملغي': {en:'Cancelled',fr:'Annulé'}, 'تحت المراجعة': {en:'Under review',fr:'En cours de vérification'}, 'مرفوضة': {en:'Rejected',fr:'Rejeté'}, 'مؤكد': {en:'Confirmed',fr:'Confirmé'}, 'عميل محتمل': {en:'Prospective client',fr:'Client potentiel'},
+  'تقرير داخلي سري': {en:'Confidential internal report',fr:'Rapport interne confidentiel'}, 'البند': {en:'Item',fr:'Élément'}, 'العدد': {en:'Count',fr:'Nombre'}, 'اسم المستند': {en:'Document name',fr:'Nom du document'}, 'النوع / الحجم': {en:'Type / size',fr:'Type / taille'}, 'تاريخ الإضافة': {en:'Date added',fr:'Date d’ajout'}, 'المستندات والملفات': {en:'Documents and files',fr:'Documents et fichiers'}, 'التسلسل الزمني للمستجدات': {en:'Developments timeline',fr:'Chronologie des évolutions'}, 'التسلسل الزمني الكامل للمستجدات': {en:'Complete developments timeline',fr:'Chronologie complète des évolutions'}, 'العودة للملف': {en:'Back to file',fr:'Retour au dossier'}, 'حفظ PDF / طباعة': {en:'Save PDF / Print',fr:'Enregistrer en PDF / Imprimer'}, 'تاريخ إعداد التقرير': {en:'Report date',fr:'Date du rapport'}, 'تقرير داخلي · سري': {en:'Internal · Confidential',fr:'Interne · Confidentiel'}, 'لا توجد مستجدات مسجلة حتى الآن.': {en:'No developments recorded yet.',fr:'Aucune évolution enregistrée pour le moment.'},
+  'تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.': {en:'This report was generated from records saved in the system. Please review the original documents and verify the latest updates.',fr:'Ce rapport a été généré à partir des données enregistrées. Veuillez vérifier les documents originaux et les dernières mises à jour.'}, 'هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.': {en:'This report was compiled from the records saved in the system. Review the original documents and latest updates.',fr:'Ce rapport a été établi à partir des données enregistrées. Vérifiez les documents originaux et les dernières mises à jour.'}, 'سجل': {en:'records',fr:'entrées'}, 'مرتبة من الأقدم إلى الأحدث': {en:'ordered oldest to newest',fr:'classées de la plus ancienne à la plus récente'},
+};
+function translateReport(value: string, language: ReportLanguage): string {
+  if (language === 'ar' || !value) return value;
+  let result = value;
+  for (const phrase of Object.keys(REPORT_TRANSLATIONS).sort((a,b)=>b.length-a.length)) result = result.split(phrase).join(REPORT_TRANSLATIONS[phrase][language]);
+  return result;
+}
+function getPeriodStart(period: string): Date | null {
+  if (!period || period === 'all') return null;
+  const start = new Date();
+  if (period === 'day') start.setDate(start.getDate()-1);
+  else if (period === 'week') start.setDate(start.getDate()-7);
+  else if (period === 'month') start.setMonth(start.getMonth()-1);
+  else if (period === '6months') start.setMonth(start.getMonth()-6);
+  else if (period === 'year') start.setFullYear(start.getFullYear()-1);
+  else return null;
+  return start;
+}
+
+
+function displayDate(value: Date | string | null | undefined, language: ReportLanguage = 'ar'): string {
+  if (!value) return language === 'fr' ? 'Non défini' : language === 'en' ? 'Not specified' : 'غير محدد';
   const date = new Date(value instanceof Date ? value.getTime() : value);
-  return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('ar-EG', { dateStyle: 'long', timeStyle: 'short' }).format(date);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const locale = language === 'fr' ? 'fr-FR' : language === 'en' ? 'en-GB' : 'ar-EG';
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(date);
 }
 function clean(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
@@ -26,8 +65,8 @@ function clean(value: unknown): string {
 function statusName(value: string): string {
   return ({ PENDING: 'قيد التنفيذ', IN_PROGRESS: 'جارٍ التنفيذ', COMPLETED: 'تم التنفيذ', CANCELLED: 'ملغي', UNDER_REVIEW: 'تحت المراجعة', REJECTED: 'مرفوضة', CONFIRMED: 'مؤكد', POTENTIAL: 'عميل محتمل' } as Record<string, string>)[value] ?? value;
 }
-function timelineItem(date: Date | string | null, title: string, detail: string, meta?: string): TimelineItem {
-  return { date, title, detail, meta };
+function timelineItem(date: Date | string | null, title: string, detail: string, meta?: string, category: ReportSectionKey = 'activity'): TimelineItem {
+  return { date, title, detail, meta, category };
 }
 
 export default async function EntityReportPage({
@@ -35,14 +74,18 @@ export default async function EntityReportPage({
   searchParams,
 }: {
   params: Promise<{ type: string; id: string }>;
-  searchParams: Promise<{ print?: string; preview?: string }>;
+  searchParams: Promise<{ print?: string; preview?: string; lang?: string; sections?: string; period?: string; format?: string }>;
 }) {
   const session = await getCurrentUser();
   if (!session) redirect('/auth');
   const { type, id } = await params;
   const query = await searchParams;
   if (!['client', 'case', 'lawyer', 'location'].includes(type)) notFound();
-  const scope = await getBranchScope(session);
+  const language: ReportLanguage = query.lang === 'en' || query.lang === 'fr' ? query.lang : 'ar';
+  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const reportDate = (value: Date | string | null | undefined) => displayDate(value, language);
+  const t = (value: string) => translateReport(value, language);
+  const [scope, branding] = await Promise.all([getBranchScope(session), getSiteBranding()]);
   const isManager = (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) || (session.role === 'lawyer' && session.isAdmin) || scope.officeManager || await isSeniorManagement(session);
   const reportBranchIds = scope.allBranches ? null : scope.officeManager ? scope.officeManagerBranchIds : null;
   const reportLawyerId = !isManager && session.role === 'lawyer' ? session.lawyerId : null;
@@ -80,8 +123,8 @@ export default async function EntityReportPage({
       { label: 'الرقم القومي', value: clean(client.nationalId) },
       { label: 'العنوان', value: clean(client.address) },
       { label: 'المحامي المسؤول', value: clean(client.assignedLawyerName || client.assignedLawyerId) },
-      { label: 'تاريخ إنشاء الملف', value: displayDate(client.createdAt) },
-      { label: 'آخر تحديث للبيانات', value: displayDate(client.updatedAt) },
+      { label: 'تاريخ إنشاء الملف', value: reportDate(client.createdAt) },
+      { label: 'آخر تحديث للبيانات', value: reportDate(client.updatedAt) },
       { label: 'ملاحظات العميل', value: clean(client.notes) },
     ];
     const cases = await prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;description:string|null;clientId:string|null;clientName:string|null}>>(
@@ -111,14 +154,14 @@ export default async function EntityReportPage({
         id,
       ),
     ]);
-    for (const item of cases) timeline.push(timelineItem(null, 'ملف قضية: ' + item.name, 'رقم القضية: ' + item.number + (item.description ? ' — ' + item.description : ''), 'قضية'));
-    for (const event of clientEvents) timeline.push(timelineItem(event.created_at, event.type === 'import' ? 'مستجد عميل مستورد' : 'مستجد العميل', event.description, event.author_name || ''));
+    for (const item of cases) timeline.push(timelineItem(null, 'ملف قضية: ' + item.name, 'رقم القضية: ' + item.number + (item.description ? ' — ' + item.description : ''), 'قضية', 'cases'));
+    for (const event of clientEvents) timeline.push(timelineItem(event.created_at, event.type === 'import' ? 'مستجد عميل مستورد' : 'مستجد العميل', event.description, event.author_name || '', 'developments'));
     for (const event of events) {
       const linkedCase = cases.find((item) => item.id === event.caseId);
-      timeline.push(timelineItem(event.createdAt, event.type === 'import' ? 'مستجد مستورد' : 'مستجد قضية', (linkedCase ? linkedCase.name + ': ' : '') + event.description, event.authorName || ''));
+      timeline.push(timelineItem(event.createdAt, event.type === 'import' ? 'مستجد مستورد' : 'مستجد قضية', (linkedCase ? linkedCase.name + ': ' : '') + event.description, event.authorName || '', 'developments'));
     }
-    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · ')));
-    for (const appointment of appointments) timeline.push(timelineItem(appointment.appointment_date || appointment.created_at, 'موعد العميل', appointment.appointment_type, statusName(appointment.status) + (appointment.appointment_time ? ' · ' + appointment.appointment_time : '')));
+    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · '), 'tasks'));
+    for (const appointment of appointments) timeline.push(timelineItem(appointment.appointment_date || appointment.created_at, 'موعد العميل', appointment.appointment_type, statusName(appointment.status) + (appointment.appointment_time ? ' · ' + appointment.appointment_time : ''), 'appointments'));
     files = clientFiles.map((file) => ({ name: file.name, date: file.created_at, meta: file.kind + (file.size_bytes ? ' · ' + (file.size_bytes / 1024 / 1024).toFixed(2) + ' MB' : '') }));
     counts = [{ label: 'القضايا', value: cases.length }, { label: 'مستجدات القضايا', value: events.length }, { label: 'مستجدات العميل', value: clientEvents.length }, { label: 'الجلسات والمهام', value: tasks.length }, { label: 'المواعيد', value: appointments.length }, { label: 'المستندات', value: clientFiles.length }];
   } else if (type === 'case') {
@@ -169,8 +212,8 @@ export default async function EntityReportPage({
         record.clientId || '', id, reportBranchIds, reportLawyerId,
       ) : [],
     ]);
-    for (const event of events) timeline.push(timelineItem(event.createdAt, 'مستجد القضية', event.description, [event.type, event.authorName].filter(Boolean).join(' · ')));
-    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, task.lawyerName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · ')));
+    for (const event of events) timeline.push(timelineItem(event.createdAt, 'مستجد القضية', event.description, [event.type, event.authorName].filter(Boolean).join(' · '), 'developments'));
+    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, task.lawyerName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · '), 'tasks'));
     files = [...caseFiles, ...clientFiles].map((file) => ({ name: file.name, date: file.created_at, meta: file.kind + (file.size_bytes ? ' · ' + (file.size_bytes / 1024 / 1024).toFixed(2) + ' MB' : '') }));
     counts = [{ label: 'المستجدات', value: events.length }, { label: 'الجلسات والمهام', value: tasks.length }, { label: 'المستندات', value: files.length }];
   } else if (type === 'lawyer') {
@@ -194,7 +237,7 @@ export default async function EntityReportPage({
       { label: 'التخصص', value: clean(lawyer.specialization) },
       { label: 'المنصب', value: clean(lawyer.position) },
       { label: 'الحالة', value: lawyer.active ? 'نشط' : 'غير نشط' },
-      { label: 'تاريخ إنشاء الملف', value: displayDate(lawyer.createdAt) },
+      { label: 'تاريخ إنشاء الملف', value: reportDate(lawyer.createdAt) },
     ];
     const [tasks, activities, comments] = await Promise.all([
       prisma.$queryRawUnsafe<Array<{id:string;description:string;notes:string|null;scheduledDate:Date|null;scheduledTime:string|null;status:string;createdAt:Date;locationName:string|null;caseName:string|null;caseNumber:string|null;completedAt:Date|null}>>(
@@ -210,9 +253,9 @@ export default async function EntityReportPage({
         id, reportBranchIds,
       ),
     ]);
-    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'مهمة / جلسة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, statusName(task.status), task.scheduledTime, task.completedAt ? 'اكتملت ' + displayDate(task.completedAt) : ''].filter(Boolean).join(' · ')));
-    for (const activity of activities) timeline.push(timelineItem(activity.createdAt, activity.action || 'نشاط مسجل', activity.summary, 'سجل النشاط'));
-    for (const comment of comments) timeline.push(timelineItem(comment.createdAt, 'تعليق على مهمة: ' + comment.taskDescription, comment.text, comment.authorName || ''));
+    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'مهمة / جلسة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, statusName(task.status), task.scheduledTime, task.completedAt ? 'اكتملت ' + reportDate(task.completedAt) : ''].filter(Boolean).join(' · '), 'tasks'));
+    for (const activity of activities) timeline.push(timelineItem(activity.createdAt, activity.action || 'نشاط مسجل', activity.summary, 'سجل النشاط', 'activity'));
+    for (const comment of comments) timeline.push(timelineItem(comment.createdAt, 'تعليق على مهمة: ' + comment.taskDescription, comment.text, comment.authorName || '', 'comments'));
     counts = [{ label: 'المهام والجلسات', value: tasks.length }, { label: 'سجلات النشاط', value: activities.length }, { label: 'التعليقات', value: comments.length }];
   } else {
     const location = await prisma.location.findUnique({ where: { id } });
@@ -240,7 +283,7 @@ export default async function EntityReportPage({
       { label: 'الاختصاص', value: clean(location.jurisdiction) },
       { label: 'الخدمات', value: location.services.join('، ') || '—' },
       { label: 'رابط الخرائط', value: clean(location.googleMapsUrl) },
-      { label: 'آخر تحقق', value: displayDate(location.lastVerified) },
+      { label: 'آخر تحقق', value: reportDate(location.lastVerified) },
       { label: 'الوصف', value: clean(location.description) },
     ];
     const [tasks, activities] = await Promise.all([
@@ -253,7 +296,7 @@ export default async function EntityReportPage({
         id, reportBranchIds, reportLawyerId,
       ),
     ]);
-    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.clientName || '', task.description, task.notes].filter(Boolean).join(' — '), [task.lawyerName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · ')));
+    for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.clientName || '', task.description, task.notes].filter(Boolean).join(' — '), [task.lawyerName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · '), 'tasks'));
     for (const activity of activities) timeline.push(timelineItem(activity.createdAt, activity.action || 'نشاط مسجل', activity.summary, 'سجل النشاط'));
     counts = [{ label: 'الجلسات والمهام', value: tasks.length }, { label: 'سجلات النشاط', value: activities.length }];
   }
@@ -274,7 +317,7 @@ export default async function EntityReportPage({
           <h1>{title}</h1>
           <h2>{name}</h2>
           <p>{subtitle}</p>
-          <p className="print-report-date">تاريخ إعداد التقرير: {displayDate(new Date())}</p>
+          <p className="print-report-date">تاريخ إعداد التقرير: {reportDate(new Date())}</p>
         </header>
         <h3 className="print-report-section-title">ملخص التقرير</h3>
         <table className="print-report-table"><thead><tr><th>البند</th><th>العدد</th></tr></thead><tbody>
@@ -287,12 +330,12 @@ export default async function EntityReportPage({
         {files.length > 0 && <>
           <h3 className="print-report-section-title">المستندات والملفات ({files.length})</h3>
           <table className="print-report-table"><thead><tr><th>اسم المستند</th><th>النوع / الحجم</th><th>تاريخ الإضافة</th></tr></thead><tbody>
-            {files.map((file, index) => <tr key={file.name + index}><td>{file.name}</td><td>{file.meta || '—'}</td><td>{displayDate(file.date)}</td></tr>)}
+            {files.map((file, index) => <tr key={file.name + index}><td>{file.name}</td><td>{file.meta || '—'}</td><td>{reportDate(file.date)}</td></tr>)}
           </tbody></table>
         </>}
         <h3 className="print-report-section-title">التسلسل الزمني للمستجدات ({timeline.length})</h3>
         {timeline.length > 0 ? <table className="print-report-table"><thead><tr><th>التاريخ</th><th>السجل</th><th>التفاصيل</th><th>بيانات إضافية</th></tr></thead><tbody>
-          {timeline.map((item, index) => <tr key={index}><td>{displayDate(item.date)}</td><td>{item.title}</td><td>{item.detail || '—'}</td><td>{item.meta || '—'}</td></tr>)}
+          {timeline.map((item, index) => <tr key={index}><td>{reportDate(item.date)}</td><td>{item.title}</td><td>{item.detail || '—'}</td><td>{item.meta || '—'}</td></tr>)}
         </tbody></table> : <p className="print-report-empty">لا توجد مستجدات مسجلة حتى الآن.</p>}
         <footer className="print-report-footer">تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.</footer>
       </section>
@@ -312,7 +355,7 @@ export default async function EntityReportPage({
           </div>
           <div className="rounded-2xl border border-navy-100 p-3 text-left text-[10px] leading-6 text-navy-500">
             <p>تاريخ إعداد التقرير</p>
-            <p className="font-bold text-navy-800">{displayDate(new Date())}</p>
+            <p className="font-bold text-navy-800">{reportDate(new Date())}</p>
             <p>تقرير داخلي · سري</p>
           </div>
         </div>
@@ -328,7 +371,7 @@ export default async function EntityReportPage({
       </section>
       {files.length > 0 && <section className="mt-6 break-inside-avoid">
         <h3 className="mb-3 border-r-4 border-gold-500 pr-3 text-sm font-black">المستندات والملفات ({files.length})</h3>
-        <div className="space-y-2">{files.map((file, index) => <div key={file.name + index} className="flex flex-wrap justify-between gap-2 rounded-lg border border-navy-100 px-3 py-2 text-xs"><span className="font-bold">{file.name}</span><span className="text-navy-500">{file.meta || ''} · {displayDate(file.date)}</span></div>)}</div>
+        <div className="space-y-2">{files.map((file, index) => <div key={file.name + index} className="flex flex-wrap justify-between gap-2 rounded-lg border border-navy-100 px-3 py-2 text-xs"><span className="font-bold">{file.name}</span><span className="text-navy-500">{file.meta || ''} · {reportDate(file.date)}</span></div>)}</div>
       </section>}
       <section className="mt-7">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
@@ -338,7 +381,7 @@ export default async function EntityReportPage({
         {timeline.length ? <div className="relative space-y-2 before:absolute before:bottom-2 before:right-[7px] before:top-2 before:w-px before:bg-navy-100">{timeline.map((item, index) => <article key={index} className="relative break-inside-avoid pr-7">
           <span className="absolute right-0 top-2 h-4 w-4 rounded-full border-4 border-white bg-gold-500 ring-1 ring-gold-200"/>
           <div className="rounded-xl border border-navy-100 p-3">
-            <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-xs font-black">{item.title}</h4><time className="text-[10px] font-bold text-navy-400">{displayDate(item.date)}</time></div>
+            <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-xs font-black">{item.title}</h4><time className="text-[10px] font-bold text-navy-400">{reportDate(item.date)}</time></div>
             <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-navy-700">{item.detail || '—'}</p>
             {item.meta && <p className="mt-2 text-[10px] font-bold text-gold-700">{item.meta}</p>}
           </div>
