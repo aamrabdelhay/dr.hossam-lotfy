@@ -67,11 +67,10 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       isAdmin = adminAccount?.role === 'SUPER_ADMIN' || adminAccount?.role === 'ADMIN';
     }
     if (!isAdmin) {
-      const senior = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "office_senior_members" WHERE "lawyer_id"=$1 LIMIT 1', lawyer.id).catch(() => []);
-      const manager = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT "id" FROM "office_branch_managers" WHERE "lawyer_id"=$1 LIMIT 1`,
-        lawyer.id,
-      ).catch(() => []);
+      const [senior, manager] = await Promise.all([
+        prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "office_senior_members" WHERE "lawyer_id"=$1 LIMIT 1', lawyer.id).catch(() => []),
+        prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "office_branch_managers" WHERE "lawyer_id"=$1 LIMIT 1', lawyer.id).catch(() => []),
+      ]);
       isAdmin = senior.length > 0 || manager.length > 0;
     }
     return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug, isAdmin };
