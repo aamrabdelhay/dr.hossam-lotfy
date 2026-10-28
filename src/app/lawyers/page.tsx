@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Phone, Briefcase } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
-import { getSidebarData } from '@/lib/queries';
 import { getCurrentUser } from '@/lib/auth';
-import { SessionSidebar } from '@/components/session-sidebar';
+import { SessionSidebarRegion, SessionSidebarFallback } from '@/components/session-sidebar-region';
 import { Avatar, Badge, Card, EmptyState } from '@/components/ui';
 import { TITLE_LABEL } from '@/lib/constants';
 import { getLawyerManagementLabels } from '@/lib/office-workflow';
@@ -12,18 +12,20 @@ import { getLawyerManagementLabels } from '@/lib/office-workflow';
 export const metadata: Metadata = { title: 'المحامون' };
 
 export default async function LawyersPage() {
-  const [lawyers, sidebar, session] = await Promise.all([
+  const [lawyers, session] = await Promise.all([
     prisma.lawyer.findMany({
       where: { active: true, approvedAt: { not: null } },
       orderBy: [{ sortOrder: 'asc' }, { fullName: 'asc' }],
       include: {
-        assignments: {
-          where: { task: { status: { notIn: ['COMPLETED', 'CANCELLED'] }, OR: [{ scheduledDate: { gte: new Date() } }, { scheduledDate: null }] } },
+        _count: {
+          select: {
+            assignments: {
+              where: { task: { status: { notIn: ['COMPLETED', 'CANCELLED'] }, OR: [{ scheduledDate: { gte: new Date() } }, { scheduledDate: null }] } },
+            },
+          },
         },
-        comments: {},
       },
     }),
-    getSidebarData(),
     getCurrentUser(),
   ]);
 
@@ -32,7 +34,7 @@ export default async function LawyersPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] gap-5 px-3 py-4 sm:px-6 sm:py-5">
-      <aside className="hidden w-[330px] shrink-0 lg:block"><div className="sticky top-[88px]"><SessionSidebar data={sidebar} isAdmin={session?.role === 'admin'} /></div></aside>
+      <aside className="hidden w-[330px] shrink-0 lg:block"><div className="sticky top-[88px]"><Suspense fallback={<SessionSidebarFallback />}><SessionSidebarRegion isAdmin={session?.role === 'admin'} /></Suspense></div></aside>
       <div className="min-w-0 flex-1">
         <div className="mb-5">
           <h1 className="text-xl font-extrabold text-navy-950">المحامون</h1>
@@ -57,7 +59,7 @@ export default async function LawyersPage() {
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-navy-100 pt-3">
                     {l.phone && <span className="flex min-w-0 items-center gap-1.5 font-latin text-[12px] font-semibold text-navy-500" dir="ltr"><Phone size={12} className="shrink-0 text-gold-600" /><span className="break-all">{l.phone}</span></span>}
-                    <span className="ms-auto max-w-full text-[11px] font-bold text-navy-300">{l.assignments.length > 0 ? <Badge tone="gold">{l.assignments.length} مهمة قادمة</Badge> : 'لا مهام قادمة'}</span>
+                    <span className="ms-auto max-w-full text-[11px] font-bold text-navy-300">{l._count.assignments > 0 ? <Badge tone="gold">{l._count.assignments} مهمة قادمة</Badge> : 'لا مهام قادمة'}</span>
                   </div>
                 </Card>
               </Link>

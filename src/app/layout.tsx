@@ -1,3 +1,81 @@
-import type {Metadata,Viewport} from 'next';import {Suspense} from 'react';import {Cormorant_Garamond,IBM_Plex_Sans_Arabic} from 'next/font/google';import Link from 'next/link';import './globals.css';import './form-indicators.css';import {Navbar} from '@/components/navbar';import {Footer} from '@/components/footer';import {WarningBar} from '@/components/warning-bar';import {LawyerGuideEnhancements} from '@/components/lawyer-guide-enhancements';import {Toaster} from '@/components/toasts';import {OfficeAssistant} from '@/components/admin/office-assistant';import {OfficeActivityTracker} from '@/components/office-activity-tracker';import {isFinanceManagement,isSeniorManagement,isOfficeManager} from '@/lib/office-workflow';import {getAllBranches} from '@/lib/branch-access';import {GlobalNavigationChrome} from '@/components/global-navigation-chrome';import {ScrollReveal} from '@/components/scroll-reveal';import {SiteLanguageProvider} from '@/components/site-language';import {getSiteNav,getSiteBranding} from '@/lib/site-data';import {LayoutMobileSessions} from '@/components/layout-mobile-sessions';import {getCurrentUser,type SessionUser} from '@/lib/auth';import {prisma} from '@/lib/prisma';import type {NavLawyer,NavLocation} from '@/lib/constants';import {isFrameworkError,redact} from '@/lib/health';
-const cormorant=Cormorant_Garamond({variable:'--font-cormorant-local',subsets:['latin'],weight:['300','400','500','600'],display:'swap'});const ibmArabic=IBM_Plex_Sans_Arabic({variable:'--font-ibm-arabic-local',subsets:['arabic','latin'],weight:['300','400','500'],display:'swap'});export const metadata:Metadata={title:{default:'Loutfi Law Firm — Law Firm Operations',template:'%s — Loutfi Law Firm'},description:'Loutfi Law Firm internal platform for hearings, work locations, tasks, colleagues and daily office operations.'};export const viewport:Viewport={themeColor:'#05080F',width:'device-width',initialScale:1};const EMPTY_NAV={lawyers:[] as NavLawyer[],locations:[] as NavLocation[]};const EMPTY_BRANDING={logoDataUrl:null as string|null};const EMPTY_BRANCHES: Array<{id:string;name_ar:string;address:string;is_main:boolean}> = [];type SafeLoad<T>={value:T;unavailable:boolean};async function loadFailSoft<T>(label:string,operation:()=>Promise<T>,fallback:T):Promise<SafeLoad<T>>{try{return{value:await operation(),unavailable:false}}catch(error){if(isFrameworkError(error))throw error;console.error(`[layout] ${label} unavailable:`,redact(error));return{value:fallback,unavailable:true}}}
-export default async function RootLayout({children}:{children:React.ReactNode}){const language='ar';const copy={databaseUnavailable:'تعذر تحميل بعض بيانات المكتب.',diagnostics:'التشخيص'};const dir='rtl';const[navResult,brandingResult,sessionResult,branchesResult]=await Promise.all([loadFailSoft('site navigation',getSiteNav,EMPTY_NAV),loadFailSoft('site branding',getSiteBranding,EMPTY_BRANDING),loadFailSoft<SessionUser|null>('current session',getCurrentUser,null),loadFailSoft('office branches',getAllBranches,EMPTY_BRANCHES)]);const session=sessionResult.value;const today=new Date();today.setHours(0,0,0,0);const warningWindowEnd=new Date(today);warningWindowEnd.setDate(warningWindowEnd.getDate()+15);const [managementResult,unreadResult,warningResult]=await Promise.all([session?Promise.all([isSeniorManagement(session),isFinanceManagement(session),isOfficeManager(session)]):Promise.resolve([false,false,false] as [boolean,boolean,boolean]),session?(()=>{const owner=session.role==='admin'?{userId:session.userId}:{lawyerId:session.lawyerId};const now=new Date();const where=session.role==='admin'?{...owner,readAt:null}:{...owner,readAt:null,OR:[{type:{not:'PERSONAL_REMINDER'}},{type:'PERSONAL_REMINDER',createdAt:{lte:now}}]};return loadFailSoft('notification count',()=>prisma.notification.count({where}),0)})():Promise.resolve({value:0,unavailable:false}),session?loadFailSoft('session warning count',()=>prisma.task.count({where:{scheduledDate:{gte:today,lt:warningWindowEnd},status:{notIn:['COMPLETED','CANCELLED']}}}),0):Promise.resolve({value:0,unavailable:false})]);const nav=navResult.value,branding=brandingResult.value,branches=branchesResult.value;const [isSenior,isFinance,isOffice]=managementResult;const unread=unreadResult.value;const warningCount=warningResult.value;const databaseUnavailable=navResult.unavailable||brandingResult.unavailable||sessionResult.unavailable||unreadResult.unavailable||warningResult.unavailable;return <html dir={dir} lang="ar"><body className={`${cormorant.variable} ${ibmArabic.variable} flex min-h-screen flex-col`}><SiteLanguageProvider><Navbar lawyers={nav.lawyers} locations={nav.locations} branches={branches} logoDataUrl={branding.logoDataUrl} session={session?{role:session.role,name:session.name,slug:session.role==='lawyer'?session.slug:undefined,photo:null,isAdmin:session.role==='admin'||(session.role==='lawyer'&&session.isAdmin),isFinance,isSenior,isOffice}:null} unread={unread}/><GlobalNavigationChrome/>{databaseUnavailable&&<div role="alert" className="border-b border-[#7A1F2B] bg-[#7A1F2B] px-4 py-2.5 text-center text-[12px] text-white">{copy.databaseUnavailable}{' '}<Link href="/api/health" className="underline">{copy.diagnostics}</Link></div>}<WarningBar active={warningCount>0} count={warningCount}/><Suspense fallback={null}><LayoutMobileSessions enabled={Boolean(session)} isAdmin={session?.role==='admin'||(session?.role==='lawyer'&&session.isAdmin)}/></Suspense><main className="flex-1 page-content">{children}<LawyerGuideEnhancements/></main><ScrollReveal/>{session&&<><OfficeAssistant/><OfficeActivityTracker/></>}<Footer isLoggedIn={Boolean(session)}/><Toaster/></SiteLanguageProvider></body></html>}
+import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
+import { Cormorant_Garamond, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import './globals.css';
+import './form-indicators.css';
+import { LawyerGuideEnhancements } from '@/components/lawyer-guide-enhancements';
+import { Toaster } from '@/components/toasts';
+import { GlobalNavigationChrome } from '@/components/global-navigation-chrome';
+import { ScrollReveal } from '@/components/scroll-reveal';
+import { SiteLanguageProvider } from '@/components/site-language';
+import { LayoutNavbarRegion } from '@/components/layout-navbar-region';
+import { LayoutWarningRegion } from '@/components/layout-warning-region';
+import { LayoutFooterRegion } from '@/components/layout-footer-region';
+import { LayoutMobileSessions } from '@/components/layout-mobile-sessions';
+
+const cormorant = Cormorant_Garamond({
+  variable: '--font-cormorant-local',
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  display: 'swap',
+});
+const ibmArabic = IBM_Plex_Sans_Arabic({
+  variable: '--font-ibm-arabic-local',
+  subsets: ['arabic', 'latin'],
+  weight: ['300', '400', '500'],
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: { default: 'Loutfi Law Firm — Law Firm Operations', template: '%s — Loutfi Law Firm' },
+  description: 'Loutfi Law Firm internal platform for hearings, work locations, tasks, colleagues and daily office operations.',
+};
+export const viewport: Viewport = { themeColor: '#05080F', width: 'device-width', initialScale: 1 };
+
+function NavbarSkeleton() {
+  return (
+    <header aria-hidden="true" className="fixed inset-x-0 top-0 z-50 h-[72px] border-b border-navy-100 bg-white/95 px-4 shadow-sm backdrop-blur">
+      <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-4">
+        <div className="h-9 w-28 animate-pulse rounded-xl bg-ivory-100" />
+        <div className="hidden flex-1 justify-center gap-2 lg:flex">
+          {Array.from({ length: 5 }, (_, index) => <div key={index} className="h-8 w-20 animate-pulse rounded-full bg-navy-50" />)}
+        </div>
+        <div className="h-9 w-24 animate-pulse rounded-full bg-navy-100" />
+      </div>
+    </header>
+  );
+}
+
+/**
+ * The root layout must not wait for session/branch/navigation queries. Each
+ * slow shared area streams independently while the selected page can render.
+ */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html dir="rtl" lang="ar">
+      <body className={cormorant.variable + ' ' + ibmArabic.variable + ' flex min-h-screen flex-col'}>
+        <SiteLanguageProvider>
+          <Suspense fallback={<NavbarSkeleton />}>
+            <LayoutNavbarRegion />
+          </Suspense>
+          <GlobalNavigationChrome />
+          <Suspense fallback={null}>
+            <LayoutWarningRegion />
+          </Suspense>
+          <Suspense fallback={null}>
+            <LayoutMobileSessions />
+          </Suspense>
+          <main className="flex-1 page-content">
+            {children}
+            <LawyerGuideEnhancements />
+          </main>
+          <ScrollReveal />
+          <Suspense fallback={null}>
+            <LayoutFooterRegion />
+          </Suspense>
+          <Toaster />
+        </SiteLanguageProvider>
+      </body>
+    </html>
+  );
+}

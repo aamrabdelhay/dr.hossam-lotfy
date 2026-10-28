@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSidebarData, type SidebarData } from '@/lib/queries';
 import { MobileSessions } from '@/components/mobile-sessions';
+import { getCurrentUser, type SessionUser } from '@/lib/auth';
 import { isFrameworkError, redact } from '@/lib/health';
 
 const EMPTY_SIDEBAR: SidebarData = {
@@ -9,17 +10,19 @@ const EMPTY_SIDEBAR: SidebarData = {
   sections: { tomorrow: [], within3: [], within14: [], within30: [], all: [] },
 };
 
-export async function LayoutMobileSessions({
-  enabled,
-  isAdmin,
-}: {
-  enabled: boolean;
-  isAdmin: boolean;
-}) {
+/** Kept behind Suspense so session/sidebar lookups never block page content. */
+export async function LayoutMobileSessions() {
+  let session: SessionUser | null = null;
+  try {
+    session = await getCurrentUser();
+  } catch (error) {
+    if (isFrameworkError(error)) throw error;
+    console.error('[layout] mobile session unavailable:', redact(error));
+  }
+
   let data = EMPTY_SIDEBAR;
   let unavailable = false;
-
-  if (enabled) {
+  if (session) {
     try {
       data = await getSidebarData();
     } catch (error) {
@@ -37,7 +40,7 @@ export async function LayoutMobileSessions({
           <Link href="/api/health" className="underline">التشخيص</Link>
         </div>
       )}
-      <MobileSessions data={data} isAdmin={isAdmin} />
+      <MobileSessions data={data} isAdmin={Boolean(session && (session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin)))} />
     </>
   );
 }
