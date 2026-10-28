@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { prisma, Prisma } from './prisma';
 import type { Task, Lawyer, Location } from './prisma';
 import { daysUntil, urgencyOf, type Urgency } from './dates';
@@ -113,7 +114,7 @@ function byDateAsc(a: TaskVM, b: TaskVM): number {
 }
 
 /** Upcoming sessions grouped into the five sidebar sections. */
-export async function getSidebarData(taskIds?: string[]): Promise<SidebarData> {
+export const getSidebarData = cache(async function getSidebarData(taskIds?: string[]): Promise<SidebarData> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const rows = await prisma.task.findMany({
@@ -143,8 +144,7 @@ export async function getSidebarData(taskIds?: string[]): Promise<SidebarData> {
     warningCount: warnCount,
     sections: { tomorrow, within3, within14, within30, all },
   };
-}
-
+});
 /** Chronological main feed (newest first), with optional filtering. */
 export async function getFeed(params: {
   lawyerId?: string;
