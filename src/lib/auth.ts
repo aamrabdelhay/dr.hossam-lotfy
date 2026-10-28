@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
@@ -46,7 +47,7 @@ export async function getCurrentSessionRecord() {
   return session;
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const raw = parseCookieValue(store.get(COOKIE)?.value); if (!raw) return null;
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
@@ -76,8 +77,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug, isAdmin };
   }
   return null;
-}
-
+});
 export async function revokeCurrentSession(): Promise<void> {
   const store = await cookies(); const raw = parseCookieValue(store.get(COOKIE)?.value); if (!raw) return;
   const tokenHash = crypto.createHash('sha256').update(raw).digest('hex');
