@@ -30,7 +30,7 @@ const REPORT_TRANSLATIONS: Record<string, { en: string; fr: string }> = {
   'ملف قضية: ': {en:'Case file: ',fr:'Dossier : '}, 'مستجد عميل مستورد': {en:'Imported client development',fr:'Évolution client importée'}, 'مستجد العميل': {en:'Client development',fr:'Évolution du client'}, 'مستجد مستورد': {en:'Imported development',fr:'Évolution importée'}, 'مستجد قضية': {en:'Case development',fr:'Évolution du dossier'}, 'جلسة / مهمة': {en:'Session / task',fr:'Audience / tâche'}, 'مهمة / جلسة': {en:'Task / session',fr:'Tâche / audience'}, 'موعد العميل': {en:'Client appointment',fr:'Rendez-vous client'}, 'مستجد القضية': {en:'Case development',fr:'Évolution du dossier'}, 'نشاط مسجل': {en:'Recorded activity',fr:'Activité enregistrée'}, 'سجل النشاط': {en:'Activity log',fr:'Journal d’activité'}, 'تعليق على مهمة: ': {en:'Comment on task: ',fr:'Commentaire sur la tâche : '}, 'قضية: ': {en:'Case: ',fr:'Dossier : '}, 'مهمة/جلسة: ': {en:'Task/session: ',fr:'Tâche/audience : '}, 'تسجيل الدخول': {en:'Sign in',fr:'Connexion'}, 'تسجيل الخروج': {en:'Sign out',fr:'Déconnexion'}, 'مدة الجلسة: ': {en:'Session duration: ',fr:'Durée de session : '}, 'تسجيل الخروج: ': {en:'Sign-out: ',fr:'Déconnexion : '}, 'لم يُسجّل بعد': {en:'Not recorded yet',fr:'Pas encore enregistrée'},
   'قيد التنفيذ': {en:'In progress',fr:'En cours'}, 'جارٍ التنفيذ': {en:'In progress',fr:'En cours'}, 'تم التنفيذ': {en:'Completed',fr:'Terminé'}, 'ملغي': {en:'Cancelled',fr:'Annulé'}, 'تحت المراجعة': {en:'Under review',fr:'En cours de vérification'}, 'مرفوضة': {en:'Rejected',fr:'Rejeté'}, 'مؤكد': {en:'Confirmed',fr:'Confirmé'}, 'عميل محتمل': {en:'Prospective client',fr:'Client potentiel'},
   'تقرير داخلي سري': {en:'Confidential internal report',fr:'Rapport interne confidentiel'}, 'البند': {en:'Item',fr:'Élément'}, 'العدد': {en:'Count',fr:'Nombre'}, 'اسم المستند': {en:'Document name',fr:'Nom du document'}, 'النوع / الحجم': {en:'Type / size',fr:'Type / taille'}, 'تاريخ الإضافة': {en:'Date added',fr:'Date d’ajout'}, 'المستندات والملفات': {en:'Documents and files',fr:'Documents et fichiers'}, 'التسلسل الزمني للمستجدات': {en:'Developments timeline',fr:'Chronologie des évolutions'}, 'التسلسل الزمني الكامل للمستجدات': {en:'Complete developments timeline',fr:'Chronologie complète des évolutions'}, 'العودة للملف': {en:'Back to file',fr:'Retour au dossier'}, 'حفظ PDF / طباعة': {en:'Save PDF / Print',fr:'Enregistrer en PDF / Imprimer'}, 'تاريخ إعداد التقرير': {en:'Report date',fr:'Date du rapport'}, 'تقرير داخلي · سري': {en:'Internal · Confidential',fr:'Interne · Confidentiel'}, 'لا توجد مستجدات مسجلة حتى الآن.': {en:'No developments recorded yet.',fr:'Aucune évolution enregistrée pour le moment.'},
-  'تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.': {en:'This report was generated from records saved in the system. Please review the original documents and verify the latest updates.',fr:'Ce rapport a été généré à partir des données enregistrées. Veuillez vérifier les documents originaux et les dernières mises à jour.'}, 'هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.': {en:'This report was compiled from the records saved in the system. Review the original documents and latest updates.',fr:'Ce rapport a été établi à partir des données enregistrées. Vérifiez les documents originaux et les dernières mises à jour.'}, 'سجل': {en:'records',fr:'entrées'}, 'مرتبة من الأقدم إلى الأحدث': {en:'ordered oldest to newest',fr:'classées de la plus ancienne à la plus récente'},
+  'تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.': {en:'This report was generated from records saved in the system. Please review the original documents and verify the latest updates.',fr:'Ce rapport a été généré à partir des données enregistrées. Veuillez vérifier les documents originaux et les dernières mises à jour.'}, '{t("هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.")}': {en:'This report was compiled from the records saved in the system. Review the original documents and latest updates.',fr:'Ce rapport a été établi à partir des données enregistrées. Vérifiez les documents originaux et les dernières mises à jour.'}, 'سجل': {en:'records',fr:'entrées'}, 'مرتبة من الأقدم إلى الأحدث': {en:'ordered oldest to newest',fr:'classées de la plus ancienne à la plus récente'},
 };
 function translateReport(value: string, language: ReportLanguage): string {
   if (language === 'ar' || !value) return value;
@@ -239,9 +239,9 @@ export default async function EntityReportPage({
       { label: 'الحالة', value: lawyer.active ? 'نشط' : 'غير نشط' },
       { label: 'تاريخ إنشاء الملف', value: reportDate(lawyer.createdAt) },
     ];
-    const [tasks, activities, comments] = await Promise.all([
-      prisma.$queryRawUnsafe<Array<{id:string;description:string;notes:string|null;scheduledDate:Date|null;scheduledTime:string|null;status:string;createdAt:Date;locationName:string|null;caseName:string|null;caseNumber:string|null;completedAt:Date|null}>>(
-        'SELECT t."id",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",l."name" AS "locationName",cr."name" AS "caseName",cr."number" AS "caseNumber",ta."completedAt" FROM "task_assignments" ta JOIN "tasks" t ON t."id"=ta."taskId" LEFT JOIN "locations" l ON l."id"=t."locationId" LEFT JOIN "case_records" cr ON cr."id"=t."caseId" WHERE ta."lawyerId"=$1 AND ($2::text[] IS NULL OR COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[])) ORDER BY t."createdAt" ASC LIMIT 10000',
+    const [tasks, activities, comments, attendanceLogs] = await Promise.all([
+      prisma.$queryRawUnsafe<Array<{id:string;caseId:string|null;description:string;notes:string|null;scheduledDate:Date|null;scheduledTime:string|null;status:string;createdAt:Date;locationName:string|null;caseName:string|null;caseNumber:string|null;completedAt:Date|null}>>(
+        'SELECT t."id",t."caseId",t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",t."createdAt",l."name" AS "locationName",cr."name" AS "caseName",cr."number" AS "caseNumber",ta."completedAt" FROM "task_assignments" ta JOIN "tasks" t ON t."id"=ta."taskId" LEFT JOIN "locations" l ON l."id"=t."locationId" LEFT JOIN "case_records" cr ON cr."id"=t."caseId" WHERE ta."lawyerId"=$1 AND ($2::text[] IS NULL OR COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[])) ORDER BY t."createdAt" ASC LIMIT 10000',
         id, reportBranchIds,
       ),
       prisma.$queryRawUnsafe<Array<{id:string;action:string;summary:string;createdAt:Date}>>(
@@ -252,11 +252,28 @@ export default async function EntityReportPage({
         'SELECT c."text",c."authorName",c."createdAt",t."description" AS "taskDescription" FROM "comments" c JOIN "tasks" t ON t."id"=c."taskId" JOIN "task_assignments" ta ON ta."taskId"=t."id" WHERE ta."lawyerId"=$1 AND ($2::text[] IS NULL OR COALESCE(t."branch_id",\'branch_main\')=ANY($2::text[])) ORDER BY c."createdAt" ASC LIMIT 10000',
         id, reportBranchIds,
       ),
+      prisma.$queryRawUnsafe<Array<{login_at:Date;logout_at:Date|null;last_seen_at:Date|null;duration_seconds:number|null}>>(
+        'SELECT "login_at","logout_at","last_seen_at","duration_seconds" FROM "office_login_logs" WHERE "lawyer_id"=$1 ORDER BY "login_at" ASC LIMIT 10000',
+        id,
+      ),
     ]);
     for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'مهمة / جلسة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.description, task.notes].filter(Boolean).join(' — '), [task.locationName, statusName(task.status), task.scheduledTime, task.completedAt ? 'اكتملت ' + reportDate(task.completedAt) : ''].filter(Boolean).join(' · '), 'tasks'));
     for (const activity of activities) timeline.push(timelineItem(activity.createdAt, activity.action || 'نشاط مسجل', activity.summary, 'سجل النشاط', 'activity'));
+    const caseMap = new Map<string, { date: Date; name: string; number: string; task: string }>();
+    for (const task of tasks) {
+      if (!task.caseId || !task.caseName) continue;
+      const date = task.scheduledDate || task.createdAt;
+      const existing = caseMap.get(task.caseId);
+      if (!existing || date.getTime() > existing.date.getTime()) caseMap.set(task.caseId, { date, name: task.caseName, number: task.caseNumber || '', task: task.description });
+    }
+    for (const record of caseMap.values()) timeline.push(timelineItem(record.date, 'قضية: ' + record.name, 'رقم القضية: ' + record.number, 'مهمة/جلسة: ' + record.task, 'cases'));
+    for (const log of attendanceLogs) {
+      const duration = Math.max(0, log.duration_seconds || (log.logout_at ? Math.floor((new Date(log.logout_at).getTime() - new Date(log.login_at).getTime()) / 1000) : 0));
+      const durationText = duration ? Math.floor(duration / 3600) + ' س ' + Math.floor((duration % 3600) / 60) + ' د' : '—';
+      timeline.push(timelineItem(log.login_at, 'تسجيل الدخول', 'مدة الجلسة: ' + durationText, 'تسجيل الخروج: ' + (log.logout_at ? reportDate(log.logout_at) : (log.last_seen_at ? reportDate(log.last_seen_at) + ' · ' : '') + 'لم يُسجّل بعد'), 'attendance'));
+    }
     for (const comment of comments) timeline.push(timelineItem(comment.createdAt, 'تعليق على مهمة: ' + comment.taskDescription, comment.text, comment.authorName || '', 'comments'));
-    counts = [{ label: 'المهام والجلسات', value: tasks.length }, { label: 'سجلات النشاط', value: activities.length }, { label: 'التعليقات', value: comments.length }];
+    counts = [{ label: 'المهام والجلسات', value: tasks.length }, { label: 'القضايا', value: caseMap.size }, { label: 'تسجيل الدخول والخروج', value: attendanceLogs.length }, { label: 'سجلات النشاط', value: activities.length }, { label: 'التعليقات', value: comments.length }];
   } else {
     const location = await prisma.location.findUnique({ where: { id } });
     if (!location) notFound();
@@ -297,10 +314,65 @@ export default async function EntityReportPage({
       ),
     ]);
     for (const task of tasks) timeline.push(timelineItem(task.scheduledDate || task.createdAt, 'جلسة / مهمة', [task.caseName ? task.caseName + ' (' + task.caseNumber + ')' : '', task.clientName || '', task.description, task.notes].filter(Boolean).join(' — '), [task.lawyerName, statusName(task.status), task.scheduledTime].filter(Boolean).join(' · '), 'tasks'));
-    for (const activity of activities) timeline.push(timelineItem(activity.createdAt, activity.action || 'نشاط مسجل', activity.summary, 'سجل النشاط'));
+    for (const activity of activities) timeline.push(timelineItem(activity.createdAt, activity.action || 'نشاط مسجل', activity.summary, 'سجل النشاط', 'activity'));
     counts = [{ label: 'الجلسات والمهام', value: tasks.length }, { label: 'سجلات النشاط', value: activities.length }];
   }
 
+  const defaultSections: Record<string, ReportSectionKey[]> = {
+    client: ['basic', 'cases', 'files', 'developments', 'tasks', 'appointments'],
+    case: ['basic', 'files', 'developments', 'tasks'],
+    lawyer: ['basic', 'cases', 'tasks', 'attendance', 'activity', 'comments'],
+    location: ['basic', 'cases', 'tasks', 'activity'],
+  };
+  const validSections: ReportSectionKey[] = ['basic', 'cases', 'tasks', 'attendance', 'activity', 'files', 'developments', 'appointments', 'comments'];
+  const requestedSections = new Set<ReportSectionKey>((query.sections ? query.sections.split(',') : defaultSections[type]).filter((value): value is ReportSectionKey => validSections.includes(value as ReportSectionKey)));
+  const periodStart = getPeriodStart(query.period || 'all');
+  if (periodStart) {
+    timeline = timeline.filter((item) => {
+      if (!item.date) return true;
+      const date = item.date instanceof Date ? item.date : new Date(item.date);
+      return !Number.isNaN(date.getTime()) && date >= periodStart;
+    });
+    files = files.filter((file) => {
+      if (!file.date) return false;
+      const date = file.date instanceof Date ? file.date : new Date(file.date);
+      return !Number.isNaN(date.getTime()) && date >= periodStart;
+    });
+  }
+  timeline = timeline.filter((item) => requestedSections.has(item.category));
+  if (!requestedSections.has('basic')) info = [];
+  if (!requestedSections.has('files')) files = [];
+  const sectionForCount = (label: string): ReportSectionKey => {
+    if (label === 'القضايا') return 'cases';
+    if (label.includes('مستجد')) return 'developments';
+    if (label.includes('جلسات') || label.includes('المهام')) return 'tasks';
+    if (label === 'المواعيد') return 'appointments';
+    if (label === 'المستندات') return 'files';
+    if (label === 'سجلات النشاط') return 'activity';
+    if (label === 'التعليقات') return 'comments';
+    if (label === 'تسجيل الدخول والخروج') return 'attendance';
+    return 'basic';
+  };
+  counts = counts.filter((item) => requestedSections.has(sectionForCount(item.label))).map((item) => {
+    const section = sectionForCount(item.label);
+    let value = item.value;
+    if (section === 'cases') value = timeline.filter((item) => item.category === 'cases').length;
+    else if (section === 'developments') value = timeline.filter((item) => item.category === 'developments').length;
+    else if (section === 'tasks') value = timeline.filter((item) => item.category === 'tasks').length;
+    else if (section === 'appointments') value = timeline.filter((item) => item.category === 'appointments').length;
+    else if (section === 'files') value = files.length;
+    else if (section === 'activity') value = timeline.filter((item) => item.category === 'activity').length;
+    else if (section === 'comments') value = timeline.filter((item) => item.category === 'comments').length;
+    else if (section === 'attendance') value = timeline.filter((item) => item.category === 'attendance').length;
+    return { ...item, value };
+  });
+  title = translateReport(title, language);
+  subtitle = translateReport(subtitle, language);
+  info = info.map((item) => ({ label: translateReport(item.label, language), value: translateReport(item.value, language) }));
+  files = files.map((file) => ({ ...file, meta: translateReport(file.meta || '', language) }));
+  timeline = timeline.map((item) => ({ ...item, title: translateReport(item.title, language), detail: translateReport(item.detail, language), meta: translateReport(item.meta || '', language) }));
+  counts = counts.map((item) => ({ ...item, label: translateReport(item.label, language) }));
+  const showTimeline = ['cases', 'tasks', 'attendance', 'activity', 'developments', 'appointments', 'comments'].some((section) => requestedSections.has(section));
   timeline.sort((a, b) => {
     const left = a.date ? (a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime()) : 0;
     const right = b.date ? (b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime()) : 0;
@@ -308,43 +380,43 @@ export default async function EntityReportPage({
   });
 
   return (
-    <main dir="rtl" className={`mx-auto min-h-screen w-full max-w-[1100px] bg-white px-4 py-5 text-navy-950 sm:px-8 print:max-w-none print:px-0 print:py-0 ${query.preview === '1' ? 'report-preview-mode' : ''}`}>
+    <main lang={language} dir={direction} className={`mx-auto min-h-screen w-full max-w-[1100px] bg-white px-4 py-5 text-navy-950 sm:px-8 print:max-w-none print:px-0 print:py-0 ${query.preview === '1' ? 'report-preview-mode' : ''}`}>
       <AutoPrint enabled={query.print === '1'} />
-      <section className="print-report" aria-label="قالب التقرير للطباعة">
+      <section className="print-report" dir={direction} aria-label={t("قالب التقرير للطباعة")}>
         <header className="print-report-header">
           <div className="print-report-brand">LOUTFI LAW FIRM <span>· EST. 1949</span></div>
-          <div className="print-report-confidential">تقرير داخلي سري</div>
+          <div className="print-report-confidential">{t("تقرير داخلي سري")}</div>
           <h1>{title}</h1>
           <h2>{name}</h2>
           <p>{subtitle}</p>
-          <p className="print-report-date">تاريخ إعداد التقرير: {reportDate(new Date())}</p>
+          <p className="print-report-date">{t("تاريخ إعداد التقرير")}: {reportDate(new Date())}</p>
         </header>
-        <h3 className="print-report-section-title">ملخص التقرير</h3>
-        <table className="print-report-table"><thead><tr><th>البند</th><th>العدد</th></tr></thead><tbody>
+        {counts.length > 0 && <h3 className="print-report-section-title">{t("ملخص التقرير")}</h3>}
+        {counts.length > 0 && <table className="print-report-table"><thead><tr><th>{t("البند")}</th><th>{t("العدد")}</th></tr></thead><tbody>
           {counts.map((count) => <tr key={count.label}><td>{count.label}</td><td>{count.value}</td></tr>)}
-        </tbody></table>
-        <h3 className="print-report-section-title">البيانات الأساسية</h3>
+        </tbody></table>}
+        {info.length > 0 && <><h3 className="print-report-section-title">{t("البيانات الأساسية")}</h3>
         <table className="print-report-table"><tbody>
           {info.map((item) => <tr key={item.label}><th>{item.label}</th><td>{item.value}</td></tr>)}
-        </tbody></table>
+        </tbody></table></>}
         {files.length > 0 && <>
-          <h3 className="print-report-section-title">المستندات والملفات ({files.length})</h3>
+          <h3 className="print-report-section-title">{t("المستندات والملفات")} ({files.length})</h3>
           <table className="print-report-table"><thead><tr><th>اسم المستند</th><th>النوع / الحجم</th><th>تاريخ الإضافة</th></tr></thead><tbody>
             {files.map((file, index) => <tr key={file.name + index}><td>{file.name}</td><td>{file.meta || '—'}</td><td>{reportDate(file.date)}</td></tr>)}
           </tbody></table>
         </>}
-        <h3 className="print-report-section-title">التسلسل الزمني للمستجدات ({timeline.length})</h3>
-        {timeline.length > 0 ? <table className="print-report-table"><thead><tr><th>التاريخ</th><th>السجل</th><th>التفاصيل</th><th>بيانات إضافية</th></tr></thead><tbody>
+        {showTimeline && <h3 className="print-report-section-title">{t("التسلسل الزمني للمستجدات")} ({timeline.length})</h3>}
+        {showTimeline && (timeline.length > 0 ? <table className="print-report-table"><thead><tr><th>التاريخ</th><th>السجل</th><th>التفاصيل</th><th>بيانات إضافية</th></tr></thead><tbody>
           {timeline.map((item, index) => <tr key={index}><td>{reportDate(item.date)}</td><td>{item.title}</td><td>{item.detail || '—'}</td><td>{item.meta || '—'}</td></tr>)}
-        </tbody></table> : <p className="print-report-empty">لا توجد مستجدات مسجلة حتى الآن.</p>}
-        <footer className="print-report-footer">تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.</footer>
+        </tbody></table> : <p className="print-report-empty">{t("لا توجد مستجدات مسجلة حتى الآن.")}</p>)}
+        <footer className="print-report-footer">{t("تم استخراج هذا التقرير من السجلات المحفوظة بالنظام وقت إعداده. يُرجى مراجعة المستندات الأصلية والتحقق من آخر التحديثات.")}</footer>
       </section>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href={backHref} className="rounded-full border border-navy-200 px-4 py-2 text-xs font-bold text-navy-600">العودة للملف</Link>
-        <a href="?print=1" className="rounded-full bg-navy-950 px-4 py-2 text-xs font-extrabold text-white">حفظ PDF / طباعة</a>
+        <Link href={backHref} className="rounded-full border border-navy-200 px-4 py-2 text-xs font-bold text-navy-600">{t("العودة للملف")}</Link>
+        <a href="?print=1" className="rounded-full bg-navy-950 px-4 py-2 text-xs font-extrabold text-white">{t("حفظ PDF / طباعة")}</a>
       </div>
-      <div className="screen-report" contentEditable={query.preview === '1'} suppressContentEditableWarning={query.preview === '1'} spellCheck={query.preview === '1'}>
+      <div className="screen-report" dir={direction} contentEditable={query.preview === '1'} suppressContentEditableWarning={query.preview === '1'} spellCheck={query.preview === '1'}>
       <header className="border-b-2 border-navy-950 pb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -354,39 +426,40 @@ export default async function EntityReportPage({
             <p className="mt-1 text-xs leading-6 text-navy-500">{subtitle}</p>
           </div>
           <div className="rounded-2xl border border-navy-100 p-3 text-left text-[10px] leading-6 text-navy-500">
-            <p>تاريخ إعداد التقرير</p>
+            {branding.logoDataUrl ? <img src={branding.logoDataUrl} alt="Loutfi" className="mb-2 max-h-12 max-w-[150px] object-contain" /> : <p className="mb-2 font-black tracking-[2px] text-navy-950">LOUTFI LAW FIRM</p>}
+            <p>{t('تاريخ إعداد التقرير')}</p>
             <p className="font-bold text-navy-800">{reportDate(new Date())}</p>
-            <p>تقرير داخلي · سري</p>
+            <p>{t("تقرير داخلي · سري")}</p>
           </div>
         </div>
       </header>
-      <section className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      {counts.length > 0 && <section className="mt-5 grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {counts.map((count) => <div key={count.label} className="rounded-xl bg-ivory-50 p-3"><p className="text-[10px] font-bold text-navy-500">{count.label}</p><p className="mt-1 text-xl font-black">{count.value}</p></div>)}
-      </section>
-      <section className="mt-6 break-inside-avoid">
-        <h3 className="mb-3 border-r-4 border-gold-500 pr-3 text-sm font-black">البيانات الأساسية</h3>
+      </section>}
+      {info.length > 0 && <section className="mt-6 break-inside-avoid">
+        <h3 className="mb-3 border-r-4 border-gold-500 pr-3 text-sm font-black">{t("البيانات الأساسية")}</h3>
         <div className="grid gap-2 sm:grid-cols-2">
           {info.map((item) => <div key={item.label} className="break-inside-avoid rounded-xl border border-navy-100 p-3"><p className="text-[10px] font-bold text-navy-400">{item.label}</p><p className="mt-1 whitespace-pre-wrap break-words text-xs font-semibold leading-6">{item.value}</p></div>)}
         </div>
-      </section>
+      </section>}
       {files.length > 0 && <section className="mt-6 break-inside-avoid">
-        <h3 className="mb-3 border-r-4 border-gold-500 pr-3 text-sm font-black">المستندات والملفات ({files.length})</h3>
+        <h3 className="mb-3 border-r-4 border-gold-500 pr-3 text-sm font-black">{t("المستندات والملفات")} ({files.length})</h3>
         <div className="space-y-2">{files.map((file, index) => <div key={file.name + index} className="flex flex-wrap justify-between gap-2 rounded-lg border border-navy-100 px-3 py-2 text-xs"><span className="font-bold">{file.name}</span><span className="text-navy-500">{file.meta || ''} · {reportDate(file.date)}</span></div>)}</div>
       </section>}
       <section className="mt-7">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <h3 className="border-r-4 border-gold-500 pr-3 text-sm font-black">التسلسل الزمني الكامل للمستجدات</h3>
-          <span className="text-[10px] font-bold text-navy-400">{timeline.length} سجل · مرتبة من الأقدم إلى الأحدث</span>
+          <h3 className="border-r-4 border-gold-500 pr-3 text-sm font-black">{t("التسلسل الزمني الكامل للمستجدات")}</h3>
+          <span className="text-[10px] font-bold text-navy-400">{timeline.length} {t("سجل")} · {t("مرتبة من الأقدم إلى الأحدث")}</span>
         </div>
-        {timeline.length ? <div className="relative space-y-2 before:absolute before:bottom-2 before:right-[7px] before:top-2 before:w-px before:bg-navy-100">{timeline.map((item, index) => <article key={index} className="relative break-inside-avoid pr-7">
+        {showTimeline && (timeline.length ? <div className="relative space-y-2 before:absolute before:bottom-2 before:right-[7px] before:top-2 before:w-px before:bg-navy-100">{timeline.map((item, index) => <article key={index} className="relative break-inside-avoid pr-7">
           <span className="absolute right-0 top-2 h-4 w-4 rounded-full border-4 border-white bg-gold-500 ring-1 ring-gold-200"/>
           <div className="rounded-xl border border-navy-100 p-3">
             <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-xs font-black">{item.title}</h4><time className="text-[10px] font-bold text-navy-400">{reportDate(item.date)}</time></div>
             <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-navy-700">{item.detail || '—'}</p>
             {item.meta && <p className="mt-2 text-[10px] font-bold text-gold-700">{item.meta}</p>}
           </div>
-        </article>)}</div> : <p className="rounded-xl border border-dashed border-navy-200 p-8 text-center text-xs font-semibold text-navy-400">لا توجد مستجدات مسجلة حتى الآن.</p>}
-      </section>
+        </article>)}</div> : <p className="rounded-xl border border-dashed border-navy-200 p-8 text-center text-xs font-semibold text-navy-400">{t("لا توجد مستجدات مسجلة حتى الآن.")}</p>)}
+      </section>)}
       <footer className="mt-8 border-t border-navy-200 pt-3 text-[9px] leading-5 text-navy-400">
         هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.
       </footer>
@@ -396,7 +469,7 @@ export default async function EntityReportPage({
         .print-report { display: none; }
         @media print {
           .screen-report { display: none !important; }
-          .print-report { display: block !important; direction: rtl; color: #18263a; font-family: Arial, sans-serif; font-size: 9pt; }
+          .print-report { display: block !important; direction: ${direction}; color: #18263a; font-family: Arial, sans-serif; font-size: 9pt; }
           .print-report-header { border-bottom: 2px solid #18263a; padding-bottom: 12pt; margin-bottom: 16pt; }
           .print-report-brand { font-size: 10pt; font-weight: 800; letter-spacing: 1px; }
           .print-report-brand span { color: #8a6a3a; }
