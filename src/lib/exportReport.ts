@@ -100,9 +100,19 @@ function wordCellText(value: ReportCellValue, column: ReportColumn, language: Re
   return String(value);
 }
 
+type SaveAs = (data: Blob, filename?: string) => void;
+type FileSaverDefault = SaveAs | { saveAs?: SaveAs };
+type FileSaverModule = { saveAs?: SaveAs; default?: FileSaverDefault };
+
 async function saveBlob(blob: Blob, filename: string): Promise<void> {
-  const fileSaver = await import('file-saver');
-  fileSaver.saveAs(blob, filename);
+  const fileSaver = await import('file-saver') as unknown as FileSaverModule;
+  const defaultExport = fileSaver.default;
+  const saveAs = fileSaver.saveAs ??
+    (typeof defaultExport === 'function' ? defaultExport : defaultExport?.saveAs);
+  if (typeof saveAs !== 'function') {
+    throw new Error('تعذر تهيئة أداة تنزيل الملفات.');
+  }
+  saveAs(blob, filename);
 }
 
 async function assertZipSignature(blob: Blob, label: string): Promise<void> {

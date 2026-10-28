@@ -85,6 +85,11 @@ export default async function EntityReportPage({
   const language: ReportLanguage = query.lang === 'en' || query.lang === 'fr' ? query.lang : 'ar';
   const direction = language === 'ar' ? 'rtl' : 'ltr';
   const reportDate = (value: Date | string | null | undefined) => displayDate(value, language);
+  const reportDateTime = (value: Date | string | null | undefined): string | undefined => {
+    if (value === null || value === undefined || value === '') return undefined;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  };
   const t = (value: string) => translateReport(value, language);
   const [scope, branding] = await Promise.all([getBranchScope(session), getSiteBranding()]);
   const isManager = (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) || (session.role === 'lawyer' && session.isAdmin) || scope.officeManager || await isSeniorManagement(session);
@@ -467,7 +472,7 @@ export default async function EntityReportPage({
         {timeline.length ? <div className="relative space-y-2 before:absolute before:bottom-2 before:right-[7px] before:top-2 before:w-px before:bg-navy-100">{timeline.map((item, index) => <article key={index} className="relative break-inside-avoid pr-7">
           <span className="absolute right-0 top-2 h-4 w-4 rounded-full border-4 border-white bg-gold-500 ring-1 ring-gold-200"/>
           <div className="rounded-xl border border-navy-100 p-3">
-            <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-xs font-black">{item.title}</h4><time className="text-[10px] font-bold text-navy-400">{reportDate(item.date)}</time></div>
+            <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-xs font-black">{item.title}</h4><time dateTime={reportDateTime(item.date)} className="text-[10px] font-bold text-navy-400">{reportDate(item.date)}</time></div>
             <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-navy-700">{item.detail || '—'}</p>
             {item.meta && <p className="mt-2 text-[10px] font-bold text-gold-700">{item.meta}</p>}
           </div>

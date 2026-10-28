@@ -59,7 +59,7 @@ function makeReportRows(doc: Document, copy: Record<string, string>): { title: s
   const rows: ExportRow[] = [];
   if (name) rows.push({ section: copy.summary, date: '', title: copy.title, detail: name, meta: '' });
   if (subtitle) rows.push({ section: copy.summary, date: '', title: copy.detail, detail: subtitle, meta: '' });
-  if (dateText) rows.push({ section: copy.summary, date: dateText, title: copy.reportDate, detail: '', meta: '' });
+  if (dateText) rows.push({ section: copy.summary, date: '', title: copy.reportDate, detail: dateText, meta: '' });
 
   const children = Array.from(report.children) as HTMLElement[];
   for (const child of children) {
