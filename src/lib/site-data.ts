@@ -26,8 +26,6 @@ export const getSiteNav = cache(async function getSiteNav(branchId?: string) {
     lawyers: lawyers.map((l) => ({ id: l.id, slug: l.slug, name: l.fullName, title: l.title, photo: l.profilePhotoUrl, isPrincipal: l.isPrincipal, managementLabels: management[l.id] ?? [] })) as NavLawyer[],
     locations: locations.map((l) => ({ id: l.id, slug: l.slug, name: l.name, type: l.type })) as NavLocation[],
   };
-}
-
 });
 
 export const getSiteBranding = cache(async function getSiteBranding() {
