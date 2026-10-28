@@ -33,23 +33,25 @@ export async function LayoutNavbarRegion() {
     loadFailSoft('office branches', getAllBranches, EMPTY_BRANCHES),
   ]);
   const session = sessionResult.value;
-  const managementResult = session
-    ? await Promise.all([
-        isSeniorManagement(session).catch(() => false),
-        isFinanceManagement(session).catch(() => false),
-        isOfficeManager(session).catch(() => false),
-      ] as const)
-    : ([false, false, false] as const);
-  const unreadResult = session
-    ? await (() => {
-        const owner = session.role === 'admin' ? { userId: session.userId } : { lawyerId: session.lawyerId };
-        const now = new Date();
-        const where = session.role === 'admin'
-          ? { ...owner, readAt: null }
-          : { ...owner, readAt: null, OR: [{ type: { not: 'PERSONAL_REMINDER' } }, { type: 'PERSONAL_REMINDER', createdAt: { lte: now } }] };
-        return loadFailSoft('notification count', () => prisma.notification.count({ where }), 0);
-      })()
-    : { value: 0, unavailable: false };
+  const [managementResult, unreadResult] = await Promise.all([
+    session
+      ? Promise.all([
+          isSeniorManagement(session).catch(() => false),
+          isFinanceManagement(session).catch(() => false),
+          isOfficeManager(session).catch(() => false),
+        ] as const)
+      : Promise.resolve([false, false, false] as const),
+    session
+      ? (() => {
+          const owner = session.role === 'admin' ? { userId: session.userId } : { lawyerId: session.lawyerId };
+          const now = new Date();
+          const where = session.role === 'admin'
+            ? { ...owner, readAt: null }
+            : { ...owner, readAt: null, OR: [{ type: { not: 'PERSONAL_REMINDER' } }, { type: 'PERSONAL_REMINDER', createdAt: { lte: now } }] };
+          return loadFailSoft('notification count', () => prisma.notification.count({ where }), 0);
+        })()
+      : Promise.resolve({ value: 0, unavailable: false }),
+  ]);
   const [isSenior, isFinance, isOffice] = managementResult;
   const unavailable = navResult.unavailable || brandingResult.unavailable || sessionResult.unavailable || branchesResult.unavailable || unreadResult.unavailable;
   return (
