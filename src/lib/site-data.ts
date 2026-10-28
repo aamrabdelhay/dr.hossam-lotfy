@@ -1,9 +1,10 @@
 import 'server-only';
+import { cache } from 'react';
 import { prisma } from './prisma';
 import type { NavLawyer, NavLocation } from './constants';
 import { getLawyerManagementLabels } from './office-workflow';
 
-export async function getSiteNav(branchId?: string) {
+export const getSiteNav = cache(async function getSiteNav(branchId?: string) {
   const [lawyers, locations] = await Promise.all([
     branchId
       ? prisma.$queryRawUnsafe<Array<{id:string;slug:string;fullName:string;title:string;profilePhotoUrl:string|null;isPrincipal:boolean;sortOrder:number}>>(
@@ -27,10 +28,11 @@ export async function getSiteNav(branchId?: string) {
   };
 }
 
+});
 
-export async function getSiteBranding() {
+export const getSiteBranding = cache(async function getSiteBranding() {
   const rows = await prisma.$queryRawUnsafe<Array<{ logo_data_url: string | null }>>(
     `SELECT "logo_data_url" FROM "office_site_settings" WHERE "id" = 'default' LIMIT 1`,
   );
   return { logoDataUrl: rows[0]?.logo_data_url ?? null };
-}
+});
