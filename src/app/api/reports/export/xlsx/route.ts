@@ -30,8 +30,8 @@ const ExportPayload = z.object({
 function reportContentDisposition(title: string, extension: 'xlsx'): string {
   const normalized = title.normalize('NFKC');
   const base = normalized
-    .replace(/[\\u0000-\\u001f\\u007f\\\\/:*?"<>|]+/g, '-')
-    .replace(/\\s+/g, '-')
+    .replace(/[\u0000-\u001f\u007f\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .slice(0, 100)
     .replace(/^[.-]+|[.-]+$/g, '') || 'تقرير';
@@ -39,7 +39,7 @@ function reportContentDisposition(title: string, extension: 'xlsx'): string {
   const encoded = encodeURIComponent(filename).replace(/['()*]/g, (character) =>
     '%' + character.charCodeAt(0).toString(16).toUpperCase(),
   );
-  return 'attachment; filename="report.xlsx"; filename*=UTF-8\'\'' + encoded;
+  return 'attachment; filename="' + 'report.' + extension + '"; filename*=' + "UTF-8''" + encoded;
 }
 
 export async function POST(request: Request) {
