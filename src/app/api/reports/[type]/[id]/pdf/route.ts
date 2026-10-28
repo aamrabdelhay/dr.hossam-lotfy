@@ -59,13 +59,16 @@ function format(value: unknown, lang: keyof typeof copy): string {
   if (typeof value === 'boolean') return value ? (lang === 'ar' ? 'نعم' : lang === 'fr' ? 'Oui' : 'Yes') : (lang === 'ar' ? 'لا' : lang === 'fr' ? 'Non' : 'No');
   return String(value);
 }
-function sectionBlock(section: Section, labels: typeof copy[keyof typeof copy]) {
+function sectionBlock(section: Section, labels: typeof copy[keyof typeof copy], lang: keyof typeof copy) {
+  const T = lang === 'ar' ? RTLText : Text;
+  const align = lang === 'ar' ? {} : { textAlign: 'left' as const };
+  const rowDirection = lang === 'ar' ? {} : { flexDirection: 'row' as const };
   return h(View, { key: section.title, style: { marginBottom: 4 } },
-    h(RTLText, { style: styles.sectionTitle }, section.title),
-    h(View, { style: styles.tableHead, wrap: false }, ...section.columns.map((col, i) => h(RTLText, { key: 'h' + i, style: styles.headCell }, col))),
+    h(T, { style: [styles.sectionTitle, align] }, section.title),
+    h(View, { style: [styles.tableHead, rowDirection], wrap: false }, ...section.columns.map((col, i) => h(T, { key: 'h' + i, style: [styles.headCell, align] }, col))),
     ...(section.rows.length
-      ? section.rows.map((row, ri) => h(View, { key: 'r' + ri, style: styles.tableRow, wrap: false }, ...row.map((cell, ci) => h(RTLText, { key: 'c' + ci, style: styles.cell }, cell))))
-      : [h(RTLText, { key: 'empty', style: styles.empty }, labels.noRows)]));
+      ? section.rows.map((row, ri) => h(View, { key: 'r' + ri, style: [styles.tableRow, rowDirection], wrap: false }, ...row.map((cell, ci) => h(T, { key: 'c' + ci, style: [styles.cell, align] }, cell))))
+      : [h(T, { key: 'empty', style: [styles.empty, align] }, labels.noRows)]));
 }
 
 async function branchAllowed(session: SessionUser, scope: Awaited<ReturnType<typeof getBranchScope>>, record: DbRow, type: string): Promise<boolean> {
@@ -168,7 +171,7 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
         ...(selectedSections.has('basic') ? [h(lang === 'ar' ? RTLText : Text, { style: [styles.sectionTitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.basic),
         ...info.map((item, index) => h(View, { key: 'info-' + index, style: [styles.infoRow, lang === 'ar' ? {} : { flexDirection: 'row' }], wrap: false },
           h(lang === 'ar' ? RTLText : Text, { style: [styles.infoLabel, lang === 'ar' ? {} : { textAlign: 'left' }] }, item[0]), h(lang === 'ar' ? RTLText : Text, { style: [styles.infoValue, lang === 'ar' ? {} : { textAlign: 'left' }] }, format(item[1], lang)))]) : []),
-        ...sections.map((section) => sectionBlock(section, labels)),
+        ...sections.map((section) => sectionBlock(section, labels, lang)),
         h(View, { fixed: true, style: styles.footer },
           h(RTLText, { style: styles.footerText }, labels.confidential),
           h(Text, { style: styles.footerText, render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => String(pageNumber) + ' / ' + String(totalPages) }))));
