@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { clearSessionCookie, revokeCurrentSession } from '@/lib/auth';
+import { clearSessionCookie, getCurrentUser, revokeCurrentSession } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,26 @@ function buildLogoutResponse(body: unknown, init?: { status?: number }) {
   return res;
 }
 
+async function closeOfficeLoginLog() {
+  const session = await getCurrentUser().catch(() => null);
+  if (!session) return;
+  const userId = session.role === 'admin' ? session.userId : null;
+  const lawyerId = session.role === 'lawyer' ? session.lawyerId : null;
+  await prisma.$executeRawUnsafe(
+    `UPDATE "office_login_logs"
+     SET "logout_at"=NOW(),"last_seen_at"=NOW(),"duration_seconds"=GREATEST(0,EXTRACT(EPOCH FROM (NOW()-"login_at"))::int)
+     WHERE "id"=(
+       SELECT "id" FROM "office_login_logs"
+       WHERE (($1::text IS NOT NULL AND "user_id"=$1) OR ($2::text IS NOT NULL AND "lawyer_id"=$2))
+         AND "logout_at" IS NULL
+       ORDER BY "login_at" DESC LIMIT 1
+     )`,
+    userId, lawyerId,
+  );
+}
+
 export async function POST() {
+  await closeOfficeLoginLog().catch(() => undefined);
   await revokeCurrentSession().catch(() => undefined);
   return buildLogoutResponse({ ok: true });
 }
@@ -28,6 +48,7 @@ export async function POST() {
  * `/api/auth/logout` directly signs out and lands on the home page.
  */
 export async function GET(req: Request) {
+  await closeOfficeLoginLog().catch(() => undefined);
   await revokeCurrentSession().catch(() => undefined);
   const origin = new URL(req.url).origin;
   const res = NextResponse.redirect(`${origin}/`, { status: 303 });
