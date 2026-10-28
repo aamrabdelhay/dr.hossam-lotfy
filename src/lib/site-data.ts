@@ -1,10 +1,11 @@
 import 'server-only';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { prisma } from './prisma';
 import type { NavLawyer, NavLocation } from './constants';
 import { getLawyerManagementLabels } from './office-workflow';
 
-export const getSiteNav = cache(async function getSiteNav(branchId?: string) {
+async function loadSiteNav(branchId?: string) {
   const [lawyers, locations] = await Promise.all([
     branchId
       ? prisma.$queryRawUnsafe<Array<{id:string;slug:string;fullName:string;title:string;profilePhotoUrl:string|null;isPrincipal:boolean;sortOrder:number}>>(
@@ -26,11 +27,21 @@ export const getSiteNav = cache(async function getSiteNav(branchId?: string) {
     lawyers: lawyers.map((l) => ({ id: l.id, slug: l.slug, name: l.fullName, title: l.title, photo: l.profilePhotoUrl, isPrincipal: l.isPrincipal, managementLabels: management[l.id] ?? [] })) as NavLawyer[],
     locations: locations.map((l) => ({ id: l.id, slug: l.slug, name: l.name, type: l.type })) as NavLocation[],
   };
+}
+
+const cachedSiteNav = unstable_cache(loadSiteNav, ['site-nav-v1'], { revalidate: 60 });
+export const getSiteNav = cache(async function getSiteNav(branchId?: string) {
+  return cachedSiteNav(branchId);
 });
 
-export const getSiteBranding = cache(async function getSiteBranding() {
+async function loadSiteBranding() {
   const rows = await prisma.$queryRawUnsafe<Array<{ logo_data_url: string | null }>>(
     `SELECT "logo_data_url" FROM "office_site_settings" WHERE "id" = 'default' LIMIT 1`,
   );
   return { logoDataUrl: rows[0]?.logo_data_url ?? null };
+}
+
+const cachedSiteBranding = unstable_cache(loadSiteBranding, ['site-branding-v1'], { revalidate: 60 });
+export const getSiteBranding = cache(async function getSiteBranding() {
+  return cachedSiteBranding();
 });
