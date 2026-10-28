@@ -184,7 +184,11 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
         throw new Error('Word export failed (' + response.status + '): ' + message.slice(0, 300));
       }
       const blob = await response.blob();
-      if (blob.size < 100 || blob.type.includes('pdf')) throw new Error('Server returned an invalid Word document.');
+      const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+      if (blob.size < 100 || blob.type.includes('pdf') ||
+          signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 0x03 || signature[3] !== 0x04) {
+        throw new Error('Server returned an invalid Word document (DOCX ZIP signature missing).');
+      }
       downloadBlob(blob, safeFileName(parsed.title) + '.docx');
     } catch (error) {
       const details = error instanceof Error ? error.message : '';
@@ -215,7 +219,11 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
         throw new Error('Excel export failed (' + response.status + '): ' + message.slice(0, 300));
       }
       const blob = await response.blob();
-      if (blob.size < 100 || blob.type.includes('pdf')) throw new Error('Server returned an invalid Excel workbook.');
+      const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+      if (blob.size < 100 || blob.type.includes('pdf') ||
+          signature[0] !== 0x50 || signature[1] !== 0x4b || signature[2] !== 0x03 || signature[3] !== 0x04) {
+        throw new Error('Server returned an invalid Excel workbook (XLSX ZIP signature missing).');
+      }
       downloadBlob(blob, safeFileName(parsed.title) + '.xlsx');
     } catch (error) {
       const details = error instanceof Error ? error.message : '';
