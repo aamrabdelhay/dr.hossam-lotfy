@@ -103,11 +103,9 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
     if (!record) return Response.json({ error: 'Report record not found' }, { status: 404 });
     if (!elevated && (type === 'client' || type === 'case') && !(await branchAllowed(session, scope, record, type))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const url = new URL(request.url);
-    const cookie = request.headers.get('cookie') || '';
-    const langCookie = cookie.match(/(?:^|;\\s*)(?:lang|language|locale|site-language|NEXT_LOCALE)=([^;]+)/i);
-    const rawLang = (url.searchParams.get('lang') || (langCookie ? decodeURIComponent(langCookie[1]) : '') || request.headers.get('accept-language') || 'ar').toLowerCase();
-    const lang: keyof typeof copy = rawLang.startsWith('fr') ? 'fr' : rawLang.startsWith('en') ? 'en' : 'ar';
+    // All downloadable reports are Arabic-first regardless of the UI language,
+    // URL parameters, cookies, or browser language. Keep labels and dates Arabic.
+    const lang: keyof typeof copy = 'ar';
     const labels = copy[lang];
     const title = titles[lang][type as keyof typeof titles.ar];
     const entityName = String(record.name || record.fullName || record.nameEn || record.number || id);
@@ -155,7 +153,8 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
 
     const buffer = await renderToBuffer(document);
     const safeName = entityName.replaceAll('/', ' ').replaceAll(':', ' ').replaceAll('*', ' ').replaceAll('?', ' ').replaceAll('"', ' ').replaceAll('<', ' ').replaceAll('>', ' ').replaceAll('|', ' ').trim().slice(0, 80) || id;
-    const filename = 'تقرير-' + type + '-' + safeName + '-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    const arabicType: Record<string, string> = { client: 'عميل', case: 'قضية', lawyer: 'محامٍ', location: 'جهة' };
+    const filename = 'تقرير-' + (arabicType[type] || 'عام') + '-' + safeName + '-' + new Date().toISOString().slice(0, 10) + '.pdf';
     return new Response(new Uint8Array(buffer), { status: 200, headers: {
       'Content-Type': 'application/pdf',
       "Content-Disposition": "attachment; filename=report-" + type + ".pdf; filename*=UTF-8''" + encodeURIComponent(filename),
