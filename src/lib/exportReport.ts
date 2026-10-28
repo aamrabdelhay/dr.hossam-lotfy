@@ -114,10 +114,10 @@ async function assertZipSignature(blob: Blob, label: string): Promise<void> {
 }
 
 function parseImageDataUrl(value: string | null | undefined): { extension: 'png' | 'jpeg'; bytes: Uint8Array } | null {
-  const match = value?.match(/^data:image\\/(png|jpe?g);base64,([A-Za-z0-9+/=\\s]+)$/i);
+  const match = value?.match(/^data:image\/(png|jpe?g);base64,([A-Za-z0-9+/=\s]+)$/i);
   if (!match) return null;
   const extension: 'png' | 'jpeg' = match[1].toLowerCase() === 'png' ? 'png' : 'jpeg';
-  const decoded = atob(match[2].replace(/\\s/g, ''));
+  const decoded = atob(match[2].replace(/\s/g, ''));
   const bytes = new Uint8Array(decoded.length);
   for (let index = 0; index < decoded.length; index++) bytes[index] = decoded.charCodeAt(index);
   return { extension, bytes };
