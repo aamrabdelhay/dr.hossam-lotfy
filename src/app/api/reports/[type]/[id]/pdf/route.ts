@@ -168,9 +168,15 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
         h(lang === 'ar' ? RTLText : Text, { style: [styles.title, lang === 'ar' ? {} : { textAlign: 'left' }] }, title),
         h(lang === 'ar' ? RTLText : Text, { style: [styles.entity, lang === 'ar' ? {} : { textAlign: 'left' }] }, entityName),
         h(lang === 'ar' ? RTLText : Text, { style: [styles.subtitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.issued + ': ' + format(new Date(), lang) + '  |  ' + labels.issuer + ': ' + session.name),
-        ...(selectedSections.has('basic') ? [h(lang === 'ar' ? RTLText : Text, { style: [styles.sectionTitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.basic),
-        ...info.map((item, index) => h(View, { key: 'info-' + index, style: [styles.infoRow, lang === 'ar' ? {} : { flexDirection: 'row' }], wrap: false },
-          h(lang === 'ar' ? RTLText : Text, { style: [styles.infoLabel, lang === 'ar' ? {} : { textAlign: 'left' }] }, item[0]), h(lang === 'ar' ? RTLText : Text, { style: [styles.infoValue, lang === 'ar' ? {} : { textAlign: 'left' }] }, format(item[1], lang)))]) : []),
+        ...(selectedSections.has('basic') ? [
+          h(lang === 'ar' ? RTLText : Text, { style: [styles.sectionTitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.basic),
+          ...info.map((item, index) => h(
+            View,
+            { key: 'info-' + index, style: [styles.infoRow, lang === 'ar' ? {} : { flexDirection: 'row' }], wrap: false },
+            h(lang === 'ar' ? RTLText : Text, { style: [styles.infoLabel, lang === 'ar' ? {} : { textAlign: 'left' }] }, item[0]),
+            h(lang === 'ar' ? RTLText : Text, { style: [styles.infoValue, lang === 'ar' ? {} : { textAlign: 'left' }] }, format(item[1], lang))
+          ))
+        ] : []),
         ...sections.map((section) => sectionBlock(section, labels, lang)),
         h(View, { fixed: true, style: [styles.footer, lang === 'ar' ? {} : { flexDirection: 'row' }] },
           h(RTLText, { style: styles.footerText }, labels.confidential),
