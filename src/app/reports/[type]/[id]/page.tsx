@@ -464,7 +464,7 @@ export default async function EntityReportPage({
           <h3 className="border-r-4 border-gold-500 pr-3 text-sm font-black">{t("التسلسل الزمني الكامل للمستجدات")}</h3>
           <span className="text-[10px] font-bold text-navy-400">{timeline.length} {t("سجل")} · {t("مرتبة من الأقدم إلى الأحدث")}</span>
         </div>
-        {showTimeline && (timeline.length ? <div className="relative space-y-2 before:absolute before:bottom-2 before:right-[7px] before:top-2 before:w-px before:bg-navy-100">{timeline.map((item, index) => <article key={index} className="relative break-inside-avoid pr-7">
+        {timeline.length ? <div className="relative space-y-2 before:absolute before:bottom-2 before:right-[7px] before:top-2 before:w-px before:bg-navy-100">{timeline.map((item, index) => <article key={index} className="relative break-inside-avoid pr-7">
           <span className="absolute right-0 top-2 h-4 w-4 rounded-full border-4 border-white bg-gold-500 ring-1 ring-gold-200"/>
           <div className="rounded-xl border border-navy-100 p-3">
             <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="text-xs font-black">{item.title}</h4><time className="text-[10px] font-bold text-navy-400">{reportDate(item.date)}</time></div>
@@ -472,9 +472,9 @@ export default async function EntityReportPage({
             {item.meta && <p className="mt-2 text-[10px] font-bold text-gold-700">{item.meta}</p>}
           </div>
         </article>)}</div> : <p className="rounded-xl border border-dashed border-navy-200 p-8 text-center text-xs font-semibold text-navy-400">{t("لا توجد مستجدات مسجلة حتى الآن.")}</p>)}
-      </section>)}
+      </section>}
       <footer className="mt-8 border-t border-navy-200 pt-3 text-[9px] leading-5 text-navy-400">
-        هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.
+        {t("هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.")}
       </footer>
       </div>
       <style>{`
