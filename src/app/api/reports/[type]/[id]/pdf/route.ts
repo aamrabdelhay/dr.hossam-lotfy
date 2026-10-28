@@ -186,7 +186,7 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
     if (exportFormat === 'doc' || exportFormat === 'xls') {
       const isWord = exportFormat === 'doc';
       const filename = reportName + (isWord ? '.doc' : '.xls');
-      return new Response('\\uFEFF' + html, { status: 200, headers: {
+      return new Response('\uFEFF' + html, { status: 200, headers: {
         'Content-Type': isWord ? 'application/msword; charset=utf-8' : 'application/vnd.ms-excel; charset=utf-8',
         "Content-Disposition": "attachment; filename=report." + exportFormat + "; filename*=UTF-8''" + encodeURIComponent(filename),
         'Cache-Control': 'private, no-store',
