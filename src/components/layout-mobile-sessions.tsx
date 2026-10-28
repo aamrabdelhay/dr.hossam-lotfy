@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getSidebarData, type SidebarData } from '@/lib/queries';
 import { MobileSessions } from '@/components/mobile-sessions';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, type SessionUser } from '@/lib/auth';
 import { isFrameworkError, redact } from '@/lib/health';
 
 const EMPTY_SIDEBAR: SidebarData = {
@@ -12,7 +12,7 @@ const EMPTY_SIDEBAR: SidebarData = {
 
 /** Kept behind Suspense so session/sidebar lookups never block page content. */
 export async function LayoutMobileSessions() {
-  let session = null;
+  let session: SessionUser | null = null;
   try {
     session = await getCurrentUser();
   } catch (error) {
