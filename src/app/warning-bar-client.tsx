@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { TriangleAlert, X } from 'lucide-react';
 
 export function WarningBarClient({ count }: { count: number }) {
@@ -17,12 +18,12 @@ export function WarningBarClient({ count }: { count: number }) {
           تنبيه: توجد <span className="text-gold-300">{count}</span>{' '}
           {count === 1 ? 'جلسة مستحقة' : 'جلسات مستحقة'} خلال الأسبوعين القادمين.
         </p>
-        <a
+        <Link
           href="/calendar"
           className="shrink-0 rounded-full bg-gradient-to-b from-gold-400 to-gold-500 px-3.5 py-1 text-[11px] font-extrabold text-navy-950 transition-all hover:from-gold-300 hover:to-gold-400"
         >
           عرض الجلسات
-        </a>
+        </Link>
         <button onClick={dismiss} className="hidden rounded-full p-1.5 text-ivory-300 transition-colors hover:bg-white/10 sm:block" aria-label="إخفاء التنبيه">
           <X size={14} />
         </button>
