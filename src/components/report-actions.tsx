@@ -161,18 +161,38 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
     win.focus();
     win.print();
   };
-  const exportWord = () => {
+  const exportWord = async () => {
     try {
       const doc = getDocument();
       if (!doc) throw new Error('Preview not ready');
       const parsed = makeReportRows(doc, copy);
-      const direction = language === 'ar' ? 'rtl' : 'ltr';
-      const rows = parsed.rows.map((row, i) => '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(row.section) + '</td><td>' + escapeHtml(row.date) + '</td><td><strong>' + escapeHtml(row.title) + '</strong></td><td>' + escapeHtml(row.detail) + '</td><td>' + escapeHtml(row.meta) + '</td></tr>').join('');
-      const logo = parsed.logo ? '<img src="' + parsed.logo + '" alt="Loutfi" style="max-width:150px;max-height:62px;object-fit:contain" />' : '<strong style="font-size:18px;letter-spacing:2px">LOUTFI LAW FIRM</strong>';
-      const html = '<!doctype html><html lang="' + language + '" dir="' + direction + '"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;color:#18263a;font-size:10pt}h1{font-size:20pt;margin:18pt 0 5pt}p{line-height:1.6}.brand{position:relative;display:flex;justify-content:space-between;align-items:center;min-height:62pt;border-bottom:2px solid #18263a;padding:0 0 12pt 0;margin-bottom:16pt}.brand>div:first-child{position:absolute;right:0;top:0;max-width:165pt;text-align:right}.brand>div:last-child{align-self:flex-start;margin-left:auto}.brandtext{font-size:9pt;color:#8a6a3a}table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#18263a;color:#fff;font-weight:bold}td,th{border:1px solid #d7dce2;padding:6pt;text-align:inherit;vertical-align:top;overflow-wrap:anywhere}tr{page-break-inside:avoid}</style></head><body dir="' + direction + '"><div class="brand"><div>' + logo + '<p class="brandtext">LOUTFI LAW FIRM · EST. 1949</p></div><div>' + escapeHtml(copy.reportDate) + ': ' + escapeHtml(new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : language === 'fr' ? 'fr-FR' : 'en-GB')) + '</div></div><h1>' + escapeHtml(parsed.title) + '</h1><table><thead><tr><th>' + escapeHtml(copy.row) + '</th><th>' + escapeHtml(copy.section) + '</th><th>' + escapeHtml(copy.date) + '</th><th>' + escapeHtml(copy.title) + '</th><th>' + escapeHtml(copy.detail) + '</th><th>' + escapeHtml(copy.meta) + '</th></tr></thead><tbody>' + rows + '</tbody></table></body></html>';
-      downloadBlob(new Blob(['\uFEFF', html], { type: 'application/msword;charset=utf-8' }), safeFileName(parsed.title) + '.doc');
-    } catch {
-      window.alert(language === 'ar' ? 'تعذر تجهيز ملف Word من المعاينة.' : language === 'fr' ? 'Impossible de créer le document Word à partir de l’aperçu.' : 'Could not create the Word file from the preview.');
+      const payload = {
+        title: parsed.title,
+        language,
+        logoDataUrl: parsed.logo,
+        headers: [copy.row, copy.section, copy.date, copy.title, copy.detail, copy.meta],
+        rows: parsed.rows.map((row, index) => [String(index + 1), row.section, row.date, row.title, row.detail, row.meta]),
+      };
+      const response = await fetch('/api/reports/export/docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (!response.ok || !contentType.includes('wordprocessingml.document')) {
+        const message = await response.text().catch(() => '');
+        throw new Error('Word export failed (' + response.status + '): ' + message.slice(0, 300));
+      }
+      const blob = await response.blob();
+      if (blob.size < 100 || blob.type.includes('pdf')) throw new Error('Server returned an invalid Word document.');
+      downloadBlob(blob, safeFileName(parsed.title) + '.docx');
+    } catch (error) {
+      const details = error instanceof Error ? error.message : '';
+      window.alert(language === 'ar'
+        ? 'تعذر إنشاء ملف Word حقيقي (.docx). ' + details
+        : language === 'fr'
+          ? 'Impossible de créer un véritable fichier Word (.docx). ' + details
+          : 'Could not create a real Word (.docx) file. ' + details);
     }
   };
   const exportExcel = async () => {
@@ -189,16 +209,22 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
         rows: parsed.rows.map((row, i) => [String(i + 1), row.section, row.date, row.title, row.detail, row.meta]),
       };
       const response = await fetch('/api/reports/export/xlsx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!response.ok) throw new Error('Export rejected');
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      if (!response.ok || !contentType.includes('spreadsheetml.sheet')) {
+        const message = await response.text().catch(() => '');
+        throw new Error('Excel export failed (' + response.status + '): ' + message.slice(0, 300));
+      }
       const blob = await response.blob();
+      if (blob.size < 100 || blob.type.includes('pdf')) throw new Error('Server returned an invalid Excel workbook.');
       downloadBlob(blob, safeFileName(parsed.title) + '.xlsx');
-    } catch {
-      window.alert(copy.downloadError);
+    } catch (error) {
+      const details = error instanceof Error ? error.message : '';
+      window.alert(copy.downloadError + (details ? ' ' + details : ''));
     }
   };
   const exportSelected = () => {
     if (format === 'pdf') printPreview();
-    else if (format === 'word') exportWord();
+    else if (format === 'word') void exportWord();
     else void exportExcel();
   };
   const toggleSection = (value: ReportSection) => {
@@ -238,7 +264,7 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
                     </label>
                     <label className="block text-xs font-extrabold text-navy-700">{copy.format}
                       <select value={format} onChange={(event) => setFormat(event.target.value as ReportFormat)} className="mt-2 w-full rounded-xl border border-navy-200 bg-white px-3 py-2.5 text-sm font-semibold text-navy-900">
-                        <option value="pdf">PDF</option><option value="word">Microsoft Word (.doc)</option><option value="excel">Microsoft Excel (.xlsx)</option>
+                        <option value="pdf">PDF</option><option value="word">Microsoft Word (.docx)</option><option value="excel">Microsoft Excel (.xlsx)</option>
                       </select>
                     </label>
                   </div>
@@ -263,10 +289,17 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-navy-100 bg-ivory-50 px-4 py-2">
                   <button type="button" onClick={() => setStep('options')} className="inline-flex items-center gap-1 rounded-full border border-navy-200 bg-white px-3 py-2 text-[11px] font-bold text-navy-700"><ChevronRight size={13}/>{copy.settings}</button>
-                  <button type="button" onClick={exportSelected} className="inline-flex items-center gap-2 rounded-full bg-navy-950 px-4 py-2 text-[11px] font-extrabold text-white hover:bg-navy-800">
-                    {format === 'pdf' ? <Printer size={14}/> : format === 'word' ? <Download size={14}/> : <FileSpreadsheet size={14}/>}
-                    {format === 'pdf' ? copy.pdf : format === 'word' ? copy.word : copy.excel}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={printPreview} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'pdf' ? 'bg-navy-950 text-white' : 'border border-navy-200 bg-white text-navy-700')}>
+                      <Printer size={14}/>{copy.pdf}
+                    </button>
+                    <button type="button" onClick={() => void exportWord()} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'word' ? 'bg-navy-950 text-white' : 'border border-navy-200 bg-white text-navy-700')}>
+                      <Download size={14}/>{copy.word} (.docx)
+                    </button>
+                    <button type="button" onClick={() => void exportExcel()} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'excel' ? 'bg-emerald-800 text-white' : 'border border-emerald-200 bg-emerald-50 text-emerald-800')}>
+                      <FileSpreadsheet size={14}/>{copy.excel} (.xlsx)
+                    </button>
+                  </div>
                 </div>
                 <div className="min-h-0 flex-1 bg-[#eef2f8] p-1 sm:p-3">
                   {previewUrl ? <iframe ref={frame} key={previewUrl} src={previewUrl} title={copy.previewTitle} className="h-full w-full rounded-lg border border-navy-100 bg-white"/> : <div className="grid h-full place-items-center text-xs font-bold text-navy-500">{copy.loading}</div>}
