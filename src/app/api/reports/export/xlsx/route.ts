@@ -26,6 +26,22 @@ const ExportPayload = z.object({
   }
 });
 
+
+function reportContentDisposition(title: string, extension: 'xlsx'): string {
+  const normalized = title.normalize('NFKC');
+  const base = normalized
+    .replace(/[\\u0000-\\u001f\\u007f\\\\/:*?"<>|]+/g, '-')
+    .replace(/\\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 100)
+    .replace(/^[.-]+|[.-]+$/g, '') || 'تقرير';
+  const filename = base + '.' + extension;
+  const encoded = encodeURIComponent(filename).replace(/['()*]/g, (character) =>
+    '%' + character.charCodeAt(0).toString(16).toUpperCase(),
+  );
+  return 'attachment; filename="report.xlsx"; filename*=UTF-8\'\'' + encoded;
+}
+
 export async function POST(request: Request) {
   const session = await getCurrentUser();
   if (!session) return NextResponse.json({ error: 'يجب تسجيل الدخول لتنزيل التقرير.' }, { status: 401 });
@@ -50,7 +66,7 @@ export async function POST(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': 'attachment; filename="loutfi-report.xlsx"',
+        'Content-Disposition': reportContentDisposition(payload.title, 'xlsx'),
         'Cache-Control': 'no-store',
         'X-Content-Type-Options': 'nosniff',
       },
