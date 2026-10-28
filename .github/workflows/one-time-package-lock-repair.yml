@@ -1,0 +1,35 @@
+name: One-time package lock repair
+
+on:
+  push:
+    branches:
+      - codex/fix-report-migration-and-date-types
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: codex/fix-report-migration-and-date-types
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Regenerate package lock from package.json
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit the lockfile and remove this one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git rm .github/workflows/one-time-package-lock-repair.yml
+          git commit -m "Sync package lock with report export dependencies"
+          git push origin HEAD:codex/fix-report-migration-and-date-types
