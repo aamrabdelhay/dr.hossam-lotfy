@@ -1,13 +1,21 @@
 import 'server-only';
+import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import type { SessionUser } from '@/lib/auth';
 
 export type BranchRow={id:string;code:string;name_ar:string;name_en:string|null;address:string;is_main:boolean;active:boolean};
 export type BranchScope={allBranches:boolean;branchIds:string[];officeManagerBranchIds:string[];financeManagerBranchIds:string[];officeManager:boolean;financeManager:boolean};
 
-export async function getAllBranches():Promise<BranchRow[]>{
-  return prisma.$queryRawUnsafe<BranchRow[]>(`SELECT "id","code","name_ar","name_en","address","is_main","active" FROM "office_branches" WHERE "active"=true ORDER BY "is_main" DESC,"name_ar" ASC`);
-}
+const loadAllBranches = unstable_cache(
+  async (): Promise<BranchRow[]> => prisma.$queryRawUnsafe<BranchRow[]>(`SELECT "id","code","name_ar","name_en","address","is_main","active" FROM "office_branches" WHERE "active"=true ORDER BY "is_main" DESC,"name_ar" ASC`),
+  ['active-office-branches-v1'],
+  { revalidate: 60 },
+);
+
+export const getAllBranches = cache(async function getAllBranches(): Promise<BranchRow[]> {
+  return loadAllBranches();
+});
 export async function getBranchScope(session:SessionUser|null):Promise<BranchScope>{
   if(!session)return{allBranches:false,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
   const userId=session.role==='admin'?session.userId:null;
