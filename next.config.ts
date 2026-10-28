@@ -36,6 +36,17 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // Keep PDF rendering packages external so Next's server bundler does not
+  // rewrite their dynamically resolved font modules to missing .cjs paths.
+  serverExternalPackages: ['@react-pdf/renderer', 'react-pdf-rtl', 'pdfkit'],
+  outputFileTracingIncludes: {
+    '/api/reports/[type]/[id]/pdf': [
+      './node_modules/pdfkit/**/*',
+      './node_modules/@react-pdf/**/*',
+      './node_modules/react-pdf-rtl/**/*',
+      './node_modules/@fontsource/cairo/files/**/*',
+    ],
+  },
   // The current Prisma schema is intentionally being migrated to support
   // standalone assignments without a location. Runtime DB migrations already
   // support this; keep production deployment unblocked while the generated
