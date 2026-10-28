@@ -49,8 +49,10 @@ function makeReportRows(doc: Document, copy: Record<string, string>): { title: s
   const header = report.querySelector(':scope > header');
   const title = textOf(header?.querySelector('h1')) || 'LOUTFI REPORT';
   const name = textOf(header?.querySelector('h2'));
-  const subtitle = textOf(header?.querySelector('p'));
-  const dateText = textOf(header?.querySelectorAll('p').item(1)) || '';
+  const subtitle = textOf(header?.querySelector('h2')?.nextElementSibling);
+  const metadataBox = header?.querySelector(':scope > div > div:last-child');
+  const metadataParagraphs = metadataBox?.querySelectorAll('p');
+  const dateText = metadataParagraphs ? textOf(metadataParagraphs.item(1)) : '';
   const img = report.querySelector('img') as HTMLImageElement | null;
   const logo = img?.getAttribute('src')?.startsWith('data:image/') ? img.getAttribute('src') : null;
   const rows: ExportRow[] = [];
@@ -72,7 +74,7 @@ function makeReportRows(doc: Document, copy: Record<string, string>): { title: s
       }
       continue;
     }
-    const grid = child.querySelector(':scope > .grid') as HTMLElement | null;
+    const grid = (child.matches('.grid') ? child : child.querySelector(':scope > .grid')) as HTMLElement | null;
     if (grid) {
       for (const card of Array.from(grid.children) as HTMLElement[]) {
         const ps = Array.from(card.querySelectorAll('p')).map((p) => textOf(p));
