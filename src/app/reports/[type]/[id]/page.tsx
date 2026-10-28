@@ -471,7 +471,7 @@ export default async function EntityReportPage({
             <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-6 text-navy-700">{item.detail || '—'}</p>
             {item.meta && <p className="mt-2 text-[10px] font-bold text-gold-700">{item.meta}</p>}
           </div>
-        </article>)}</div> : <p className="rounded-xl border border-dashed border-navy-200 p-8 text-center text-xs font-semibold text-navy-400">{t("لا توجد مستجدات مسجلة حتى الآن.")}</p>)}
+        </article>)}</div> : <p className="rounded-xl border border-dashed border-navy-200 p-8 text-center text-xs font-semibold text-navy-400">{t("لا توجد مستجدات مسجلة حتى الآن.")}</p>}
       </section>}
       <footer className="mt-8 border-t border-navy-200 pt-3 text-[9px] leading-5 text-navy-400">
         {t("هذا التقرير جُمِع من السجلات المحفوظة بالنظام وقت إعداده. لا يغني عن مراجعة المستندات الأصلية والتحقق من آخر تحديثات الملف.")}
