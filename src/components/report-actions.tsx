@@ -290,14 +290,9 @@ export function ReportActions({ reportUrl, excelUrl, compact = false }: { report
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-navy-100 bg-ivory-50 px-4 py-2">
                   <button type="button" onClick={() => setStep('options')} className="inline-flex items-center gap-1 rounded-full border border-navy-200 bg-white px-3 py-2 text-[11px] font-bold text-navy-700"><ChevronRight size={13}/>{copy.settings}</button>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={printPreview} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'pdf' ? 'bg-navy-950 text-white' : 'border border-navy-200 bg-white text-navy-700')}>
-                      <Printer size={14}/>{copy.pdf}
-                    </button>
-                    <button type="button" onClick={() => void exportWord()} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'word' ? 'bg-navy-950 text-white' : 'border border-navy-200 bg-white text-navy-700')}>
-                      <Download size={14}/>{copy.word} (.docx)
-                    </button>
-                    <button type="button" onClick={() => void exportExcel()} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'excel' ? 'bg-emerald-800 text-white' : 'border border-emerald-200 bg-emerald-50 text-emerald-800')}>
-                      <FileSpreadsheet size={14}/>{copy.excel} (.xlsx)
+                    <button type="button" onClick={exportSelected} className={'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold ' + (format === 'pdf' ? 'bg-navy-950 text-white' : format === 'word' ? 'bg-navy-950 text-white' : 'bg-emerald-800 text-white')}>
+                      {format === 'pdf' ? <Printer size={14}/> : format === 'word' ? <Download size={14}/> : <FileSpreadsheet size={14}/>}
+                      {format === 'pdf' ? copy.pdf : format === 'word' ? copy.word + ' (.docx)' : copy.excel + ' (.xlsx)'}
                     </button>
                   </div>
                 </div>
