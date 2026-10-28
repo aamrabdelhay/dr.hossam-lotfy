@@ -105,7 +105,15 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
 
     // All downloadable reports are Arabic-first regardless of the UI language,
     // URL parameters, cookies, or browser language. Keep labels and dates Arabic.
-    const lang: keyof typeof copy = 'ar';
+    const rawLang = (new URL(request.url).searchParams.get('lang') || 'ar').toLowerCase();
+    const lang: keyof typeof copy = rawLang.startsWith('fr') ? 'fr' : rawLang.startsWith('en') ? 'en' : 'ar';
+    const direction = lang === 'ar' ? 'rtl' : 'ltr';
+    const url = new URL(request.url);
+    const selectedSections = new Set((url.searchParams.get('sections') || 'basic,cases,tasks,events,files,activity').split(',').filter(Boolean));
+    const exportFormat = url.searchParams.get('format') || 'pdf';
+    const period = url.searchParams.get('period') || 'all';
+    const periodDays: Record<string, number> = { day: 1, week: 7, month: 30, '6months': 183, year: 365 };
+    const periodStart = periodDays[period] ? new Date(Date.now() - periodDays[period] * 86400000) : null;
     const labels = copy[lang];
     const title = titles[lang][type as keyof typeof titles.ar];
     const entityName = String(record.name || record.fullName || record.nameEn || record.number || id);
@@ -117,22 +125,36 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
 
     const branchIds = scope.allBranches || scope.branchIds.length === 0 ? null : scope.branchIds;
     const sections: Section[] = [];
-    if (type === 'client') {
+    if (selectedSections.has('cases') && type === 'client') {
       const cases = await prisma.$queryRawUnsafe<DbRow[]>(
         'SELECT DISTINCT cr."number",cr."name",cr."workflow_status",cat."name_ar" AS "categoryName",ob."name_ar" AS "branchName" FROM "case_records" cr LEFT JOIN "case_clients" cc ON cc."case_id"=cr."id" LEFT JOIN "office_branches" ob ON ob."id"=cr."branch_id" LEFT JOIN "office_case_categories" cat ON cat."id"=cr."category_id" WHERE (cr."clientId"=$1 OR cc."client_id"=$1) AND ($2::text[] IS NULL OR COALESCE(cr."branch_id",$3)=ANY($2::text[])) ORDER BY cr."number" LIMIT 100',
         id, branchIds, 'branch_main');
       sections.push({ title: labels.cases, columns: [labels.number, labels.name, labels.status, labels.branch], rows: cases.map((r) => [format(r.number, lang), format(r.name, lang), format(r.workflow_status, lang), format(r.branchName, lang)]) });
     }
-    if (type === 'case' || type === 'location' || type === 'lawyer') {
-      const where = type === 'case' ? 't."caseId"=$1' : type === 'location' ? 't."locationId"=$1' : '(t."authorId"=$1 OR ta."lawyerId"=$1)';
+    if (selectedSections.has('tasks') && (type === 'case' || type === 'location' || type === 'lawyer' || type === 'client')) {
+      const where = type === 'case' ? 't."caseId"=$1' : type === 'location' ? 't."locationId"=$1' : type === 'client' ? 't."caseId" IN (SELECT cr."id" FROM "case_records" cr WHERE cr."clientId"=$1)' : '(t."authorId"=$1 OR ta."lawyerId"=$1)';
       const tasks = await prisma.$queryRawUnsafe<DbRow[]>(
-        'SELECT t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",l."name" AS "locationName",cr."name" AS "caseName",cr."number" AS "caseNumber",COALESCE(string_agg(DISTINCT law."fullName",chr(44)||chr(32)),chr(8212)) AS "lawyers" FROM "tasks" t LEFT JOIN "locations" l ON l."id"=t."locationId" LEFT JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "task_assignments" ta ON ta."taskId"=t."id" LEFT JOIN "lawyers" law ON law."id"=ta."lawyerId" WHERE ' + where + ' AND ($2::text[] IS NULL OR COALESCE(cr."branch_id",$3)=ANY($2::text[])) GROUP BY t."id",l."name",cr."name",cr."number" ORDER BY t."scheduledDate" DESC NULLS LAST,t."createdAt" DESC LIMIT 100',
-        id, branchIds, 'branch_main');
+        'SELECT t."description",t."notes",t."scheduledDate",t."scheduledTime",t."status",l."name" AS "locationName",cr."name" AS "caseName",cr."number" AS "caseNumber",COALESCE(string_agg(DISTINCT law."fullName",chr(44)||chr(32)),chr(8212)) AS "lawyers" FROM "tasks" t LEFT JOIN "locations" l ON l."id"=t."locationId" LEFT JOIN "case_records" cr ON cr."id"=t."caseId" LEFT JOIN "task_assignments" ta ON ta."taskId"=t."id" LEFT JOIN "lawyers" law ON law."id"=ta."lawyerId" WHERE ' + where + ' AND ($2::text[] IS NULL OR COALESCE(cr."branch_id",$3)=ANY($2::text[])) AND ($4::timestamp IS NULL OR COALESCE(t."scheduledDate"::timestamp,t."createdAt") >= $4) GROUP BY t."id",l."name",cr."name",cr."number" ORDER BY t."scheduledDate" DESC NULLS LAST,t."createdAt" DESC LIMIT 100',
+        id, branchIds, 'branch_main', periodStart);
       sections.push({ title: labels.tasks, columns: [labels.date, labels.item, labels.location, labels.caseName, labels.lawyer], rows: tasks.map((r) => [format(r.scheduledDate, lang) + (r.scheduledTime ? ' ' + format(r.scheduledTime, lang) : ''), format(r.description, lang) + (r.notes ? ' — ' + format(r.notes, lang) : ''), format(r.locationName, lang), format(r.caseName || r.caseNumber, lang), format(r.lawyers, lang)]) });
     }
-    if (type === 'case') {
-      const events = await prisma.$queryRawUnsafe<DbRow[]>('SELECT "description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=$1 ORDER BY "createdAt" DESC LIMIT 100', id);
+    if (selectedSections.has('events') && type === 'case') {
+      const events = await prisma.$queryRawUnsafe<DbRow[]>('SELECT "description","type","authorName","createdAt" FROM "case_events" WHERE "caseId"=$1 AND ($2::timestamp IS NULL OR "createdAt">=$2) ORDER BY "createdAt" DESC LIMIT 100', id, periodStart);
       sections.push({ title: labels.events, columns: [labels.date, labels.item, labels.category, labels.issuer], rows: events.map((r) => [format(r.createdAt, lang), format(r.description, lang), format(r.type, lang), format(r.authorName, lang)]) });
+    }
+    if (selectedSections.has('files') && type === 'client') {
+      const files = await prisma.$queryRawUnsafe<DbRow[]>('SELECT "name","kind","mime_type","size_bytes","created_at" FROM "client_files" WHERE "client_id"=$1 AND "deleted_at" IS NULL AND ($2::timestamp IS NULL OR "created_at">=$2) ORDER BY "created_at" DESC LIMIT 300', id, periodStart);
+      sections.push({ title: lang === 'ar' ? 'ملفات العميل' : lang === 'fr' ? 'Fichiers du client' : 'Client Files', columns: [labels.name, labels.type, labels.date, lang === 'ar' ? 'الحجم' : lang === 'fr' ? 'Taille' : 'Size'], rows: files.map((r) => [format(r.name, lang), format(r.kind, lang), format(r.created_at, lang), format(r.size_bytes ? Math.round(Number(r.size_bytes) / 1024) + ' KB' : null, lang)]) });
+    }
+    if (selectedSections.has('events') && type === 'client') {
+      const events = await prisma.$queryRawUnsafe<DbRow[]>('SELECT "description","type","author_name","created_at" FROM "client_events" WHERE "client_id"=$1 AND ($2::timestamp IS NULL OR "created_at">=$2) ORDER BY "created_at" DESC LIMIT 300', id, periodStart);
+      sections.push({ title: labels.events, columns: [labels.date, labels.item, labels.category, labels.issuer], rows: events.map((r) => [format(r.created_at, lang), format(r.description, lang), format(r.type, lang), format(r.author_name, lang)]) });
+    }
+    if (selectedSections.has('activity') && type === 'lawyer') {
+      const logs = await prisma.$queryRawUnsafe<DbRow[]>('SELECT "login_at","logout_at","duration_seconds" FROM "office_login_logs" WHERE "lawyer_id"=$1 AND ($2::timestamp IS NULL OR "login_at">=$2) ORDER BY "login_at" DESC LIMIT 500', id, periodStart);
+      sections.push({ title: lang === 'ar' ? 'سجل الدخول والخروج' : lang === 'fr' ? 'Historique des connexions' : 'Sign-in / Sign-out Log', columns: [labels.date, lang === 'ar' ? 'وقت الخروج' : lang === 'fr' ? 'Déconnexion' : 'Signed out', lang === 'ar' ? 'المدة (ثانية)' : lang === 'fr' ? 'Durée (secondes)' : 'Duration (seconds)'], rows: logs.map((r) => [format(r.login_at, lang), format(r.logout_at, lang), format(r.duration_seconds, lang)]) });
+      const activities = await prisma.$queryRawUnsafe<DbRow[]>('SELECT "createdAt","action","summary" FROM "activity_logs" WHERE "lawyerId"=$1 AND ($2::timestamp IS NULL OR "createdAt">=$2) ORDER BY "createdAt" DESC LIMIT 500', id, periodStart);
+      sections.push({ title: lang === 'ar' ? 'الأنشطة المسجلة' : lang === 'fr' ? 'Activités enregistrées' : 'Recorded Activities', columns: [labels.date, labels.type, labels.description], rows: activities.map((r) => [format(r.createdAt, lang), format(r.action, lang), format(r.summary, lang)]) });
     }
 
     const document = h(Document, { title, author: 'Loutfi Law Firm' },
@@ -140,24 +162,38 @@ export async function GET(request: Request, context: { params: Promise<{ type: s
         h(View, { fixed: true, style: styles.header },
           h(View, null, h(Text, { style: styles.brand }, 'LOUTFI LAW FIRM'), h(Text, { style: styles.brandSub }, 'SINCE 1949')),
           h(RTLText, { style: styles.confidential }, labels.confidential)),
-        h(RTLText, { style: styles.title }, title),
-        h(RTLText, { style: styles.entity }, entityName),
-        h(RTLText, { style: styles.subtitle }, labels.issued + ': ' + format(new Date(), lang) + '  |  ' + labels.issuer + ': ' + session.name),
-        h(RTLText, { style: styles.sectionTitle }, labels.basic),
-        ...info.map((item, index) => h(View, { key: 'info-' + index, style: styles.infoRow, wrap: false },
-          h(RTLText, { style: styles.infoLabel }, item[0]), h(RTLText, { style: styles.infoValue }, format(item[1], lang)))),
+        h(lang === 'ar' ? RTLText : Text, { style: [styles.title, lang === 'ar' ? {} : { textAlign: 'left' }] }, title),
+        h(lang === 'ar' ? RTLText : Text, { style: [styles.entity, lang === 'ar' ? {} : { textAlign: 'left' }] }, entityName),
+        h(lang === 'ar' ? RTLText : Text, { style: [styles.subtitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.issued + ': ' + format(new Date(), lang) + '  |  ' + labels.issuer + ': ' + session.name),
+        ...(selectedSections.has('basic') ? [h(lang === 'ar' ? RTLText : Text, { style: [styles.sectionTitle, lang === 'ar' ? {} : { textAlign: 'left' }] }, labels.basic),
+        ...info.map((item, index) => h(View, { key: 'info-' + index, style: [styles.infoRow, lang === 'ar' ? {} : { flexDirection: 'row' }], wrap: false },
+          h(lang === 'ar' ? RTLText : Text, { style: [styles.infoLabel, lang === 'ar' ? {} : { textAlign: 'left' }] }, item[0]), h(lang === 'ar' ? RTLText : Text, { style: [styles.infoValue, lang === 'ar' ? {} : { textAlign: 'left' }] }, format(item[1], lang)))]) : []),
         ...sections.map((section) => sectionBlock(section, labels)),
         h(View, { fixed: true, style: styles.footer },
           h(RTLText, { style: styles.footerText }, labels.confidential),
           h(Text, { style: styles.footerText, render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) => String(pageNumber) + ' / ' + String(totalPages) }))));
 
-    const buffer = await renderToBuffer(document);
     const safeName = entityName.replaceAll('/', ' ').replaceAll(':', ' ').replaceAll('*', ' ').replaceAll('?', ' ').replaceAll('"', ' ').replaceAll('<', ' ').replaceAll('>', ' ').replaceAll('|', ' ').trim().slice(0, 80) || id;
     const arabicType: Record<string, string> = { client: 'عميل', case: 'قضية', lawyer: 'محامٍ', location: 'جهة' };
-    const filename = 'تقرير-' + (arabicType[type] || 'عام') + '-' + safeName + '-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    const reportName = (lang === 'ar' ? 'تقرير-' + (arabicType[type] || 'عام') : (lang === 'fr' ? 'rapport-' : 'report-') + type) + '-' + safeName + '-' + new Date().toISOString().slice(0, 10);
+    const escapeHtml = (value: unknown) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    const logo = '<div style="text-align:right;font-family:Arial,sans-serif;border-bottom:2px solid #18263A;padding:0 0 10px;margin-bottom:18px"><div style="font-size:18px;font-weight:bold;color:#18263A;letter-spacing:2px">LOUTFI</div><div style="font-size:10px;color:#8A6A3A">LAW FIRM · SINCE 1949</div></div>';
+    const tableHtml = (heading: string, columns: string[], rows: string[][]) => '<h2>' + escapeHtml(heading) + '</h2><table><thead><tr>' + columns.map(x => '<th>' + escapeHtml(x) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(x => '<td>' + escapeHtml(x) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+    const html = '<!doctype html><html lang="' + lang + '" dir="' + direction + '"><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;direction:' + direction + ';text-align:' + (direction === 'rtl' ? 'right' : 'left') + ';color:#242424;margin:28px}h1{color:#18263A;font-size:22px}h2{font-size:15px;color:#18263A;border-bottom:1px solid #ddd;padding-bottom:6px;margin-top:22px}table{border-collapse:collapse;width:100%;margin:8px 0 18px;direction:' + direction + '}th,td{border:1px solid #dce1e7;padding:7px;text-align:' + (direction === 'rtl' ? 'right' : 'left') + ';vertical-align:top}th{background:#18263A;color:#fff}tr{page-break-inside:avoid}.meta{color:#637083;font-size:11px;margin:8px 0 16px}</style></head><body>' + logo + '<h1>' + escapeHtml(title) + '</h1><h2>' + escapeHtml(entityName) + '</h2><div class="meta">' + escapeHtml(labels.issued + ': ' + format(new Date(), lang) + ' | ' + labels.issuer + ': ' + session.name) + '</div>' + (selectedSections.has('basic') ? tableHtml(labels.basic, [labels.item, labels.description], info.map(item => [item[0], format(item[1], lang)])) : '') + sections.map(section => tableHtml(section.title, section.columns, section.rows)).join('') + '</body></html>';
+    if (exportFormat === 'doc' || exportFormat === 'xls') {
+      const isWord = exportFormat === 'doc';
+      const filename = reportName + (isWord ? '.doc' : '.xls');
+      return new Response('\\uFEFF' + html, { status: 200, headers: {
+        'Content-Type': isWord ? 'application/msword; charset=utf-8' : 'application/vnd.ms-excel; charset=utf-8',
+        "Content-Disposition": "attachment; filename=report." + exportFormat + "; filename*=UTF-8''" + encodeURIComponent(filename),
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+      } });
+    }
+    const buffer = await renderToBuffer(document);
     return new Response(new Uint8Array(buffer), { status: 200, headers: {
       'Content-Type': 'application/pdf',
-      "Content-Disposition": "attachment; filename=report-" + type + ".pdf; filename*=UTF-8''" + encodeURIComponent(filename),
+      "Content-Disposition": "attachment; filename=report-" + type + ".pdf; filename*=UTF-8''" + encodeURIComponent(reportName + '.pdf'),
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     } });
