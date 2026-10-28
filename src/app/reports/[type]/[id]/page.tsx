@@ -366,7 +366,11 @@ export default async function EntityReportPage({
     const section = sectionForCount(item.label);
     let value = item.value;
     if (section === 'cases') value = timeline.filter((item) => item.category === 'cases').length;
-    else if (section === 'developments') value = timeline.filter((item) => item.category === 'developments').length;
+    else if (section === 'developments') {
+      if (item.label === 'مستجدات العميل') value = timeline.filter((entry) => entry.category === 'developments' && entry.title.includes('العميل')).length;
+      else if (item.label === 'مستجدات القضايا') value = timeline.filter((entry) => entry.category === 'developments' && !entry.title.includes('العميل')).length;
+      else value = timeline.filter((entry) => entry.category === 'developments').length;
+    }
     else if (section === 'tasks') value = timeline.filter((item) => item.category === 'tasks').length;
     else if (section === 'appointments') value = timeline.filter((item) => item.category === 'appointments').length;
     else if (section === 'files') value = files.length;
