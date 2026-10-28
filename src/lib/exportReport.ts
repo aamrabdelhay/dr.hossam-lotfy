@@ -35,11 +35,12 @@ function localDateStamp(date = new Date()): string {
 function safeBaseName(value: string): string {
   const cleaned = (value || 'report')
     .normalize('NFKC')
-    .replace(/[\\u0000-\\u001f\\u007f\\\\/:*?"<>|]+/g, '-')
-    .replace(/\\s+/g, '-')
+    .replace(/[<>:"|?*\u0000-\u001f\u007f]/g, '-')
+    .replace(/[\\/]/g, '-')
+    .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/\\.(pdf|docx|xlsx)$/i, '')
-    .replace(/-\\d{4}-\\d{2}-\\d{2}$/i, '')
+    .replace(/\.(pdf|docx|xlsx)$/i, '')
+    .replace(/-\d{4}-\d{2}-\d{2}$/i, '')
     .replace(/^[.-]+|[.-]+$/g, '')
     .slice(0, 100);
   return cleaned || 'report';
@@ -60,7 +61,7 @@ function parseDate(value: string): Date | null {
   if (!trimmed) return null;
   const normalized = trimmed.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
     .replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
-  if (!/^\\d{4}-\\d{2}-\\d{2}(?:[T ].*)?$/.test(normalized)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}(?:[T ].*)?$/.test(normalized)) return null;
   const date = new Date(normalized);
   return Number.isNaN(date.getTime()) ? null : date;
 }
