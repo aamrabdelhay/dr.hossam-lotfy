@@ -270,6 +270,8 @@ model Task {
   @@index([locationId, scheduledDate])
   @@index([createdAt])
   @@index([status])
+  @@index([caseId], map: "tasks_caseId_idx")
+  @@index([authorId, status, scheduledDate], map: "tasks_authorId_status_scheduledDate_idx")
   @@map("tasks")
 }
 
