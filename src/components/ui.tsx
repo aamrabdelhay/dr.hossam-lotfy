@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { X, ChevronDown, Loader2, Inbox } from 'lucide-react';
 
@@ -199,9 +200,7 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
   );
 }
 
-/* ────────────────────────── Modal ────────────────────────── */
-
-export function Modal({
+/* ──────────────────────export function Modal({
   open,
   onClose,
   title,
@@ -216,6 +215,12 @@ export function Modal({
   wide?: boolean;
   footer?: React.ReactNode;
 }) {
+  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    setPortalContainer(open ? document.body : null);
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -227,13 +232,13 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6" role="dialog" aria-modal="true">
+  if (!open || !portalContainer) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto p-3 pt-[calc(4.5rem+env(safe-area-inset-top))] sm:p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
       <div
         className={cn(
-          'relative w-full animate-fade-in-up rounded-t-3xl bg-white shadow-lift ring-1 ring-navy-950/10 flex flex-col max-h-[92vh] sm:max-h-[85vh] sm:rounded-3xl',
+          'relative my-auto w-full animate-fade-in-up rounded-3xl bg-white shadow-lift ring-1 ring-navy-950/10 flex flex-col max-h-[calc(100dvh-5.5rem)] sm:max-h-[85vh]',
           wide ? 'sm:max-w-3xl' : 'sm:max-w-xl',
         )}
       >
@@ -245,6 +250,12 @@ export function Modal({
         </div>
         <div className="overflow-y-auto px-5 py-4">{children}</div>
         {footer && <div className="border-t border-navy-100 px-5 py-3.5">{footer}</div>}
+      </div>
+    </div>,
+    portalContainer,
+  );
+}
+er}</div>}
       </div>
     </div>
   );
