@@ -182,7 +182,7 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'overview', label: 'نظرة عامة' },
           { id: 'tasks', label: 'الجلسات والمهام' },
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
-          { id: 'registrations', label: 'طلبات التسجيل' },
+          ...(props.session.role === 'SUPER_ADMIN' || props.session.role === 'ADMIN' ? [{ id: 'registrations', label: 'طلبات التسجيل' }] : []),
           { id: 'locations', label: 'الجهات الحكومية', count: props.stats.locations },
           { id: 'cases', label: 'القضايا', count: props.stats.cases },
           { id: 'case-sections', label: 'أقسام القضايا' },
