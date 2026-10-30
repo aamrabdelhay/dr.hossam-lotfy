@@ -50,7 +50,7 @@ export function CalendarClient({ isAdmin = false, locations = [], lawyers = [], 
 
   React.useEffect(() => {
     let alive = true; setLoading(true);
-    fetch(`/api/tasks?from=${iso(range.from)}&to=${iso(new Date(range.to.getTime() - 86400000))}&limit=500`)
+    fetch(`/api/tasks?from=${iso(range.from)}&to=${iso(new Date(range.to.getTime() - 86400000))}&limit=500&includeBranch=true`)
       .then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive) setTasks(d?.items ?? []); }).finally(() => alive && setLoading(false));
     return () => { alive = false; };
   }, [range.from, range.to, view, refreshKey]);
