@@ -805,11 +805,11 @@ function RegistrationRequestsTab() {
   React.useEffect(() => { void load(); }, [load]);
 
   const decide = async (request: RegistrationRequest, action: 'approve' | 'reject') => {
-    if (action === 'reject' && !window.confirm(\`هل تريد رفض طلب تسجيل \${request.fullName}؟ لن يتمكن الحساب من تسجيل الدخول.\`)) return;
+    if (action === 'reject' && !window.confirm(`هل تريد رفض طلب تسجيل ${request.fullName}؟ لن يتمكن الحساب من تسجيل الدخول.`)) return;
     setBusyId(request.id);
     try {
       const response = action === 'approve'
-        ? await fetch(\`/api/lawyers/\${request.id}/approve\`, { method: 'POST' })
+        ? await fetch(`/api/lawyers/${request.id}/approve`, { method: 'POST' })
         : await fetch('/api/admin/registration-requests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -817,7 +817,7 @@ function RegistrationRequestsTab() {
           });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error ?? 'تعذر تنفيذ القرار.');
-      toastSuccess(action === 'approve' ? \`تم اعتماد \${request.fullName} وتفعيل حسابه ✓\` : \`تم رفض طلب \${request.fullName}.\`);
+      toastSuccess(action === 'approve' ? `تم اعتماد ${request.fullName} وتفعيل حسابه ✓` : `تم رفض طلب ${request.fullName}.`);
       await load();
       router.refresh();
     } catch (cause) {
