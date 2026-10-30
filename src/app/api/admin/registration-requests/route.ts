@@ -24,7 +24,7 @@ export const GET = handle(async () => {
     createdAt: Date;
     branchName: string | null;
   }>>(
-    \`SELECT
+    `SELECT
        l."id",
        l."fullName",
        l."title",
@@ -43,7 +43,7 @@ export const GET = handle(async () => {
        LIMIT 1
      ) b ON TRUE
      WHERE l."approvedAt" IS NULL AND l."active" = TRUE
-     ORDER BY l."createdAt" ASC\`,
+     ORDER BY l."createdAt" ASC`,
   );
 
   return json({ requests });
@@ -71,7 +71,7 @@ export const POST = handle(async (req: Request) => {
   });
   await logActivity({
     action: 'LAWYER_REGISTRATION_REJECTED',
-    summary: \`رفض طلب تسجيل المحامي: \${rejected.fullName}\`,
+    summary: `رفض طلب تسجيل المحامي: ${rejected.fullName}`,
     lawyerId: rejected.id,
     byUserId: session.role === 'admin' ? session.userId : undefined,
     byLawyerId: session.role === 'lawyer' ? session.lawyerId : undefined,
