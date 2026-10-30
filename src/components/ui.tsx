@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { X, ChevronDown, Loader2, Inbox } from 'lucide-react';
 
@@ -200,7 +199,9 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
   );
 }
 
-/* ──────────────────────export function Modal({
+/* ────────────────────────── Modal ────────────────────────── */
+
+export function Modal({
   open,
   onClose,
   title,
@@ -215,12 +216,6 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
   wide?: boolean;
   footer?: React.ReactNode;
 }) {
-  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
-
-  React.useEffect(() => {
-    setPortalContainer(open ? document.body : null);
-  }, [open]);
-
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -232,8 +227,8 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
     };
   }, [open, onClose]);
 
-  if (!open || !portalContainer) return null;
-  return createPortal(
+  if (!open) return null;
+  return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto p-3 pt-[calc(4.5rem+env(safe-area-inset-top))] sm:p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-navy-950/60 backdrop-blur-[2px] animate-fade-in" onClick={onClose} />
       <div
@@ -251,8 +246,7 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
         <div className="overflow-y-auto px-5 py-4">{children}</div>
         {footer && <div className="border-t border-navy-100 px-5 py-3.5">{footer}</div>}
       </div>
-    </div>,
-    portalContainer,
+    </div>
   );
 }
 
