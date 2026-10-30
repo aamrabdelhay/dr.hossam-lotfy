@@ -255,11 +255,6 @@ export function Avatar({ name, src: _src, size = 40, className }: { name: string
     portalContainer,
   );
 }
-er}</div>}
-      </div>
-    </div>
-  );
-}
 
 /* ────────────────────────── EmptyState / Skeleton / Spinner ────────────────────────── */
 
