@@ -43,7 +43,6 @@ import { formatDay, formatTimeOfDay, formatDateTime } from '@/lib/dates';
 import { TITLE_LABEL, LOCATION_TYPE_LABEL } from '@/lib/constants';
 import type { TaskVM } from '@/lib/queries';
 import type { NavLocation } from '@/lib/constants';
-import { DirectionsButton } from '@/components/directions-button';
 
 type LawyerRow = {
   id: string;
@@ -183,6 +182,7 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'overview', label: 'نظرة عامة' },
           { id: 'tasks', label: 'الجلسات والمهام' },
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
+          { id: 'registrations', label: 'طلبات التسجيل' },
           { id: 'locations', label: 'الجهات الحكومية', count: props.stats.locations },
           { id: 'cases', label: 'القضايا', count: props.stats.cases },
           { id: 'case-sections', label: 'أقسام القضايا' },
@@ -196,6 +196,7 @@ export function AdminShell(props: AdminShellProps) {
       {tab === 'overview' && <OverviewTab {...props} onOpenTask={() => setModal({ kind: 'task' })} />}
       {tab === 'tasks' && <TasksTab branchId={props.branchId} locations={props.locations} lawyers={props.lawyers} onEdit={(t) => setModal({ kind: 'editTask', data: t })} />}
       {tab === 'lawyers' && <LawyersTab lawyers={props.lawyers} onAdd={() => setModal({ kind: 'lawyer' })} onEdit={(l) => setModal({ kind: 'lawyer', data: l })} />}
+      {tab === 'registrations' && <RegistrationRequestsTab />}
       {tab === 'locations' && <LocationsTab locations={props.locations} onAdd={() => setModal({ kind: 'location' })} onEdit={(l) => setModal({ kind: 'location', data: l })} />}
       {tab === 'cases' && <CasesTab cases={props.cases} />}
       {tab === 'case-sections' && <CaseSectionsTab categories={props.categories} cases={props.cases} />}
@@ -679,7 +680,6 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
         <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
           <ImagePlus size={15} />
         </button>
-        <DirectionsButton name={l.name} address={l.address || [l.city,l.governorate,l.district].filter(Boolean).join("، ")} lat={l.lat} lng={l.lng} label="GPS" />
             <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
           <Pencil size={14} />
         </button>
@@ -691,8 +691,8 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
     </div>
   );
 
-  const pending = lawyers.filter((l) => !l.approved);
-  const inactive = lawyers.filter((l) => l.approved && !l.active);
+  const pending = lawyers.filter((l) => !l.approved && l.active);
+  const inactive = lawyers.filter((l) => !l.active);
   const approved = lawyers.filter((l) => l.approved && l.active);
 
   return (
@@ -764,6 +764,127 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
           )}
         </div>
       </Modal>
+    </div>
+  );
+}
+
+
+type RegistrationRequest = {
+  id: string;
+  fullName: string;
+  title: 'DOCTOR' | 'ADVOCATE';
+  phone: string | null;
+  email: string | null;
+  specialization: string | null;
+  createdAt: string;
+  branchName: string | null;
+};
+
+function RegistrationRequestsTab() {
+  const router = useRouter();
+  const [requests, setRequests] = React.useState<RegistrationRequest[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/registration-requests', { cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error ?? 'تعذر تحميل طلبات التسجيل.');
+      setRequests(Array.isArray(data.requests) ? data.requests : []);
+      setError('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذر تحميل طلبات التسجيل.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { void load(); }, [load]);
+
+  const decide = async (request: RegistrationRequest, action: 'approve' | 'reject') => {
+    if (action === 'reject' && !window.confirm(\`هل تريد رفض طلب تسجيل \${request.fullName}؟ لن يتمكن الحساب من تسجيل الدخول.\`)) return;
+    setBusyId(request.id);
+    try {
+      const response = action === 'approve'
+        ? await fetch(\`/api/lawyers/\${request.id}/approve\`, { method: 'POST' })
+        : await fetch('/api/admin/registration-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reject', lawyerId: request.id }),
+          });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error ?? 'تعذر تنفيذ القرار.');
+      toastSuccess(action === 'approve' ? \`تم اعتماد \${request.fullName} وتفعيل حسابه ✓\` : \`تم رفض طلب \${request.fullName}.\`);
+      await load();
+      router.refresh();
+    } catch (cause) {
+      toastError(cause instanceof Error ? cause.message : 'تعذر تنفيذ القرار.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-extrabold text-navy-950">طلبات تسجيل المحامين</h2>
+          <p className="mt-1 text-[11px] font-semibold text-navy-400">تظهر هنا طلبات التسجيل الأول مرة من جميع فروع المكتب. لا يُفعّل الحساب قبل موافقة الإدارة العليا.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading || busyId !== null}>
+          تحديث القائمة
+        </Button>
+      </div>
+
+      {error && (
+        <Card className="space-y-3 border-red-200 p-4">
+          <p className="text-sm font-bold text-red-700">{error}</p>
+          <Button size="sm" variant="outline" onClick={() => void load()}>إعادة المحاولة</Button>
+        </Card>
+      )}
+
+      {loading ? (
+        <EmptyState title="جارٍ تحميل طلبات التسجيل…" />
+      ) : !error && requests.length === 0 ? (
+        <EmptyState title="لا توجد طلبات تسجيل معلّقة" hint="ستظهر هنا طلبات المحامين الجدد فور إرسالها من صفحة تسجيل أول مرة." />
+      ) : !error ? (
+        <Card className="divide-y divide-navy-100">
+          {requests.map((request) => {
+            const email = request.email;
+            const busy = busyId === request.id;
+            return (
+              <div key={request.id} className="flex flex-wrap items-start gap-3 px-4 py-4">
+                <Avatar name={request.fullName} size={44} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[13.5px] font-extrabold text-navy-950">{request.fullName}</p>
+                    <Badge tone="amber">بانتظار الموافقة</Badge>
+                    <Badge tone="outline">{TITLE_LABEL[request.title] ?? request.title}</Badge>
+                  </div>
+                  <div className="mt-1 space-y-1 text-[11px] font-semibold text-navy-500">
+                    <p dir="ltr" className="text-start font-latin">{email || 'لا يوجد بريد إلكتروني'}</p>
+                    {request.phone && <p dir="ltr" className="text-start font-latin">{request.phone}</p>}
+                    {request.specialization && <p>التخصص: {request.specialization}</p>}
+                    <p>الفرع المطلوب: {request.branchName || 'غير محدد'}</p>
+                    <p>تاريخ الطلب: {formatDateTime(new Date(request.createdAt))}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Button size="sm" variant="gold" disabled={busyId !== null} onClick={() => void decide(request, 'approve')}>
+                    {busy ? 'جارٍ الاعتماد…' : 'قبول وتفعيل الحساب'}
+                  </Button>
+                  <Button size="sm" variant="danger" disabled={busyId !== null} onClick={() => void decide(request, 'reject')}>
+                    {busy ? 'جارٍ المعالجة…' : 'رفض الطلب'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      ) : null}
     </div>
   );
 }
