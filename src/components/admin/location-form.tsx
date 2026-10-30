@@ -7,7 +7,7 @@ import { Button, Field, Input, Modal, Select, Textarea } from '../ui';
 import { toastSuccess, toastError } from '../toasts';
 import { DISTANCE_BUCKETS, LOCATION_TYPE_LABEL, type NavLocation } from '@/lib/constants';
 
-const TYPES = Object.keys(LOCATION_TYPE_LABEL) as Array<keyof typeof LOCATION_TYPE_LABEL>;
+const TYPES = (Object.keys(LOCATION_TYPE_LABEL) as Array<keyof typeof LOCATION_TYPE_LABEL>).filter((type) => type !== 'OTHER');
 
 /** Egyptian governorates — used by the admin form and the public filters. */
 export const GOVERNORATES = [
