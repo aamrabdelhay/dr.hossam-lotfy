@@ -1070,10 +1070,21 @@ function CaseSectionsTab({ branchId, categories: initialCategories, cases }: { b
         </div>
         <div className="flex flex-wrap gap-2 border-t border-navy-100 pt-3">
           {categories.filter((category) => category.active).map((category) => (
-            <button key={category.id} type="button" onClick={() => setActive(category.id)} className={cn('rounded-full px-4 py-2 text-xs font-extrabold transition', active === category.id ? 'bg-navy-950 text-white' : 'bg-ivory-50 text-navy-600 hover:bg-gold-50')}>
-              {category.name_ar}
-              <span className="ms-2 opacity-60">{cases.filter((item) => item.category_id === category.id).length}</span>
-            </button>
+            <div key={category.id} className={cn('inline-flex items-center gap-1 rounded-full ps-4 pe-1.5 py-1.5 text-xs font-extrabold transition', active === category.id ? 'bg-navy-950 text-white' : 'bg-ivory-50 text-navy-600')}>
+              <button type="button" onClick={() => setActive(category.id)} className="inline-flex items-center gap-2 py-0.5 text-start hover:text-gold-600">
+                {category.name_ar}
+                <span className="opacity-60">{cases.filter((item) => item.category_id === category.id).length}</span>
+              </button>
+              <button
+                type="button"
+                title={`إضافة قضية إلى ${category.name_ar}`}
+                aria-label={`إضافة قضية إلى ${category.name_ar}`}
+                onClick={() => { setActive(category.id); setCaseModalOpen(true); }}
+                className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full transition', active === category.id ? 'bg-white/10 text-gold-300 hover:bg-white/20' : 'bg-white text-gold-700 shadow-sm hover:bg-gold-50')}
+              >
+                <FilePlus2 size={13} />
+              </button>
+            </div>
           ))}
         </div>
       </Card>
