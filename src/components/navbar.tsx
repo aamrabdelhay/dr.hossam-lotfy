@@ -90,8 +90,9 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
     window.location.replace('/api/auth/logout');
   };
 
-  const courts = locations.filter((location) => location.type === 'COURT');
-  const other = locations.filter((location) => location.type !== 'COURT');
+  const visibleLocations = locations.filter((location) => location.type !== 'OTHER');
+  const courts = visibleLocations.filter((location) => location.type === 'COURT');
+  const other = visibleLocations.filter((location) => location.type !== 'COURT');
   const isAdmin = Boolean(session && (session.role === 'admin' || session.isSenior));
   const isManagement = Boolean(session && (session.role === 'admin' || session.isSenior || session.isOffice || session.isFinance));
   const canNavigateBranches = Boolean(isAdmin && branches.length);
@@ -122,6 +123,17 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
               <Scale size={13} className="text-gold-600" />{location.name}
               <span className="ms-auto text-[10px] text-navy-400">{LOCATION_TYPE_LABEL[location.type]}</span>
             </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="border-t bg-ivory-50 px-4 py-2 text-[9px] font-bold text-navy-400">فروع المكتب</p>
+      <ul className="max-h-48 overflow-y-auto py-1">
+        {branches.map((branch) => (
+          <li key={branch.id}>
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${branch.name_ar} ${branch.address}`)}`} target="_blank" rel="noreferrer" className="flex items-start gap-2 px-4 py-2 text-[12px] text-navy-700 hover:bg-ivory-50">
+              <Building2 size={14} className="mt-0.5 shrink-0 text-gold-600" />
+              <span><span className="block font-bold">{branch.name_ar}{branch.is_main ? ' — المقر الرئيس' : ''}</span><span className="mt-0.5 block text-[10px] text-navy-400">{branch.address}</span></span>
+            </a>
           </li>
         ))}
       </ul>
