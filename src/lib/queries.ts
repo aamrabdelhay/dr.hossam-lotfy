@@ -16,6 +16,8 @@ export type TaskVM = {
   urgency: Urgency;
   daysLeft: number | null;
   location: { id: string; slug: string; name: string; type: Location['type'] };
+  /** Office branch associated with a scheduled task; enriched by the tasks API. */
+  branchName?: string | null;
   caseName: string | null;
   caseNumber: string | null;
   author: { id: string; name: string; title: Lawyer['title']; slug: string; photo: string | null } | null;

@@ -43,7 +43,6 @@ import { formatDay, formatTimeOfDay, formatDateTime } from '@/lib/dates';
 import { TITLE_LABEL, LOCATION_TYPE_LABEL } from '@/lib/constants';
 import type { TaskVM } from '@/lib/queries';
 import type { NavLocation } from '@/lib/constants';
-import { DirectionsButton } from '@/components/directions-button';
 
 type LawyerRow = {
   id: string;
@@ -183,6 +182,7 @@ export function AdminShell(props: AdminShellProps) {
           { id: 'overview', label: 'نظرة عامة' },
           { id: 'tasks', label: 'الجلسات والمهام' },
           { id: 'lawyers', label: 'المحامون', count: props.stats.lawyers },
+          ...(props.session.role === 'SUPER_ADMIN' || props.session.role === 'ADMIN' ? [{ id: 'registrations', label: 'طلبات التسجيل' }] : []),
           { id: 'locations', label: 'الجهات الحكومية', count: props.stats.locations },
           { id: 'cases', label: 'القضايا', count: props.stats.cases },
           { id: 'case-sections', label: 'أقسام القضايا' },
@@ -196,9 +196,10 @@ export function AdminShell(props: AdminShellProps) {
       {tab === 'overview' && <OverviewTab {...props} onOpenTask={() => setModal({ kind: 'task' })} />}
       {tab === 'tasks' && <TasksTab branchId={props.branchId} locations={props.locations} lawyers={props.lawyers} onEdit={(t) => setModal({ kind: 'editTask', data: t })} />}
       {tab === 'lawyers' && <LawyersTab lawyers={props.lawyers} onAdd={() => setModal({ kind: 'lawyer' })} onEdit={(l) => setModal({ kind: 'lawyer', data: l })} />}
+      {tab === 'registrations' && <RegistrationRequestsTab />}
       {tab === 'locations' && <LocationsTab locations={props.locations} onAdd={() => setModal({ kind: 'location' })} onEdit={(l) => setModal({ kind: 'location', data: l })} />}
       {tab === 'cases' && <CasesTab cases={props.cases} />}
-      {tab === 'case-sections' && <CaseSectionsTab categories={props.categories} cases={props.cases} />}
+      {tab === 'case-sections' && <CaseSectionsTab branchId={props.branchId} categories={props.categories} cases={props.cases} />}
       {tab === 'users' && props.permissions.manageUsers && <UsersTab currentUserId={props.session.userId} />}
       {tab === 'activity' && <ActivityTab initial={props.activity} branchId={props.branchId} />}
       {tab === 'notifications' && <NotificationsTab notifications={props.notifications} />}
@@ -679,7 +680,6 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
         <button onClick={() => pickPhoto(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="رفع صورة">
           <ImagePlus size={15} />
         </button>
-        <DirectionsButton name={l.name} address={l.address || [l.city,l.governorate,l.district].filter(Boolean).join("، ")} lat={l.lat} lng={l.lng} label="GPS" />
             <button onClick={() => onEdit(l)} className="rounded-md p-2 text-navy-400 hover:bg-navy-900/5 hover:text-navy-800" title="تعديل">
           <Pencil size={14} />
         </button>
@@ -691,8 +691,8 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
     </div>
   );
 
-  const pending = lawyers.filter((l) => !l.approved);
-  const inactive = lawyers.filter((l) => l.approved && !l.active);
+  const pending = lawyers.filter((l) => !l.approved && l.active);
+  const inactive = lawyers.filter((l) => !l.active);
   const approved = lawyers.filter((l) => l.approved && l.active);
 
   return (
@@ -764,6 +764,127 @@ function LawyersTab({ lawyers, onAdd, onEdit }: { lawyers: LawyerRow[]; onAdd: (
           )}
         </div>
       </Modal>
+    </div>
+  );
+}
+
+
+type RegistrationRequest = {
+  id: string;
+  fullName: string;
+  title: 'DOCTOR' | 'ADVOCATE';
+  phone: string | null;
+  email: string | null;
+  specialization: string | null;
+  createdAt: string;
+  branchName: string | null;
+};
+
+function RegistrationRequestsTab() {
+  const router = useRouter();
+  const [requests, setRequests] = React.useState<RegistrationRequest[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/registration-requests', { cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error ?? 'تعذر تحميل طلبات التسجيل.');
+      setRequests(Array.isArray(data.requests) ? data.requests : []);
+      setError('');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'تعذر تحميل طلبات التسجيل.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { void load(); }, [load]);
+
+  const decide = async (request: RegistrationRequest, action: 'approve' | 'reject') => {
+    if (action === 'reject' && !window.confirm(`هل تريد رفض طلب تسجيل ${request.fullName}؟ لن يتمكن الحساب من تسجيل الدخول.`)) return;
+    setBusyId(request.id);
+    try {
+      const response = action === 'approve'
+        ? await fetch(`/api/lawyers/${request.id}/approve`, { method: 'POST' })
+        : await fetch('/api/admin/registration-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reject', lawyerId: request.id }),
+          });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error ?? 'تعذر تنفيذ القرار.');
+      toastSuccess(action === 'approve' ? `تم اعتماد ${request.fullName} وتفعيل حسابه ✓` : `تم رفض طلب ${request.fullName}.`);
+      await load();
+      router.refresh();
+    } catch (cause) {
+      toastError(cause instanceof Error ? cause.message : 'تعذر تنفيذ القرار.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-extrabold text-navy-950">طلبات تسجيل المحامين</h2>
+          <p className="mt-1 text-[11px] font-semibold text-navy-400">تظهر هنا طلبات التسجيل الأول مرة من جميع فروع المكتب. لا يُفعّل الحساب قبل موافقة الإدارة العليا.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading || busyId !== null}>
+          تحديث القائمة
+        </Button>
+      </div>
+
+      {error && (
+        <Card className="space-y-3 border-red-200 p-4">
+          <p className="text-sm font-bold text-red-700">{error}</p>
+          <Button size="sm" variant="outline" onClick={() => void load()}>إعادة المحاولة</Button>
+        </Card>
+      )}
+
+      {loading ? (
+        <EmptyState title="جارٍ تحميل طلبات التسجيل…" />
+      ) : !error && requests.length === 0 ? (
+        <EmptyState title="لا توجد طلبات تسجيل معلّقة" hint="ستظهر هنا طلبات المحامين الجدد فور إرسالها من صفحة تسجيل أول مرة." />
+      ) : !error ? (
+        <Card className="divide-y divide-navy-100">
+          {requests.map((request) => {
+            const email = request.email;
+            const busy = busyId === request.id;
+            return (
+              <div key={request.id} className="flex flex-wrap items-start gap-3 px-4 py-4">
+                <Avatar name={request.fullName} size={44} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[13.5px] font-extrabold text-navy-950">{request.fullName}</p>
+                    <Badge tone="amber">بانتظار الموافقة</Badge>
+                    <Badge tone="outline">{TITLE_LABEL[request.title] ?? request.title}</Badge>
+                  </div>
+                  <div className="mt-1 space-y-1 text-[11px] font-semibold text-navy-500">
+                    <p dir="ltr" className="text-start font-latin">{email || 'لا يوجد بريد إلكتروني'}</p>
+                    {request.phone && <p dir="ltr" className="text-start font-latin">{request.phone}</p>}
+                    {request.specialization && <p>التخصص: {request.specialization}</p>}
+                    <p>الفرع المطلوب: {request.branchName || 'غير محدد'}</p>
+                    <p>تاريخ الطلب: {formatDateTime(new Date(request.createdAt))}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Button size="sm" variant="gold" disabled={busyId !== null} onClick={() => void decide(request, 'approve')}>
+                    {busy ? 'جارٍ الاعتماد…' : 'قبول وتفعيل الحساب'}
+                  </Button>
+                  <Button size="sm" variant="danger" disabled={busyId !== null} onClick={() => void decide(request, 'reject')}>
+                    {busy ? 'جارٍ المعالجة…' : 'رفض الطلب'}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      ) : null}
     </div>
   );
 }
@@ -841,12 +962,208 @@ function LocationsTab({ locations, onAdd, onEdit }: { locations: AdminLocationRo
 }
 
 /* ─────────────────────────── Case sections ─────────────────────────── */
-function CaseSectionsTab({categories:initialCategories,cases}:{categories:AdminShellProps['categories'];cases:AdminShellProps['cases']}) {
-  const router=useRouter(); const [categories,setCategories]=React.useState(initialCategories);
-  const [active,setActive]=React.useState(initialCategories.find(c=>c.active)?.id||''); const [name,setName]=React.useState(''); const [busy,setBusy]=React.useState(false);
-  const save=async(body:any)=>{setBusy(true);try{const r=await fetch('/api/admin/office',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw new Error(j.error||'تعذر حفظ القسم');const fresh=await fetch('/api/admin/office',{cache:'no-store'});const d=await fresh.json();if(fresh.ok){setCategories(d.categories||[]);if(body.action==='category_delete'&&body.id===active)setActive((d.categories||[]).find((x:any)=>x.active)?.id||'');}router.refresh()}catch(e){alert(e instanceof Error?e.message:'تعذر حفظ القسم')}finally{setBusy(false)}};
-  const current=categories.find(c=>c.id===active); const rows=cases.filter((c:any)=>(c as any).category_id===active);
-  return <div dir="rtl" className="space-y-4"><Card className="p-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 text-base font-extrabold text-navy-950"><FolderTree size={18} className="text-gold-600"/>أقسام القضايا</h2><p className="mt-1 text-[11px] font-semibold text-navy-400">كل قسم مستقل، ويمكنك إضافة أقسام جديدة في أي وقت.</p></div><div className="flex gap-2"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="اسم قسم جديد"/><Button size="sm" variant="gold" disabled={busy||!name.trim()} onClick={()=>{void save({action:'category_save',nameAr:name.trim(),nameEn:name.trim(),sortOrder:(categories.length+1)*10,active:true});setName('')}}>إضافة قسم</Button></div></div><div className="flex flex-wrap gap-2 border-t border-navy-100 pt-3">{categories.filter(c=>c.active).map(c=><button key={c.id} type="button" onClick={()=>setActive(c.id)} className={cn('rounded-full px-4 py-2 text-xs font-extrabold transition',active===c.id?'bg-navy-950 text-white':'bg-ivory-50 text-navy-600 hover:bg-gold-50')}>{c.name_ar}<span className="ms-2 opacity-60">{cases.filter((x:any)=>(x as any).category_id===c.id).length}</span></button>)}</div></Card>{current&&<Card className="overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 px-4 py-3"><h3 className="text-sm font-extrabold text-navy-900">{current.name_ar}</h3><div className="flex gap-1"><button disabled={busy} onClick={()=>void save({action:'category_move',id:current.id,direction:'up'})} className="rounded-lg border p-2 text-navy-500"><ArrowUp size={14}/></button><button disabled={busy} onClick={()=>void save({action:'category_move',id:current.id,direction:'down'})} className="rounded-lg border p-2 text-navy-500"><ArrowDown size={14}/></button><button disabled={busy} onClick={()=>void save({action:'category_delete',id:current.id})} className="rounded-lg border p-2 text-red-600">تعطيل</button></div></div>{rows.length?<div className="divide-y divide-navy-100">{rows.map(c=><Link key={c.id} href={`/cases/${c.id}`} className="block px-4 py-3 hover:bg-ivory-50"><div className="text-xs font-extrabold text-navy-900">{c.name}</div><div className="mt-1 text-[10px] text-navy-400">{c.number}{c.clientName?` — ${c.clientName}`:''}</div></Link>)}</div>:<div className="p-8 text-center text-xs text-navy-400">لا توجد قضايا في هذا القسم حالياً.</div>}</Card>}</div>;
+function CaseSectionsTab({ branchId, categories: initialCategories, cases }: { branchId?: string; categories: AdminShellProps['categories']; cases: AdminShellProps['cases'] }) {
+  const router = useRouter();
+  const [categories, setCategories] = React.useState(initialCategories);
+  const [active, setActive] = React.useState(initialCategories.find((c) => c.active)?.id || '');
+  const [name, setName] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [caseModalOpen, setCaseModalOpen] = React.useState(false);
+  const [caseName, setCaseName] = React.useState('');
+  const [caseNumber, setCaseNumber] = React.useState('');
+  const [clientName, setClientName] = React.useState('');
+  const [caseDescription, setCaseDescription] = React.useState('');
+  const [caseBusy, setCaseBusy] = React.useState(false);
+
+  const save = async (body: Record<string, unknown>) => {
+    setBusy(true);
+    try {
+      const response = await fetch('/api/admin/office', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'تعذر حفظ القسم');
+      const fresh = await fetch('/api/admin/office', { cache: 'no-store' });
+      const refreshed = await fresh.json().catch(() => ({}));
+      if (fresh.ok) {
+        setCategories(refreshed.categories || []);
+        if (body.action === 'category_delete' && body.id === active) {
+          setActive((refreshed.categories || []).find((item: { active: boolean; id: string }) => item.active)?.id || '');
+        }
+      }
+      router.refresh();
+    } catch (cause) {
+      toastError(cause instanceof Error ? cause.message : 'تعذر حفظ القسم');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createCase = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const cleanName = caseName.trim();
+    const cleanNumber = caseNumber.trim();
+    if (!active) return toastError('اختر قسم القضية أولاً.');
+    if (!cleanName || !cleanNumber) return toastError('اسم القضية ورقم القضية مطلوبان.');
+    if (caseBusy) return;
+
+    setCaseBusy(true);
+    try {
+      const response = await fetch('/api/cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId,
+          name: cleanName,
+          number: cleanNumber,
+          clientName: clientName.trim() || undefined,
+          description: caseDescription.trim() || undefined,
+          categoryId: active,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'تعذر إضافة القضية.');
+      if (data.requiresApproval) {
+        toastSuccess('تم إرسال طلب إضافة القضية للإدارة للموافقة.');
+      } else {
+        toastSuccess('تمت إضافة القضية إلى القسم المحدد بنجاح ✓');
+      }
+      setCaseModalOpen(false);
+      setCaseName('');
+      setCaseNumber('');
+      setClientName('');
+      setCaseDescription('');
+      router.refresh();
+    } catch (cause) {
+      toastError(cause instanceof Error ? cause.message : 'تعذر إضافة القضية.');
+    } finally {
+      setCaseBusy(false);
+    }
+  };
+
+  const current = categories.find((category) => category.id === active);
+  const rows = cases.filter((item) => item.category_id === active);
+
+  return (
+    <div dir="rtl" className="space-y-4">
+      <Card className="p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-extrabold text-navy-950">
+              <FolderTree size={18} className="text-gold-600" />
+              أقسام القضايا
+            </h2>
+            <p className="mt-1 text-[11px] font-semibold text-navy-400">كل قسم مستقل، ويمكنك إضافة أقسام جديدة في أي وقت.</p>
+          </div>
+          <div className="flex gap-2">
+            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="اسم قسم جديد" />
+            <Button size="sm" variant="gold" disabled={busy || !name.trim()} onClick={() => {
+              const value = name.trim();
+              setName('');
+              void save({ action: 'category_save', nameAr: value, nameEn: value, sortOrder: (categories.length + 1) * 10, active: true });
+            }}>
+              إضافة قسم
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-navy-100 pt-3">
+          {categories.filter((category) => category.active).map((category) => (
+            <div key={category.id} className={cn('inline-flex items-center gap-1 rounded-full ps-4 pe-1.5 py-1.5 text-xs font-extrabold transition', active === category.id ? 'bg-navy-950 text-white' : 'bg-ivory-50 text-navy-600')}>
+              <button type="button" onClick={() => setActive(category.id)} className="inline-flex items-center gap-2 py-0.5 text-start hover:text-gold-600">
+                {category.name_ar}
+                <span className="opacity-60">{cases.filter((item) => item.category_id === category.id).length}</span>
+              </button>
+              <button
+                type="button"
+                title={`إضافة قضية إلى ${category.name_ar}`}
+                aria-label={`إضافة قضية إلى ${category.name_ar}`}
+                onClick={() => { setActive(category.id); setCaseModalOpen(true); }}
+                className={cn('inline-flex h-6 w-6 items-center justify-center rounded-full transition', active === category.id ? 'bg-white/10 text-gold-300 hover:bg-white/20' : 'bg-white text-gold-700 shadow-sm hover:bg-gold-50')}
+              >
+                <FilePlus2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {current && (
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 px-4 py-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-navy-900">{current.name_ar}</h3>
+              <p className="mt-1 text-[11px] text-navy-400">{rows.length} قضية في هذا القسم</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button size="sm" variant="gold" onClick={() => setCaseModalOpen(true)}>
+                <FilePlus2 size={14} />
+                إضافة قضية
+              </Button>
+              <button disabled={busy} onClick={() => void save({ action: 'category_move', id: current.id, direction: 'up' })} className="rounded-lg border p-2 text-navy-500" title="نقل لأعلى">
+                <ArrowUp size={14} />
+              </button>
+              <button disabled={busy} onClick={() => void save({ action: 'category_move', id: current.id, direction: 'down' })} className="rounded-lg border p-2 text-navy-500" title="نقل لأسفل">
+                <ArrowDown size={14} />
+              </button>
+              <button disabled={busy} onClick={() => void save({ action: 'category_delete', id: current.id })} className="rounded-lg border p-2 text-red-600">
+                تعطيل
+              </button>
+            </div>
+          </div>
+          {rows.length ? (
+            <div className="divide-y divide-navy-100">
+              {rows.map((item) => (
+                <Link key={item.id} href={`/cases/${item.id}`} className="block px-4 py-3 hover:bg-ivory-50">
+                  <div className="text-xs font-extrabold text-navy-900">{item.name}</div>
+                  <div className="mt-1 text-[10px] text-navy-400">{item.number}{item.clientName ? ` — ${item.clientName}` : ''}</div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-xs text-navy-400">لا توجد قضايا في هذا القسم حالياً. استخدم «إضافة قضية» لتسجيل أول قضية.</div>
+          )}
+        </Card>
+      )}
+
+      <Modal
+        open={caseModalOpen}
+        onClose={() => { if (!caseBusy) setCaseModalOpen(false); }}
+        title={`إضافة قضية — ${current?.name_ar ?? 'القسم'}`}
+        wide
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setCaseModalOpen(false)} disabled={caseBusy}>إلغاء</Button>
+            <Button type="submit" form="case-section-create-form" variant="gold" disabled={caseBusy || !caseName.trim() || !caseNumber.trim()}>
+              {caseBusy ? 'جارٍ الحفظ…' : 'حفظ القضية في هذا القسم'}
+            </Button>
+          </div>
+        )}
+      >
+        <form id="case-section-create-form" onSubmit={createCase} className="space-y-4">
+          <div className="rounded-xl border border-gold-500/20 bg-gold-50/40 px-4 py-3">
+            <p className="text-[10px] font-bold text-navy-400">القسم المحدد</p>
+            <p className="mt-1 text-sm font-extrabold text-navy-950">{current?.name_ar}</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="اسم القضية" required>
+              <Input autoFocus value={caseName} onChange={(event) => setCaseName(event.target.value)} placeholder="اكتب اسم القضية" required />
+            </Field>
+            <Field label="رقم القضية" required>
+              <Input value={caseNumber} onChange={(event) => setCaseNumber(event.target.value)} placeholder="مثال: 1234/2026" required />
+            </Field>
+            <Field label="اسم العميل">
+              <Input value={clientName} onChange={(event) => setClientName(event.target.value)} placeholder="اختياري" />
+            </Field>
+            <Field label="ملاحظات">
+              <Textarea value={caseDescription} onChange={(event) => setCaseDescription(event.target.value)} placeholder="تفاصيل إضافية عن القضية — اختياري" />
+            </Field>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
 }
 
 /* ─────────────────────────── Activity ─────────────────────────── */
