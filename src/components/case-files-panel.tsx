@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { FileText, Loader2, Upload, Download, ExternalLink, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui';
+import { FileDeletionRequestButton } from '@/components/file-deletion-request-button';
 
 type CaseFile = {
   id: string;
@@ -166,6 +167,7 @@ export function CaseFilesPanel({ caseId }: { caseId: string }) {
                 </div>
               </div>
               {file.url && <div className="flex shrink-0 items-center gap-2">
+                <FileDeletionRequestButton fileType="case" resourceId={caseId} fileId={file.id} />
                 <a href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 bg-white px-3 py-2 text-[10px] font-bold text-navy-700"><ExternalLink size={13} /> فتح</a>
                 <a href={file.url + '?download=1'} className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 bg-white px-3 py-2 text-[10px] font-bold text-navy-700"><Download size={13} /> تحميل</a>
               </div>}

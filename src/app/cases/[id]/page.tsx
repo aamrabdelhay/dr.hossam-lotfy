@@ -10,6 +10,7 @@ import { CaseClientsPanel } from '@/components/case-clients-panel';
 import { CaseDevelopmentForm } from '@/components/case-development-form';
 import { clientFileContentUrl } from '@/lib/client-file-access';
 import { ReportActions } from '@/components/report-actions';
+import { FileDeletionRequestButton } from '@/components/file-deletion-request-button';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'ملف القضية' };
@@ -124,7 +125,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
           <h2 className="flex items-center gap-2 text-sm font-black text-navy-950"><FolderOpen size={17} className="text-gold-600"/> ملفات العميل المرتبط بالقضية</h2>
           <p className="mt-1 text-[10px] text-navy-400">المرفقات المحفوظة في ملف العميل. تُدار الإضافة من صفحة العميل، وتظل منفصلة عن ملفات القضية.</p>
         </div>
-        {clientFiles.length === 0 ? <div className="p-7"><EmptyState title="لا توجد ملفات محفوظة في ملف العميل المرتبط بالقضية." /></div> : <div className="grid gap-2 p-5 sm:grid-cols-2">{clientFiles.map((file) => <div key={file.id} className="flex items-center justify-between gap-3 rounded-xl border border-navy-100 bg-ivory-50 px-3 py-3"><div className="flex min-w-0 items-center gap-2"><FileText size={15} className="shrink-0 text-gold-600"/><div className="min-w-0"><p className="truncate text-xs font-extrabold text-navy-800">{file.name}</p><p className="mt-1 text-[9px] text-navy-400">{file.kind}{file.size_bytes ? ' · ' + Math.round(Number(file.size_bytes) / 1024) + ' ك.ب' : ''}</p></div></div>{file.url && <a href={file.url} target="_blank" rel="noreferrer" className="shrink-0 rounded-full border border-navy-200 bg-white px-2.5 py-1.5 text-[9px] font-bold text-navy-600">فتح</a>}</div>)}</div>}
+        {clientFiles.length === 0 ? <div className="p-7"><EmptyState title="لا توجد ملفات محفوظة في ملف العميل المرتبط بالقضية." /></div> : <div className="grid gap-2 p-5 sm:grid-cols-2">{clientFiles.map((file) => <div key={file.id} className="flex items-center justify-between gap-3 rounded-xl border border-navy-100 bg-ivory-50 px-3 py-3"><div className="flex min-w-0 items-center gap-2"><FileText size={15} className="shrink-0 text-gold-600"/><div className="min-w-0"><p className="truncate text-xs font-extrabold text-navy-800">{file.name}</p><p className="mt-1 text-[9px] text-navy-400">{file.kind}{file.size_bytes ? ' · ' + Math.round(Number(file.size_bytes) / 1024) + ' ك.ب' : ''}</p></div></div>{file.url && <div className="flex shrink-0 items-center gap-1.5"><a href={file.url} target="_blank" rel="noreferrer" className="rounded-full border border-navy-200 bg-white px-2.5 py-1.5 text-[9px] font-bold text-navy-600">فتح</a><FileDeletionRequestButton fileType="client" resourceId={file.client_id} fileId={file.id} /></div>}</div>)}</div>}
       </Card>
     </main>
   );
