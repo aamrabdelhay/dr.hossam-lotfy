@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
 import { Cormorant_Garamond, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import './globals.css';
 import './form-indicators.css';
@@ -50,7 +53,17 @@ function NavbarSkeleton() {
  * The root layout must not wait for session/branch/navigation queries. Each
  * slow shared area streams independently while the selected page can render.
  */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+async function enforceInternalAuthentication() {
+  const requestHeaders = await headers();
+  const pathname = requestHeaders.get('x-pathname') || '/';
+  const isPublicRoute = pathname === '/auth' || pathname.startsWith('/training');
+  if (isPublicRoute) return;
+  const session = await getCurrentUser();
+  if (!session) redirect('/auth?next=' + encodeURIComponent(pathname));
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  await enforceInternalAuthentication();
   return (
     <html dir="rtl" lang="ar">
       <body className={cormorant.variable + ' ' + ibmArabic.variable + ' flex min-h-screen flex-col'}>

@@ -8,6 +8,7 @@ import { getBranchScope, branchForWrite } from '@/lib/branch-access';
 
 export async function GET() {
   const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول' }, { status: 401 });
   const isAdmin = session?.role === 'admin' || (session?.role === 'lawyer' && session.isAdmin);
   const scope = await getBranchScope(session);
   const branchId = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds[0] : null;
