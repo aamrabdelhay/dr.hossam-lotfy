@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Search, Landmark, Scale, KeyRound, LogOut, Menu, X, UserCircle2,
   Archive, ChevronDown, Users, UserPlus, ClipboardList,
-  WalletCards, ShieldCheck, Building2
+  WalletCards, ShieldCheck, Building2, Clock3
 } from 'lucide-react';
 import { Avatar } from './ui';
 import { NotificationBell } from './notification-bell';
@@ -186,6 +186,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
     <div className="w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-navy-100 bg-white p-2 shadow-xl">
       <p className="px-3 py-2 text-[10px] font-black text-gold-700">{COPY.quick}</p>
       <Link href="/my-day" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><ClipboardList size={15}/>يومي</Link>
+      <Link href="/timesheets" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><Clock3 size={15}/>ساعات العمل</Link>
       <Link href="/court-mode" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><Landmark size={15}/>وضع المحاكم</Link>
       <Link href="/profile/security" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><ShieldCheck size={15}/>الأجهزة وجلسات الدخول</Link>
       <Link href="/profile" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><UserCircle2 size={15} />{COPY.profile}</Link>
