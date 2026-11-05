@@ -4,6 +4,7 @@ import { getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
 import type { SessionUser } from '@/lib/auth';
+import { logAuditEvent } from '@/lib/audit';
 
 type CaseRow = { id: string; branch_id: string };
 type SecurityRow = { case_id: string; classification: string; ethical_wall_enabled: boolean };
@@ -111,5 +112,6 @@ export async function requireCaseFileAccess(caseId: string): Promise<CaseAccess>
     if (!exists.length) throw new ApiError(404, 'القضية غير موجودة');
     throw new ApiError(403, 'لا تملك صلاحية الوصول إلى هذه القضية');
   }
+  await logAuditEvent({ actorUserId: session.role === 'admin' ? session.userId : null, actorLawyerId: session.role === 'lawyer' ? session.lawyerId : null, action: 'CASE_ACCESS_GRANTED', resourceType: 'case', resourceId: caseId, summary: 'تم الوصول إلى ملف قضية: ' + access.caseRow.id });
   return access;
 }

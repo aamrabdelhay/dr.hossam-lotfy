@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { ApiError, handle, json, readJson, user } from '@/lib/api';
 import { officeId, isSeniorManagement } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
+import { logAuditEvent } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
@@ -91,6 +92,15 @@ export const PATCH = handle(async (request: Request, context: Ctx) => {
       officeId('casesec_event'),id,'POLICY_UPDATED','تم تحديث سرية القضية: '+cases[0].name,
       actorUserId,actorLawyerId,JSON.stringify({classification:data.classification,ethicalWallEnabled:data.ethicalWallEnabled,grantsCount:data.grants.length}),
     );
+  });
+  await logAuditEvent({
+    actorUserId,
+    actorLawyerId,
+    action:'CASE_SECURITY_POLICY_UPDATED',
+    resourceType:'case',
+    resourceId:id,
+    summary:'تم تعديل تصنيف السرية والحواجز الأخلاقية وتصاريح الوصول للقضية: '+cases[0].name,
+    metadata:{classification:data.classification,ethicalWallEnabled:data.ethicalWallEnabled,grantCount:data.grants.length,reason:data.reason||''},
   });
   return json({ok:true,grantsCount:data.grants.length});
 });

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handle, json } from '@/lib/api';
+import { logAuditEvent } from '@/lib/audit';
 import { requireCaseFileAccess } from '@/lib/case-file-access';
 import { getPrivateS3ObjectForPrefix, parsePrivateS3UrlForPrefix } from '@/lib/client-file-s3';
 import { prisma } from '@/lib/prisma';
@@ -24,7 +25,7 @@ type Ctx = { params: Promise<{ id: string; fileId: string }> };
 
 export const GET = handle(async (request: Request, { params }: Ctx) => {
   const { id, fileId } = await params;
-  await requireCaseFileAccess(id);
+  const access = await requireCaseFileAccess(id);
   const rows = await prisma.$queryRawUnsafe<StoredFile[]>(
     `SELECT "name", "mime_type", "url" FROM "case_files"
       WHERE "id" = $1 AND "case_id" = $2 AND "deleted_at" IS NULL LIMIT 1`,
@@ -36,6 +37,7 @@ export const GET = handle(async (request: Request, { params }: Ctx) => {
   if (!file || !parsePrivateS3UrlForPrefix(file.url, prefix)) {
     return json({ error: 'ملف القضية غير موجود' }, { status: 404 });
   }
+  await logAuditEvent({ actorUserId: access.session.role === 'admin' ? access.session.userId : null, actorLawyerId: access.session.role === 'lawyer' ? access.session.lawyerId : null, action: 'CASE_FILE_ACCESSED', resourceType: 'case_file', resourceId: fileId, summary: 'تم فتح أو تحميل ملف قضية: ' + file.name, metadata: { caseId: id }, ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null, userAgent: request.headers.get('user-agent') || null });
 
   let stream: ReadableStream<Uint8Array> | null = null;
   let storedContentType: string | null = null;

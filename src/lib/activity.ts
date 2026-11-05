@@ -1,5 +1,6 @@
 import 'server-only';
 import { prisma } from './prisma';
+import { logAuditEvent } from './audit';
 
 export type ActivityAction =
   | 'CREATED'
@@ -54,6 +55,9 @@ export async function logActivity(input: {
   } catch {
     // activity logging must never break the main flow
   }
+  const resourceType = input.taskId ? 'task' : input.lawyerId ? 'lawyer' : input.locationId ? 'location' : input.action.startsWith('CASE_') ? 'case' : input.action.startsWith('USER_') ? 'user' : 'office';
+  const resourceId = input.taskId ?? input.lawyerId ?? input.locationId ?? null;
+  await logAuditEvent({ actorUserId: input.byUserId ?? null, actorLawyerId: input.byLawyerId ?? null, action: input.action, resourceType, resourceId, summary: input.summary, metadata: { taskId: input.taskId ?? null, lawyerId: input.lawyerId ?? null, locationId: input.locationId ?? null } });
 }
 
 export const ACTIVITY_LABEL: Record<string, string> = {

@@ -5,6 +5,7 @@ import { appOrigin } from '@/lib/google-oauth';
 import { formatDay } from '@/lib/dates';
 import { escapeTelegramHtml, isTelegramConfigured, sendTelegramGroupNotification } from '@/lib/telegram';
 import { purgeExpiredApprovedFiles } from '@/lib/file-deletion';
+import { recordRetentionReviewCandidates } from '@/lib/retention';
 
 export const dynamic = 'force-dynamic';
 
@@ -254,10 +255,11 @@ export async function GET(req: Request) {
   const cairoHour = Number(new Intl.DateTimeFormat('en-US',{timeZone:'Africa/Cairo',hour:'2-digit',hour12:false}).format(new Date()));
   const dailyAtMidnight = cairoHour === 0;
 
-  const [telegram, email, fileDeletionCleanup] = await Promise.all([
+  const [telegram, email, fileDeletionCleanup, retentionReview] = await Promise.all([
     dailyAtMidnight ? sendTelegramDailySummary(todayKey).catch((error) => ({ error: String(error?.message ?? error) })) : Promise.resolve({ skipped: 'not-daily-run' }),
     sendEmailReminders().catch((error) => ({ error: String(error?.message ?? error) })),
     purgeExpiredApprovedFiles().catch((error) => ({ error: String(error?.message ?? error) })),
+    recordRetentionReviewCandidates().catch((error) => ({ error: String(error?.message ?? error) })),
   ]);
 
   return NextResponse.json({
@@ -266,5 +268,6 @@ export async function GET(req: Request) {
     telegramConfigured: telegramEnabled,
     email,
     fileDeletionCleanup,
+    retentionReview,
   });
 }

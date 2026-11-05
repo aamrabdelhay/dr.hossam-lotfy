@@ -1,6 +1,7 @@
 import { get } from '@vercel/blob';
 import { NextResponse } from 'next/server';
-import { handle, json } from '@/lib/api';
+import { handle, json, user } from '@/lib/api';
+import { logAuditEvent } from '@/lib/audit';
 import { isPrivateBlobUrl, requireClientFileAccess } from '@/lib/client-file-access';
 import { getPrivateS3Object, parsePrivateS3Url } from '@/lib/client-file-s3';
 import { prisma } from '@/lib/prisma';
@@ -41,6 +42,8 @@ export const GET = handle(async (
   { params }: { params: Promise<{ id: string; fileId: string }> },
 ) => {
   const { id, fileId } = await params;
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول' }, { status: 401 });
   await requireClientFileAccess(id);
 
   const rows = await prisma.$queryRawUnsafe<StoredFile[]>(
@@ -54,6 +57,7 @@ export const GET = handle(async (
   if (!file || (!s3Object && !blobUrl)) {
     return json({ error: 'الملف غير موجود' }, { status: 404 });
   }
+  await logAuditEvent({ actorUserId: session.role === 'admin' ? session.userId : null, actorLawyerId: session.role === 'lawyer' ? session.lawyerId : null, action: 'CLIENT_FILE_ACCESSED', resourceType: 'client_file', resourceId: fileId, summary: 'تم فتح أو تحميل ملف عميل: ' + file.name, metadata: { clientId: id }, ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null, userAgent: request.headers.get('user-agent') || null });
 
   let stream: ReadableStream<Uint8Array> | null = null;
   let storedContentType: string | null = null;

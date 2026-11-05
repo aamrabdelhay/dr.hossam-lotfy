@@ -9,6 +9,7 @@ import { RequestGroupsClient } from '@/components/admin/request-groups-client';
 import { FinanceManagementClient } from '@/components/admin/finance-management-client';
 import { SeniorAdminActions } from '@/components/admin/senior-admin-actions';
 import { FileDeletionRequests } from '@/components/admin/file-deletion-requests';
+import { SecurityControls } from '@/components/admin/security-controls';
 
 export const metadata: Metadata = { title: 'أدوات الإدارة العامة' };
 
@@ -38,7 +39,7 @@ export default async function OfficeControlPage() {
       </div>
       {senior || officeManager ? (
         <div className="space-y-6">
-          {senior && <><SeniorAdminActions /><RequestGroupsClient /><FileDeletionRequests /></>}
+          {senior && <><SecurityControls /><SeniorAdminActions /><RequestGroupsClient /><FileDeletionRequests /></>}
           <OfficeManagementClient />
         </div>
       ) : (

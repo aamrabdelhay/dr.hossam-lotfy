@@ -4,6 +4,7 @@ import { ApiError, requirePermission, user } from '@/lib/api';
 import { getBranchScope } from '@/lib/branch-access';
 import { prisma } from '@/lib/prisma';
 import { parsePrivateS3Url } from '@/lib/client-file-s3';
+import { logAuditEvent } from '@/lib/audit';
 
 export async function requireClientFileAccess(clientId: string) {
   const session = await user();
@@ -27,6 +28,7 @@ export async function requireClientFileAccess(clientId: string) {
   ) {
     throw new ApiError(403, 'ليس لديك صلاحية الوصول إلى ملفات هذا العميل');
   }
+  await logAuditEvent({ actorUserId: session.role === 'admin' ? session.userId : null, actorLawyerId: session.role === 'lawyer' ? session.lawyerId : null, action: 'CLIENT_ACCESS_GRANTED', resourceType: 'client', resourceId: clientId, summary: 'تم الوصول إلى ملف عميل: ' + client.id });
   return client;
 }
 

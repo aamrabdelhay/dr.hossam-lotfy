@@ -4,6 +4,7 @@ import { getCurrentUser, type SessionUser } from './auth';
 import { can, permissionsOf, type Permissions } from './rbac';
 import { prisma } from './prisma';
 import { getBranchScope } from './branch-access';
+import { hasEffectivePermission } from './permission-access';
 
 export function json(data: unknown, init?: { status?: number; headers?: Record<string, string> }) { return NextResponse.json(data, init); }
 export function httpError(status: number, message: string) { return NextResponse.json({ error: message }, { status }); }
@@ -29,7 +30,7 @@ async function asAdminSession(u: SessionUser | null): Promise<AdminSession | nul
   return null;
 }
 export async function requireStaff(): Promise<AdminSession> { const u = await asAdminSession(await user()); if (!u) throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية إدارية'); return u; }
-export async function requirePermission(permission: keyof Permissions): Promise<AdminSession> { const u = await requireStaff(); if (!can(u.userRole, permission)) throw new ApiError(403, 'لا تملك صلاحية تنفيذ هذا الإجراء'); return u; }
+export async function requirePermission(permission: keyof Permissions): Promise<AdminSession> { const u = await requireStaff(); if (!await hasEffectivePermission(u, permission)) throw new ApiError(403, 'لا تملك صلاحية تنفيذ هذا الإجراء'); return u; }
 export async function requireAdmin(): Promise<AdminSession> { const u = await requireStaff(); if (u.userRole !== 'SUPER_ADMIN' && u.userRole !== 'ADMIN') throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية المدير العام'); return u; }
 export async function requireLawyer(): Promise<Extract<SessionUser, { role: 'lawyer' }>> { const u = await user(); if (!u || u.role !== 'lawyer') throw new ApiError(401, 'يجب تسجيل الدخول كمحامي لإتمام هذا الإجراء'); return u; }
 export function permissionsFor(role: string | null | undefined): Permissions { return permissionsOf(role); }
