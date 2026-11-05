@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { AutoPrint } from '@/components/auto-print';
 import { getCurrentUser } from '@/lib/auth';
+import { requireCaseFileAccess, filterAccessibleCases } from '@/lib/case-file-access';
 import { getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
@@ -133,10 +134,11 @@ export default async function EntityReportPage({
       { label: 'آخر تحديث للبيانات', value: reportDate(client.updatedAt) },
       { label: 'ملاحظات العميل', value: clean(client.notes) },
     ];
-    const cases = await prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;description:string|null;clientId:string|null;clientName:string|null}>>(
+    const casesRaw = await prisma.$queryRawUnsafe<Array<{id:string;name:string;number:string;description:string|null;clientId:string|null;clientName:string|null}>>(
       'SELECT DISTINCT cr."id",cr."name",cr."number",cr."description",cr."clientId",cr."clientName" FROM "case_records" cr LEFT JOIN "case_clients" cc ON cc."case_id"=cr."id" WHERE (cr."clientId"=$1 OR cc."client_id"=$1) AND ($2::text[] IS NULL OR COALESCE(cr."branch_id",\'branch_main\')=ANY($2::text[])) ORDER BY cr."id" DESC',
       id, reportBranchIds,
     );
+    const cases = await filterAccessibleCases(session, casesRaw);
     const caseIds = cases.map((item) => item.id);
     const [events, tasks, appointments, clientFiles, clientEvents] = await Promise.all([
       caseIds.length ? prisma.$queryRawUnsafe<Array<{caseId:string;description:string;type:string;authorName:string|null;createdAt:Date}>>(
@@ -180,15 +182,7 @@ export default async function EntityReportPage({
     );
     const record = rows[0];
     if (!record) notFound();
-    if (!scope.allBranches && scope.branchIds.length > 0 && !scope.branchIds.includes(record.branch_id || 'branch_main')) redirect('/auth');
-    if (!isManager) {
-      if (session.role !== 'lawyer') redirect('/auth');
-      const caseAccess = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        'SELECT ta."id" AS "id" FROM "task_assignments" ta JOIN "tasks" t ON t."id"=ta."taskId" WHERE t."caseId"=$1 AND ta."lawyerId"=$2 UNION SELECT c."id" AS "id" FROM "clients" c LEFT JOIN "case_clients" cc ON cc."client_id"=c."id" WHERE c."assignedLawyerId"=$2 AND (c."id"=$3 OR cc."case_id"=$1) LIMIT 1',
-        id, session.lawyerId, record.clientId || '',
-      );
-      if (!caseAccess.length) redirect('/auth');
-    }
+    await requireCaseFileAccess(id);
     title = 'تقرير شامل للقضية';
     backHref = '/cases/' + record.id;
     name = record.name;

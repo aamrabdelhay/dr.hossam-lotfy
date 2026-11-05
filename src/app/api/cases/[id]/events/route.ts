@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { handle, json, readJson, user } from '@/lib/api';
 import { can } from '@/lib/rbac';
 import { logActivity } from '@/lib/activity';
+import { requireCaseFileAccess } from '@/lib/case-file-access';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -18,8 +19,8 @@ const eventSchema = z.object({
  */
 export const POST = handle(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const session = await user();
-  if (!session) return json({ error: 'يجب تسجيل الدخول لإضافة حدث للقضية' }, { status: 401 });
+  const access = await requireCaseFileAccess(id);
+  const session = access.session;
 
   const caseRecord = await prisma.caseRecord.findUnique({
     where: { id },
@@ -31,9 +32,8 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
   if (isAdmin && !can(session.userRole, 'writeTasks')) {
     return json({ error: 'لا تملك صلاحية تعديل القضايا' }, { status: 403 });
   }
-  if (!isAdmin) {
-    const involved = caseRecord.tasks.some((t) => t.assignees.some((a) => a.lawyerId === session.lawyerId));
-    if (!involved) return json({ error: 'هذه القضية ليست ضمن مهامك' }, { status: 403 });
+  if (!isAdmin && !access.isAssigned && access.grantLevel !== 'EDIT') {
+    return json({ error: 'لا تملك صلاحية إضافة أحداث إلى هذه القضية' }, { status: 403 });
   }
 
   const data = await readJson(req as never, eventSchema);
@@ -58,8 +58,7 @@ export const POST = handle(async (req: Request, ctx: Ctx) => {
 
 export const GET = handle(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const session = await user();
-  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض سجل القضية' }, { status: 401 });
+  await requireCaseFileAccess(id);
   const caseRecord = await prisma.caseRecord.findUnique({ where: { id } });
   if (!caseRecord) return json({ error: 'القضية غير موجودة' }, { status: 404 });
   const events = await prisma.caseEvent.findMany({

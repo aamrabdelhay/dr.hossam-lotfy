@@ -4,6 +4,7 @@ import { handle, json, readJson, user } from '@/lib/api';
 import { can } from '@/lib/rbac';
 import { getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
+import { requireCaseFileAccess } from '@/lib/case-file-access';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -11,6 +12,7 @@ export const GET = handle(async (_req: Request, ctx: Ctx) => {
   const session = await user();
   if (!session) return json({ error: 'يجب تسجيل الدخول' }, { status: 401 });
   const { id } = await ctx.params;
+  await requireCaseFileAccess(id);
   const cases = await prisma.$queryRawUnsafe<Array<{ id: string; clientId: string | null; branch_id: string | null }>>(
     'SELECT "id","clientId","branch_id" FROM "case_records" WHERE "id"=$1 LIMIT 1', id
   );
@@ -49,6 +51,7 @@ export const PUT = handle(async (req: Request, ctx: Ctx) => {
     return json({ error: 'لا تملك صلاحية تعديل العملاء المرتبطين بالقضية' }, { status: 403 });
   }
   const { id } = await ctx.params;
+  await requireCaseFileAccess(id);
   const data = await readJson(req as never, schema);
   const cases = await prisma.$queryRawUnsafe<Array<{ id: string; branch_id: string | null }>>('SELECT "id","branch_id" FROM "case_records" WHERE "id"=$1 LIMIT 1', id);
   const caseRow = cases[0];
