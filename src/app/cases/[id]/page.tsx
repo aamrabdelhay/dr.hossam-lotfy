@@ -5,7 +5,9 @@ import { ArrowRight, CalendarDays, FileText, FolderOpen, UserRound, History } fr
 import { getCurrentUser } from '@/lib/auth';
 import { requireCaseFileAccess } from '@/lib/case-file-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
+import { can } from '@/lib/rbac';
 import { CaseSecurityPanel } from '@/components/case-security-panel';
+import { CaseScenarioPlanner } from '@/components/case-scenario-planner';
 import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
 import { CaseFilesPanel } from '@/components/case-files-panel';
@@ -45,8 +47,11 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
   const session = await getCurrentUser();
   if (!session) redirect('/auth');
   const { id } = await params;
-  try { await requireCaseFileAccess(id); } catch { notFound(); }
+  let caseAccess: Awaited<ReturnType<typeof requireCaseFileAccess>>;
+  try { caseAccess = await requireCaseFileAccess(id); } catch { notFound(); }
   const canManageSecurity = await isSeniorManagement(session);
+  const canEditScenarios = caseAccess.canRequestChanges
+    && (session.role !== 'admin' || can(session.userRole, 'writeTasks'));
 
   const rows = await prisma.$queryRawUnsafe<CaseRow[]>(
     'SELECT cr."id",cr."name",cr."number",cr."description",cr."clientId",cr."clientName",cat."name_ar" AS "categoryName",ob."name_ar" AS "branchName",COALESCE(cr."workflow_status",\'UNDER_REVIEW\') AS "workflowStatus" FROM "case_records" cr LEFT JOIN "office_case_categories" cat ON cat."id"=cr."category_id" LEFT JOIN "office_branches" ob ON ob."id"=cr."branch_id" WHERE cr."id"=$1 LIMIT 1',
@@ -111,6 +116,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
       </section>
 
       {canManageSecurity && <CaseSecurityPanel caseId={id} />}
+      <CaseScenarioPlanner caseId={id} canEdit={canEditScenarios} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card className="overflow-hidden">
