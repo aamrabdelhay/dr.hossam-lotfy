@@ -1,8 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { json } from '@/lib/api';
+import { json, user } from '@/lib/api';
 
 /** GET: list all active services with optional category filter. */
 export async function GET(req: Request) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض الخدمات القانونية' }, { status: 401 });
   const url = new URL(req.url);
   const categoryId = url.searchParams.get('category') || '';
 

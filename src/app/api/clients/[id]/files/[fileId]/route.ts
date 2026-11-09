@@ -1,4 +1,4 @@
-import { ApiError, handle, json, user } from '@/lib/api';
+import { ApiError, handle, json, user, requirePermission } from '@/lib/api';
 import { requireClientFileAccess } from '@/lib/client-file-access';
 import { prisma } from '@/lib/prisma';
 import { createFileDeletionRequest } from '@/lib/file-deletion';
@@ -7,6 +7,7 @@ type Ctx = { params: Promise<{ id:string; fileId:string }> };
 
 export const DELETE = handle(async (request:Request,{params}:Ctx) => {
   const {id,fileId}=await params;
+  await requirePermission('writeTasks');
   await requireClientFileAccess(id);
   const session=await user();
   if(!session) throw new ApiError(401,'يجب تسجيل الدخول.');

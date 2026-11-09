@@ -1,8 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { json } from '@/lib/api';
+import { json, user } from '@/lib/api';
 
 /** GET: list all active categories. */
 export async function GET() {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض دليل المحاكم' }, { status: 401 });
   const categories = await prisma.category.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { nameAr: 'asc' }],

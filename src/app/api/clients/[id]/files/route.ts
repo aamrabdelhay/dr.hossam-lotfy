@@ -1,6 +1,6 @@
 import { put } from '@vercel/blob';
 import crypto from 'node:crypto';
-import { ApiError, handle, json, user } from '@/lib/api';
+import { ApiError, handle, json, user, requirePermission } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { officeId } from '@/lib/office-workflow';
 import { clientFileContentUrl, isPrivateBlobUrl, requireClientFileAccess } from '@/lib/client-file-access';
@@ -81,6 +81,7 @@ export const POST = handle(async (req: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   const session = await user();
   if (!session) throw new ApiError(401, 'يجب تسجيل الدخول');
+  await requirePermission('writeTasks');
   await requireClientFileAccess(id);
 
   const requestType = req.headers.get('content-type') || '';

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { json } from '@/lib/api';
+import { json, user } from '@/lib/api';
 import { DOKKI_ORIGIN } from '@/lib/legal-directory';
 
 /**
@@ -8,6 +8,8 @@ import { DOKKI_ORIGIN } from '@/lib/legal-directory';
  * Or: ?from=office (default office at Dokki)
  */
 export async function GET(req: Request) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لاستخدام دليل الأماكن القريبة' }, { status: 401 });
   const url = new URL(req.url);
   const fromParam = url.searchParams.get('from') || 'office';
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20')));

@@ -6,6 +6,8 @@ import { slugify, uniqueSlug } from '@/lib/slug';
 
 /** GET: list all locations with filters, pagination, and search. */
 export async function GET(req: Request) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض دليل أماكن العمل' }, { status: 401 });
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '24')));

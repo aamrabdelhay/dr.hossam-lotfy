@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { user } from '@/lib/api';
+import { getBranchScope } from '@/lib/branch-access';
+import { isSeniorManagement } from '@/lib/office-workflow';
 import { sendTelegramGroupNotification } from '@/lib/telegram';
 
 const schema = z.object({
@@ -13,15 +15,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const session = await user();
   if (!session) return NextResponse.json({ error: 'يجب تسجيل الدخول' }, { status: 401 });
 
+  const [scope, senior] = await Promise.all([
+    getBranchScope(session),
+    isSeniorManagement(session),
+  ]);
+  if (!senior && !scope.officeManager) {
+    return NextResponse.json({ error: 'تعديل مواعيد العملاء متاح للإدارة العليا ومدير المكتب فقط' }, { status: 403 });
+  }
+
   const data = schema.parse(await req.json());
   const { id } = await params;
   const rows = await prisma.$queryRawUnsafe<Array<{
-    id: string; name: string; phone: string | null; appointment_type: string;
+    id: string; name: string; phone: string | null; appointment_type: string; branch_id: string | null;
   }>>(
-    'SELECT a."id", c."name", c."phone", a."appointment_type" FROM "client_appointments" a JOIN "clients" c ON c."id"=a."client_id" WHERE a."id"=$1 LIMIT 1',
+    'SELECT a."id", c."name", c."phone", c."branch_id", a."appointment_type" FROM "client_appointments" a JOIN "clients" c ON c."id"=a."client_id" WHERE a."id"=$1 LIMIT 1',
     id
   );
   if (!rows[0]) return NextResponse.json({ error: 'طلب الموعد غير موجود' }, { status: 404 });
+  if (!scope.allBranches && !scope.officeManagerBranchIds.includes(rows[0].branch_id || 'branch_main')) {
+    return NextResponse.json({ error: 'ليس لديك صلاحية تعديل موعد لعميل من هذا الفرع' }, { status: 403 });
+  }
 
   await prisma.$executeRawUnsafe(
     'UPDATE "client_appointments" SET "appointment_date"=$2::date,"appointment_time"=$3,"status"=\'CONFIRMED\',"updated_at"=NOW() WHERE "id"=$1',

@@ -25,7 +25,8 @@ function fileTypeFromPath(pathname: string) {
 export const POST = handle(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const startedAt = Date.now();
   const { id } = await params;
-  await requireCaseFileAccess(id);
+  const access = await requireCaseFileAccess(id);
+  if (!access.canRequestChanges) throw new ApiError(403, 'لا تملك صلاحية رفع مستندات إلى هذه القضية.');
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') throw new ApiError(400, 'طلب رفع الملف غير صالح');
 

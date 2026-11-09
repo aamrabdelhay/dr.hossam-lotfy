@@ -1,10 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { json, requirePermission, handle, readJson } from '@/lib/api';
+import { json, user, requirePermission, handle, readJson } from '@/lib/api';
 import { z } from 'zod';
 import { normalizeAr } from '@/lib/lawyer-guide-search';
 
 /** GET: single location by id or slug. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض بيانات مكان العمل' }, { status: 401 });
   const { id } = await params;
   const location = await prisma.location.findFirst({
     where: { OR: [{ id }, { slug: id }] },

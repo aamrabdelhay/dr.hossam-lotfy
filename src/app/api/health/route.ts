@@ -16,15 +16,12 @@ export async function GET() {
   // Keep operational diagnostics (schema state, migration names and record
   // counts) out of the public endpoint. Monitoring only needs a coarse health
   // signal; authenticated administrators can still inspect the full report.
-  const response = {
-    ...(isAdmin
-      ? health
-      : {
-          status: health.status,
-          ...(health.status !== 'ok' ? { error: 'الخدمة غير متاحة مؤقتاً' } : {}),
-        }),
-    telegramConfigured,
-  };
+  const response = isAdmin
+    ? { ...health, telegramConfigured }
+    : {
+        status: health.status,
+        ...(health.status !== 'ok' ? { error: 'الخدمة غير متاحة مؤقتاً' } : {}),
+      };
 
   return NextResponse.json(response, {
     status: health.status === 'ok' ? 200 : 503,

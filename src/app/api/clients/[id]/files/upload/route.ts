@@ -1,4 +1,4 @@
-import { ApiError, handle, json } from '@/lib/api';
+import { ApiError, handle, json, requirePermission } from '@/lib/api';
 import { requireClientFileAccess } from '@/lib/client-file-access';
 import {
   createClientFileUploadPost,
@@ -29,6 +29,7 @@ function fileTypeFromPath(pathname: string) {
 export const POST = handle(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const startedAt = Date.now();
   const { id } = await params;
+  await requirePermission('writeTasks');
   await requireClientFileAccess(id);
 
   const body = await request.json().catch(() => null);

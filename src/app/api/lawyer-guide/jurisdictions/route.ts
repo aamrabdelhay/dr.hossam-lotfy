@@ -1,8 +1,10 @@
 import { prisma } from '@/lib/prisma';
-import { json } from '@/lib/api';
+import { json, user } from '@/lib/api';
 
 /** GET: list jurisdictions with optional filters. */
 export async function GET(req: Request) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لعرض الاختصاصات' }, { status: 401 });
   const url = new URL(req.url);
   const governorate = url.searchParams.get('governorate') || '';
   const type = url.searchParams.get('type') || '';

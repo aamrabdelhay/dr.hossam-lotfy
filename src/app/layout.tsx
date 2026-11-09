@@ -56,7 +56,7 @@ function NavbarSkeleton() {
 async function enforceInternalAuthentication() {
   const requestHeaders = await headers();
   const pathname = requestHeaders.get('x-pathname') || '/';
-  const isPublicRoute = pathname === '/auth' || pathname.startsWith('/training');
+  const isPublicRoute = pathname === '/auth' || pathname === '/training';
   if (isPublicRoute) return;
   const session = await getCurrentUser();
   if (!session) redirect('/auth?next=' + encodeURIComponent(pathname));

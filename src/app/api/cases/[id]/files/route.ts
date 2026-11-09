@@ -66,7 +66,9 @@ export const GET = handle(async (_request: Request, { params }: Ctx) => {
 
 export const POST = handle(async (request: Request, { params }: Ctx) => {
   const { id } = await params;
-  const { session } = await requireCaseFileAccess(id);
+  const access = await requireCaseFileAccess(id);
+  if (!access.canRequestChanges) throw new ApiError(403, 'لا تملك صلاحية إضافة مستندات إلى هذه القضية.');
+  const { session } = access;
   const data = await readJson(request, createSchema);
   const extension = data.name.toLowerCase().match(/\.[^.]+$/)?.[0] || '';
   const fileType = FILE_TYPES[extension];

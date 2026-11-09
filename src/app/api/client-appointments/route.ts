@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { user, requirePermission } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { getBranchScope } from '@/lib/branch-access';
+import { isSeniorManagement } from '@/lib/office-workflow';
 import { sendTelegramGroupNotification } from '@/lib/telegram';
 
 const createSchema = z.object({
@@ -24,8 +25,13 @@ export async function POST(req: Request) {
 
   const data = createSchema.parse(await req.json());
   const currentUser = await getCurrentUser();
-  const scope = await getBranchScope(currentUser);
-  const branchId = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds[0] : null;
+  const [scope, senior] = await Promise.all([
+    getBranchScope(currentUser),
+    isSeniorManagement(currentUser),
+  ]);
+  if (!senior && !scope.officeManager) {
+    return NextResponse.json({ error: 'تحديد مواعيد العملاء متاح للإدارة العليا ومدير المكتب فقط' }, { status: 403 });
+  }
 
   const clients = await prisma.$queryRawUnsafe<Array<{ id: string; name: string; phone: string | null; branch_id: string | null; status: string | null }>>(
     'SELECT "id","name","phone","branch_id","status" FROM "clients" WHERE "id"=$1 LIMIT 1',
@@ -35,8 +41,8 @@ export async function POST(req: Request) {
   if (!client || client.status === 'DELETED' || client.status === 'REJECTED') {
     return NextResponse.json({ error: 'العميل غير موجود أو مؤرشف' }, { status: 404 });
   }
-  if (branchId && (client.branch_id || 'branch_main') !== branchId) {
-    return NextResponse.json({ error: 'ليس لديك صلاحية تحديد موعد لهذا العميل' }, { status: 403 });
+  if (!scope.allBranches && !scope.officeManagerBranchIds.includes(client.branch_id || 'branch_main')) {
+    return NextResponse.json({ error: 'ليس لديك صلاحية تحديد موعد لهذا العميل أو فرعه' }, { status: 403 });
   }
 
   const appointmentId = 'apt_' + crypto.randomUUID().replaceAll('-', '');

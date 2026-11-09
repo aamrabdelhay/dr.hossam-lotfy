@@ -7,7 +7,9 @@ type Ctx = { params: Promise<{ id:string; fileId:string }> };
 
 export const DELETE = handle(async (request:Request,{params}:Ctx) => {
   const {id,fileId}=await params;
-  const {session}=await requireCaseFileAccess(id);
+  const access=await requireCaseFileAccess(id);
+  if(!access.canRequestChanges) throw new ApiError(403,'لا تملك صلاحية طلب حذف مستند من هذه القضية.');
+  const {session}=access;
   const body=await request.json().catch(()=>null);
   const reason=typeof body?.reason==='string'?body.reason.trim():'';
   if(reason.length<3||reason.length>1000) throw new ApiError(400,'اكتب سببًا واضحًا لطلب حذف الملف.');

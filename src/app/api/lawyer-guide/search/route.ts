@@ -1,12 +1,14 @@
 import { prisma } from '@/lib/prisma';
-import { json } from '@/lib/api';
+import { json, user } from '@/lib/api';
 import { buildSearchTerms, normalizeAr } from '@/lib/lawyer-guide-search';
 
 /**
  * Intent-based bilingual search for the Lawyer Guide.
- * Public endpoint — no authentication required.
+ * Internal endpoint — a valid office session is required.
  */
 export async function GET(req: Request) {
+  const session = await user();
+  if (!session) return json({ error: 'يجب تسجيل الدخول لاستخدام البحث في دليل المحاكم' }, { status: 401 });
   const url = new URL(req.url);
   const q = (url.searchParams.get('q')?.trim() ?? '').slice(0, 200);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
