@@ -4,6 +4,8 @@ import { handle, json, readJson, user } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { getBranchScope } from "@/lib/branch-access";
 import { isFinanceManagement, isSeniorManagement } from "@/lib/office-workflow";
+import { requireCaseFileAccess } from "@/lib/case-file-access";
+import { logAuditEvent } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -57,18 +59,11 @@ async function resolveBranchId(
   const scope = await getBranchScope(session);
   let caseBranchId: string | null = null;
 
+  // A branch match is not enough: confidential cases and ethical walls are
+  // enforced by the same access policy used by the case workspace.
   if (caseId) {
-    const cases = await prisma.$queryRawUnsafe<Array<{ branchId: string | null }>>(
-      'SELECT "branch_id" AS "branchId" FROM "case_records" WHERE "id"=$1 LIMIT 1',
-      caseId,
-    );
-    if (!cases.length) return { error: "القضية المحددة غير موجودة" as const };
-    caseBranchId = cases[0].branchId || "branch_main";
-  }
-
-  if (!scope.allBranches && scope.branchIds.length && caseBranchId
-    && !scope.branchIds.includes(caseBranchId)) {
-    return { error: "لا تملك صلاحية تسجيل ساعات على قضية من هذا الفرع" as const };
+    const access = await requireCaseFileAccess(caseId);
+    caseBranchId = access.caseRow.branch_id;
   }
 
   let memberBranchIds: string[] = [];
@@ -78,13 +73,6 @@ async function resolveBranchId(
       session.lawyerId,
     ).catch(() => []);
     memberBranchIds = rows.map((row) => row.branchId);
-    if (caseBranchId && memberBranchIds.length
-      && !memberBranchIds.includes(caseBranchId)
-      && !scope.allBranches
-      && !scope.officeManagerBranchIds.includes(caseBranchId)
-      && !scope.financeManagerBranchIds.includes(caseBranchId)) {
-      return { error: "القضية خارج نطاق الفروع المسندة إلى حسابك" as const };
-    }
   }
 
   return {
@@ -102,9 +90,12 @@ export const GET = handle(async (request: Request) => {
 
   const scope = await getBranchScope(session);
   const senior = await isSeniorManagement(session);
-  const finance = senior || await isFinanceManagement(session);
-  const teamView = new URL(request.url).searchParams.get("scope") === "team" && finance;
-  const branchIds = !senior && teamView ? scope.branchIds : [];
+  const finance = await isFinanceManagement(session);
+  const canReview = senior || (finance && scope.financeManagerBranchIds.length > 0);
+  const teamView = new URL(request.url).searchParams.get("scope") === "team" && canReview;
+  // Finance review is limited to explicitly assigned finance branches. An
+  // empty branch list must never turn into an unrestricted team query.
+  const branchIds = !senior && teamView ? scope.financeManagerBranchIds : [];
 
   const rows = await prisma.$queryRawUnsafe<Array<Record<string, any>>>(
     'SELECT e."id", e."user_id", e."lawyer_id", e."case_id", e."branch_id", ' +
@@ -148,7 +139,7 @@ export const GET = handle(async (request: Request) => {
   }));
 
   return json(
-    { entries, scope: teamView ? "team" : "self", canReview: finance },
+    { entries, scope: teamView ? "team" : "self", canReview },
     { headers: { "Cache-Control": "private, no-store" } },
   );
 });
@@ -214,9 +205,8 @@ export const PATCH = handle(async (request: Request) => {
     }
 
     const scope = await getBranchScope(session);
-    if (!senior && scope.branchIds.length
-      && (!entry.branch_id || !scope.branchIds.includes(entry.branch_id))) {
-      return json({ error: "السجل خارج نطاق الفروع المصرح بها" }, { status: 403 });
+    if (!senior && (!entry.branch_id || !scope.financeManagerBranchIds.includes(entry.branch_id))) {
+      return json({ error: "السجل خارج نطاق الفروع المالية المسندة إليك" }, { status: 403 });
     }
 
     const reviewerUserId = session.role === "admin" ? session.userId : null;
@@ -229,6 +219,49 @@ export const PATCH = handle(async (request: Request) => {
       reviewerUserId, reviewerLawyerId, data.reviewNote || null, "SUBMITTED",
     );
     if (!changed) return json({ error: "تمت مراجعة السجل بالفعل" }, { status: 409 });
+
+    const approved = data.action === "approve";
+    const title = approved ? "تم اعتماد سجل ساعات العمل" : "سجل ساعات العمل يحتاج إلى تعديل";
+    const body = approved
+      ? `تم اعتماد سجل يوم ${entry.status === "SUBMITTED" ? "العمل" : ""}.`
+      : `تم إرجاع سجل الساعات للتعديل. السبب: ${data.reviewNote?.trim() || "يرجى مراجعة الإدارة"}`;
+    const owner = entry.user_id
+      ? { userId: entry.user_id }
+      : entry.lawyer_id
+        ? { lawyerId: entry.lawyer_id }
+        : null;
+
+    if (owner) {
+      await prisma.notification.create({
+        data: {
+          ...owner,
+          type: approved ? "TIMESHEET_APPROVED" : "TIMESHEET_REJECTED",
+          title,
+          body,
+          link: "/timesheets",
+        },
+      }).catch((error) => {
+        console.error("[timesheets] failed to notify entry owner:", error);
+      });
+    }
+
+    await logAuditEvent({
+      actorUserId: reviewerUserId,
+      actorLawyerId: reviewerLawyerId,
+      action: approved ? "TIMESHEET_APPROVED" : "TIMESHEET_REJECTED",
+      resourceType: "timesheet_entry",
+      resourceId: data.id,
+      summary: approved ? "اعتماد سجل ساعات عمل" : "إرجاع سجل ساعات عمل للتعديل",
+      metadata: {
+        ownerUserId: entry.user_id,
+        ownerLawyerId: entry.lawyer_id,
+        branchId: entry.branch_id,
+        reviewNote: data.reviewNote?.trim() || null,
+      },
+      ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+      userAgent: request.headers.get("user-agent"),
+    });
+
     return json({ ok: true });
   }
 

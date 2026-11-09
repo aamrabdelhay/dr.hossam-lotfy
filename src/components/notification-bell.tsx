@@ -6,7 +6,7 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 type BellNotification = { id: string; type: string; title: string; body: string | null; link: string | null; readAt: string | null; createdAt: string };
-const TYPE_LABEL: Record<string, string> = { TASK_ASSIGNED: 'مهمة جديدة', TASK_EDITED: 'تعديل', SESSION_CRITICAL: 'جلسة حرجة', SESSION_TOMORROW: 'جلسة غداً', COMMENT: 'تعليق', TASK_COMPLETED: 'تم التنفيذ', TASK_COMPLETION_REQUEST: 'طلب موافقة', TASK_DELETED: 'حذف مهمة', POST_CREATED: 'بوست جديد', ANNOUNCEMENT: 'إعلان' };
+const TYPE_LABEL: Record<string, string> = { TASK_ASSIGNED: 'مهمة جديدة', TASK_EDITED: 'تعديل', SESSION_CRITICAL: 'جلسة حرجة', SESSION_TOMORROW: 'جلسة غداً', COMMENT: 'تعليق', TASK_COMPLETED: 'تم التنفيذ', TASK_COMPLETION_REQUEST: 'طلب موافقة', TASK_DELETED: 'حذف مهمة', POST_CREATED: 'بوست جديد', ANNOUNCEMENT: 'إعلان', TIMESHEET_APPROVED: 'اعتماد ساعات العمل', TIMESHEET_REJECTED: 'مراجعة ساعات العمل' };
 function timeAgo(iso: string): string { const diff = Date.now() - new Date(iso).getTime(); const min = Math.floor(diff / 60000); if (min < 1) return 'الآن'; if (min < 60) return `منذ ${min} د`; const h = Math.floor(min / 60); if (h < 24) return `منذ ${h} س`; const d = Math.floor(h / 24); return `منذ ${d} يوم`; }
 
 export function NotificationBell({ unread }: { unread: number }) {

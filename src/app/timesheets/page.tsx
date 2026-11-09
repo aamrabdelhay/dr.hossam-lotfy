@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Clock3, CalendarDays, ArrowUpLeft } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { isFinanceManagement } from "@/lib/office-workflow";
+import { isFinanceManagement, isSeniorManagement } from "@/lib/office-workflow";
+import { getBranchScope } from "@/lib/branch-access";
 import { TimesheetWorkspace } from "@/components/timesheet-workspace";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,12 @@ function cairoDate() {
 export default async function TimesheetsPage() {
   const session = await getCurrentUser();
   if (!session) redirect("/auth?next=/timesheets");
-  const canReview = await isFinanceManagement(session);
+  const [senior, finance, branchScope] = await Promise.all([
+    isSeniorManagement(session),
+    isFinanceManagement(session),
+    getBranchScope(session),
+  ]);
+  const canReview = senior || (finance && branchScope.financeManagerBranchIds.length > 0);
 
   return (
     <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
