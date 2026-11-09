@@ -15,7 +15,7 @@ export const GET = handle(async () => {
     'اسم القضية', 'رقم القضية', 'وصف القضية', 'المستجدات', 'تاريخ المستجد', 'نوع المستجد',
   ];
   const workbook = createXlsx(headers, [], 'نموذج استيراد العملاء');
-  return new NextResponse(workbook, {
+  return new NextResponse(new Uint8Array(workbook), {
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

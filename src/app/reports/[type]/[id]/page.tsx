@@ -384,7 +384,8 @@ export default async function EntityReportPage({
   files = files.map((file) => ({ ...file, meta: translateReport(file.meta || '', language) }));
   timeline = timeline.map((item) => ({ ...item, title: translateReport(item.title, language), detail: translateReport(item.detail, language), meta: translateReport(item.meta || '', language) }));
   counts = counts.map((item) => ({ ...item, label: translateReport(item.label, language) }));
-  const showTimeline = ['cases', 'tasks', 'attendance', 'activity', 'developments', 'appointments', 'comments'].some((section) => requestedSections.has(section));
+  const timelineSections: ReportSectionKey[] = ['cases', 'tasks', 'attendance', 'activity', 'developments', 'appointments', 'comments'];
+  const showTimeline = timelineSections.some((section) => requestedSections.has(section));
   timeline.sort((a, b) => {
     const left = a.date ? (a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime()) : 0;
     const right = b.date ? (b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime()) : 0;

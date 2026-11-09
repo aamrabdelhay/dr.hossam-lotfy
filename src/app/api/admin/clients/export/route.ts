@@ -132,7 +132,7 @@ export const GET = handle(async (request: Request) => {
 
   const workbook = createXlsx(headers, rows, requestedId ? 'Client' : 'All Clients');
   const filename = requestedId ? 'client-' + requestedId + '.xlsx' : 'loutfi-clients.xlsx';
-  return new NextResponse(workbook, {
+  return new NextResponse(new Uint8Array(workbook), {
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

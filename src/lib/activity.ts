@@ -29,7 +29,9 @@ export type ActivityAction =
   | 'LAWYER_ADMIN_REVOKED'
   | 'COMPLETION_REJECTED'
   | 'COMPLETION_REQUESTED'
-  | 'COMPLETED_BY_APPROVAL';
+  | 'COMPLETED_BY_APPROVAL'
+  | 'LAWYER_REGISTRATION_REJECTED'
+  | 'COMPLETION_REVERTED';
 
 export async function logActivity(input: {
   action: ActivityAction;
@@ -88,4 +90,6 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   COMPLETION_REJECTED: 'رفض إنهاء التكليف',
   COMPLETION_REQUESTED: 'طلب إنهاء التكليف',
   COMPLETED_BY_APPROVAL: 'تم التنفيذ بالموافقة',
+  LAWYER_REGISTRATION_REJECTED: 'رفض طلب تسجيل محامٍ',
+  COMPLETION_REVERTED: 'التراجع عن تسجيل التنفيذ',
 };

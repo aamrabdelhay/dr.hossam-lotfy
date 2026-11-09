@@ -27,7 +27,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-import {Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, Select, Tabs} from '../ui';
+import {Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, Select, Tabs, Textarea} from '../ui';
 import { cn } from '@/lib/cn';
 import { PostCard } from '../post-card';
 import { TaskCreator } from './task-creator';
