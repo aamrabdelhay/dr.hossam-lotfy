@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Loutfi Law Firm",
+  "short_name": "Loutfi",
+  "description": "منصة إدارة مكتب لوتفي للمحاماة",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F7F5F0",
+  "theme_color": "#101C2C",
+  "icons": [
+    { "src": "/logo.png", "sizes": "any", "type": "image/png", "purpose": "any" }
+  ]
+}
