@@ -64,6 +64,7 @@ model User {
 
   comments      Comment[]
   notifications Notification[]
+  pushSubscriptions PushSubscription[]
   tasks         Task[]
   activities    ActivityLog[]
 
@@ -99,6 +100,7 @@ model Lawyer {
   comments       Comment[]
   accessTokens   AccessToken[]
   notifications  Notification[]
+  pushSubscriptions PushSubscription[]
   activities     ActivityLog[]
 
   @@index([sortOrder, fullName])
@@ -321,6 +323,7 @@ model Notification {
   body           String?
   link           String?
   readAt         DateTime?
+  pushSentAt     DateTime?
   createdAt      DateTime  @default(now())
 
   lawyer Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
@@ -634,4 +637,23 @@ model EmailReminder {
   @@unique([taskId, lawyerId, kind])
   @@index([taskId])
   @@map("email_reminders")
+}
+
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  lawyerId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lawyer Lawyer? @relation(fields: [lawyerId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lawyerId])
+  @@map("push_subscriptions")
 }
