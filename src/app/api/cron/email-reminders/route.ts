@@ -253,10 +253,14 @@ export async function GET(req: Request) {
   const todayKey = cairoDateKey();
   const telegramEnabled = isTelegramConfigured();
   const cairoHour = Number(new Intl.DateTimeFormat('en-US',{timeZone:'Africa/Cairo',hour:'2-digit',hour12:false}).format(new Date()));
-  const dailyAtMidnight = cairoHour === 0;
+  // Vercel Cron is scheduled for 21:00 UTC. Depending on Egypt's seasonal
+  // UTC offset, that lands in Cairo's 23:00 or 00:00 hour. Hobby Cron may
+  // start at any minute within the scheduled UTC hour, so do not require
+  // exactly midnight or the daily Telegram summary will be skipped in winter.
+  const dailySummaryDue = cairoHour === 23 || cairoHour === 0;
 
   const [telegram, email, fileDeletionCleanup, retentionReview] = await Promise.all([
-    dailyAtMidnight ? sendTelegramDailySummary(todayKey).catch((error) => ({ error: String(error?.message ?? error) })) : Promise.resolve({ skipped: 'not-daily-run' }),
+    dailySummaryDue ? sendTelegramDailySummary(todayKey).catch((error) => ({ error: String(error?.message ?? error) })) : Promise.resolve({ skipped: 'not-daily-run' }),
     sendEmailReminders().catch((error) => ({ error: String(error?.message ?? error) })),
     purgeExpiredApprovedFiles().catch((error) => ({ error: String(error?.message ?? error) })),
     recordRetentionReviewCandidates().catch((error) => ({ error: String(error?.message ?? error) })),
