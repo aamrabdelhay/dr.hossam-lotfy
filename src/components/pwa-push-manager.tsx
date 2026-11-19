@@ -25,13 +25,51 @@ export function PwaPushManager() {
     setInstalled(window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
     const onPrompt = (event: Event) => { event.preventDefault(); setInstallPrompt(event); };
     window.addEventListener('beforeinstallprompt', onPrompt);
+    let active = true;
+    let pollId: ReturnType<typeof setInterval> | undefined;
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(async (registration) => {
         const subscription = await registration.pushManager.getSubscription();
-        setPushEnabled(Boolean(subscription));
+        if (active) setPushEnabled(Boolean(subscription));
+        const seen = new Set<string>();
+        let initialLoad = true;
+        const poll = async () => {
+          try {
+            const response = await fetch('/api/notifications', { cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json() as { notifications?: Array<{id:string;title:string;body?:string|null;link?:string|null;createdAt:string}> };
+            const rows = data.notifications ?? [];
+            if (initialLoad) {
+              rows.forEach((item) => seen.add(item.id));
+              initialLoad = false;
+              return;
+            }
+            for (const item of rows) {
+              if (seen.has(item.id)) continue;
+              seen.add(item.id);
+              if (Notification.permission === 'granted') {
+                await registration.showNotification(item.title, {
+                  body: item.body || 'لديك تذكير جديد من مكتب لوتفي.',
+                  icon: '/logo.png',
+                  badge: '/logo.png',
+                  tag: item.id,
+                  dir: 'rtl',
+                  lang: 'ar',
+                  data: { url: item.link || '/notifications' }
+                });
+              }
+            }
+          } catch { /* temporary offline state; retry on next poll */ }
+        };
+        await poll();
+        pollId = setInterval(() => { void poll(); }, 60_000);
       }).catch(() => setMessage('تعذر تهيئة خدمة الإشعارات على هذا الجهاز.'));
     }
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+    return () => {
+      active = false;
+      if (pollId) clearInterval(pollId);
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+    };
   }, []);
 
   const enablePush = async () => {
