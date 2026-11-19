@@ -47,7 +47,7 @@ export function PwaPushManager() {
             for (const item of rows) {
               if (seen.has(item.id)) continue;
               seen.add(item.id);
-              if (Notification.permission === 'granted') {
+              if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
                 await registration.showNotification(item.title, {
                   body: item.body || 'لديك تذكير جديد من مكتب لوتفي.',
                   icon: '/logo.png',
