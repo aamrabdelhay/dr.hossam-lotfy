@@ -46,7 +46,7 @@ export function PwaPushManager() {
       if (!response.ok || !config.key) throw new Error(config.error || 'مفتاح الإشعارات غير مضبوط على الخادم.');
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: base64UrlToBytes(config.key) as BufferSource
+        applicationServerKey: base64UrlToBytes(config.key) as unknown as BufferSource
       });
       const saved = await fetch('/api/push/subscribe', {
         method: 'POST',
