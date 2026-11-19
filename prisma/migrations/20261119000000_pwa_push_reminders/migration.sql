@@ -1,4 +1,5 @@
 ALTER TABLE "notifications" ADD COLUMN "pushSentAt" TIMESTAMP(3);
+UPDATE "notifications" SET "pushSentAt" = "createdAt" WHERE "pushSentAt" IS NULL;
 
 CREATE TABLE "push_subscriptions" (
   "id" TEXT NOT NULL,
