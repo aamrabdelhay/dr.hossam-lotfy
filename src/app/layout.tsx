@@ -15,6 +15,7 @@ import { LayoutNavbarRegion } from '@/components/layout-navbar-region';
 import { LayoutWarningRegion } from '@/components/layout-warning-region';
 import { LayoutFooterRegion } from '@/components/layout-footer-region';
 import { LayoutMobileSessions } from '@/components/layout-mobile-sessions';
+import { PwaPushManager } from '@/components/pwa-push-manager';
 
 const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant-local',
@@ -32,6 +33,9 @@ const ibmArabic = IBM_Plex_Sans_Arabic({
 export const metadata: Metadata = {
   title: { default: 'Loutfi Law Firm — Law Firm Operations', template: '%s — Loutfi Law Firm' },
   description: 'Loutfi Law Firm internal platform for hearings, work locations, tasks, colleagues and daily office operations.',
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Loutfi' },
+  icons: { icon: '/logo.png', apple: '/logo.png' },
 };
 export const viewport: Viewport = { themeColor: '#05080F', width: 'device-width', initialScale: 1 };
 
@@ -72,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <LayoutNavbarRegion />
           </Suspense>
           <GlobalNavigationChrome />
+          <PwaPushManager />
           <Suspense fallback={null}>
             <LayoutWarningRegion />
           </Suspense>
