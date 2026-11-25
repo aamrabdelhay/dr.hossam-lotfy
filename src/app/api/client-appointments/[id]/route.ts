@@ -5,6 +5,7 @@ import { user } from '@/lib/api';
 import { getBranchScope } from '@/lib/branch-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
 import { sendTelegramGroupNotification } from '@/lib/telegram';
+import { SLOT_CONFLICT_SQL, slotHour } from '@/lib/public-booking';
 
 const schema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -26,20 +27,58 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const data = schema.parse(await req.json());
   const { id } = await params;
   const rows = await prisma.$queryRawUnsafe<Array<{
-    id: string; name: string; phone: string | null; appointment_type: string; branch_id: string | null;
+    id: string;
+    name: string;
+    phone: string | null;
+    appointment_type: string;
+    branch_id: string | null;
   }>>(
-    'SELECT a."id", c."name", c."phone", c."branch_id", a."appointment_type" FROM "client_appointments" a JOIN "clients" c ON c."id"=a."client_id" WHERE a."id"=$1 LIMIT 1',
-    id
+    `SELECT a."id", c."name", c."phone",
+            COALESCE(a."branch_id",c."branch_id",'branch_main') AS "branch_id",
+            a."appointment_type"
+       FROM "client_appointments" a
+       JOIN "clients" c ON c."id"=a."client_id"
+      WHERE a."id"=$1
+      LIMIT 1`,
+    id,
   );
   if (!rows[0]) return NextResponse.json({ error: 'طلب الموعد غير موجود' }, { status: 404 });
-  if (!scope.allBranches && !scope.officeManagerBranchIds.includes(rows[0].branch_id || 'branch_main')) {
+
+  const branch = rows[0].branch_id || 'branch_main';
+  if (!scope.allBranches && !scope.officeManagerBranchIds.includes(branch)) {
     return NextResponse.json({ error: 'ليس لديك صلاحية تعديل موعد لعميل من هذا الفرع' }, { status: 403 });
   }
 
-  await prisma.$executeRawUnsafe(
-    'UPDATE "client_appointments" SET "appointment_date"=$2::date,"appointment_time"=$3,"status"=\'CONFIRMED\',"updated_at"=NOW() WHERE "id"=$1',
-    id, data.date, data.time
-  );
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `slot:${branch}:${data.date}`,
+      );
+      const clash = await tx.$queryRawUnsafe<unknown[]>(
+        SLOT_CONFLICT_SQL,
+        branch,
+        data.date,
+        slotHour(data.time),
+        id,
+      );
+      if (clash[0]) throw new Error('SLOT_TAKEN');
+
+      await tx.$executeRawUnsafe(
+        'UPDATE "client_appointments" SET "appointment_date"=$2::date,"appointment_time"=$3,"status"=\'CONFIRMED\',"branch_id"=$4,"reminder_sent_at"=NULL,"updated_at"=NOW() WHERE "id"=$1',
+        id,
+        data.date,
+        data.time,
+        branch,
+      );
+    });
+  } catch (error) {
+    const message = String((error as Error)?.message || error);
+    if (message.includes('SLOT_TAKEN') || message.includes('client_appointments_slot_live_key')) {
+      return NextResponse.json({ error: 'يوجد موعد آخر في نفس الساعة بهذا الفرع' }, { status: 409 });
+    }
+    throw error;
+  }
 
   const typeLabels: Record<string, string> = {
     LEGAL_CONSULTATION: 'استشارة قانونية',
@@ -59,7 +98,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     '📅 <b>التاريخ:</b> ' + data.date,
     '🕕 <b>الوقت:</b> ' + data.time,
   ].filter(Boolean).join('\n');
-  await sendTelegramGroupNotification(message).catch((error) => { console.error('Client appointment Telegram notification failed:', error); });
+  await sendTelegramGroupNotification(message).catch((error) => {
+    console.error('Client appointment Telegram notification failed:', error);
+  });
 
-  return NextResponse.json({ ok: true, date: data.date, time: data.time, status: 'CONFIRMED' });
+  return NextResponse.json({ ok: true, date: data.date, time: data.time, status: 'CONFIRMED', branchId: branch });
 }
