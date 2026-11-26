@@ -27,6 +27,8 @@ const regularLawyer = {
 const visibleForLawyer = filterFeaturesByAccess(FEATURES, regularLawyer);
 check(visibleForLawyer.every((feature) => !feature.group.includes('الإدارة')), 'ordinary lawyer is not given administration directory entries');
 check(visibleForLawyer.some((feature) => feature.id === 'tasks'), 'ordinary lawyer retains unrestricted day-to-day features');
+const seniorLawyer = { ...regularLawyer, isSenior: true, isStaff: true, isOfficeManager: true };
+check(filterFeaturesByAccess([lawyerFeature], seniorLawyer).length === 1, 'senior management can access permission-scoped features');
 
 function collectPages(directory: string): string[] {
   const paths: string[] = [];
