@@ -1,6 +1,12 @@
-const CACHE_NAME = 'loutfi-shell-v1';
-self.addEventListener('install', (event) => { self.skipWaiting(); });
-self.addEventListener('activate', (event) => { event.waitUntil(self.clients.claim()); });
+const APP_BUILD_ID = '__APP_BUILD_ID__';
+self.addEventListener('install', (event) => { event.waitUntil(self.skipWaiting()); });
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    await self.clients.claim();
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    windows.forEach((client) => client.postMessage({ type: 'LOUTFI_SW_ACTIVATED', buildId: APP_BUILD_ID }));
+  })());
+});
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() || '' }; }
