@@ -12,8 +12,10 @@ const check = (condition: boolean, label: string) => {
 check(normalizeAr('إضافة') === normalizeAr('اضافه'), 'Arabic normalization unifies alif and taa marbuta');
 const lawyerFeature = FEATURES.find((feature) => feature.id === 'admin-lawyers')!;
 const locationsFeature = FEATURES.find((feature) => feature.id === 'locations')!;
+const financeFeature = FEATURES.find((feature) => feature.id === 'admin-finance')!;
 check(matchFeature(lawyerFeature, 'اضافة محامي'), 'search finds lawyer administration by Arabic keywords');
 check(matchFeature(locationsFeature, 'محكمة'), 'search finds locations by court keyword');
+check(matchFeature(financeFeature, 'إدارة مالية'), 'search finds financial administration by Arabic keyword');
 check(!matchFeature(locationsFeature, 'كلمة عشوائية لا توجد'), 'unrelated terms do not match');
 
 const ids = FEATURES.map((feature) => feature.id);
@@ -27,6 +29,9 @@ const regularLawyer = {
 const visibleForLawyer = filterFeaturesByAccess(FEATURES, regularLawyer);
 check(visibleForLawyer.every((feature) => !feature.group.includes('الإدارة')), 'ordinary lawyer is not given administration directory entries');
 check(visibleForLawyer.some((feature) => feature.id === 'tasks'), 'ordinary lawyer retains unrestricted day-to-day features');
+check(!visibleForLawyer.some((feature) => feature.id === 'admin-finance'), 'ordinary lawyer cannot see financial administration');
+const financeLawyer = { ...regularLawyer, isStaff: true, isFinance: true };
+check(filterFeaturesByAccess([financeFeature], financeLawyer).length === 1, 'finance management can see financial administration');
 const seniorLawyer = { ...regularLawyer, isSenior: true, isStaff: true, isOfficeManager: true };
 check(filterFeaturesByAccess([lawyerFeature], seniorLawyer).length === 1, 'senior management can access permission-scoped features');
 
