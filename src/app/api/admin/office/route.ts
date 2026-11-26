@@ -74,10 +74,12 @@ export async function POST(req: Request) {
   const body = await req.json();
   const action = String(body.action || '');
   const financeActions = ['finance_admin_add','finance_admin_remove','expense_add','expense_mark_paid','expense_delete','due_add'];
+  const financeAssignmentActions = ['finance_admin_add','finance_admin_remove'];
   const managerActions = ['lawyer_add','location_add','case_branch_assign','lawyer_branch_assign'];
   const seniorOnlyActions = ['branch_add','branch_update','office_manager_add','office_manager_remove','senior_add','senior_remove','category_save','category_move','category_delete','restore'];
   if (seniorOnlyActions.includes(action) && !senior) return NextResponse.json({ error: 'هذا الإجراء متاح للإدارة العليا فقط' }, { status: 403 });
   if (financeActions.includes(action) && !senior && !finance) return NextResponse.json({ error: 'تحتاج إلى صلاحية الإدارة المالية' }, { status: 403 });
+  if (financeAssignmentActions.includes(action) && !senior) return NextResponse.json({ error: 'تعيين وإزالة مسؤولي الإدارة المالية متاحان للإدارة العليا فقط' }, { status: 403 });
   if (managerActions.includes(action) && !senior && !officeManager) return NextResponse.json({ error: 'تحتاج إلى صلاحية مدير المكتب' }, { status: 403 });
 
   if (body.action === 'case_branch_assign') {
@@ -154,7 +156,21 @@ export async function POST(req: Request) {
     const data = z.object({ lawyerId:z.string(), branchId:z.string() }).parse(body);
     const lawyer = await prisma.$queryRawUnsafe<Array<{id:string;active:boolean}>>('SELECT "id","active" FROM "lawyers" WHERE "id"=$1 LIMIT 1',data.lawyerId);
     if (!lawyer[0] || !lawyer[0].active) return NextResponse.json({ error: 'الزميل غير موجود أو غير نشط' }, { status: 404 });
+    const branch = await prisma.$queryRawUnsafe<Array<{id:string}>>('SELECT "id" FROM "office_branches" WHERE "id"=$1 AND "active"=true LIMIT 1',data.branchId);
+    if (!branch[0]) return NextResponse.json({ error: 'الفرع غير موجود أو غير نشط' }, { status: 404 });
+    const displaced = await prisma.$queryRawUnsafe<Array<{lawyer_id:string}>>(
+      'SELECT DISTINCT "lawyer_id" FROM "office_branch_managers" WHERE "manager_type"=\'FINANCE_MANAGER\' AND (("lawyer_id"=$1) OR ("branch_id"=$2)) AND "lawyer_id" IS NOT NULL',
+      data.lawyerId, data.branchId,
+    );
     await prisma.$executeRawUnsafe('DELETE FROM "office_branch_managers" WHERE ("lawyer_id"=$1 AND "manager_type"=\'FINANCE_MANAGER\') OR ("branch_id"=$2 AND "manager_type"=\'FINANCE_MANAGER\')',data.lawyerId,data.branchId);
+    for (const previous of displaced) {
+      if (previous.lawyer_id === data.lawyerId) continue;
+      const remaining = await prisma.$queryRawUnsafe<Array<{id:string}>>(
+        'SELECT "id" FROM "office_branch_managers" WHERE "lawyer_id"=$1 AND "manager_type"=\'FINANCE_MANAGER\' LIMIT 1',
+        previous.lawyer_id,
+      );
+      if (!remaining.length) await prisma.$executeRawUnsafe('DELETE FROM "office_finance_members" WHERE "lawyer_id"=$1',previous.lawyer_id);
+    }
     await prisma.$executeRawUnsafe('INSERT INTO "office_branch_lawyers" ("branch_id","lawyer_id") VALUES ($1,$2) ON CONFLICT DO NOTHING',data.branchId,data.lawyerId);
     await prisma.$executeRawUnsafe('INSERT INTO "office_branch_managers" ("id","branch_id","manager_type","lawyer_id") VALUES ($1,$2,\'FINANCE_MANAGER\',$3)',officeId('finance_admin'),data.branchId,data.lawyerId);
     await prisma.$executeRawUnsafe('INSERT INTO "office_finance_members" ("id","lawyer_id") VALUES ($1,$2) ON CONFLICT ("lawyer_id") DO NOTHING',officeId('finance_legacy'),data.lawyerId);
@@ -170,7 +186,13 @@ export async function POST(req: Request) {
     const id = z.string().parse(body.id);
     const rows = await prisma.$queryRawUnsafe<Array<{lawyer_id:string|null}>>('SELECT "lawyer_id" FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"=\'FINANCE_MANAGER\' LIMIT 1', id);
     await prisma.$executeRawUnsafe(`DELETE FROM "office_branch_managers" WHERE "id"=$1 AND "manager_type"='FINANCE_MANAGER'`, id);
-    if(rows[0]?.lawyer_id) await prisma.$executeRawUnsafe(`DELETE FROM "office_finance_members" WHERE "lawyer_id"=$1`, rows[0].lawyer_id);
+    if(rows[0]?.lawyer_id) {
+      const remaining = await prisma.$queryRawUnsafe<Array<{id:string}>>(
+        'SELECT "id" FROM "office_branch_managers" WHERE "lawyer_id"=$1 AND "manager_type"=\'FINANCE_MANAGER\' LIMIT 1',
+        rows[0].lawyer_id,
+      );
+      if (!remaining.length) await prisma.$executeRawUnsafe(`DELETE FROM "office_finance_members" WHERE "lawyer_id"=$1`, rows[0].lawyer_id);
+    }
     return NextResponse.json({ ok: true });
   }
   if (body.action === 'lawyer_add') {
