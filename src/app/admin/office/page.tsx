@@ -31,11 +31,18 @@ export default async function OfficeManagementPage() {
           <h1 className="mt-2 text-2xl font-extrabold text-navy-950">اختر المكتب أو الفرع</h1>
           <p className="mt-1 text-sm font-medium text-navy-400">بعد اختيار الفرع ستفتح لك صفحته الكاملة بالموظفين والعملاء والقضايا والجلسات والإشعارات.</p>
         </div>
-        {(senior || officeManager || finance) && (
-          <Link href="/admin/office/control" className="inline-flex items-center gap-2 rounded-xl bg-navy-950 px-4 py-2.5 text-xs font-extrabold text-white">
-            <ShieldCheck size={15}/> أدوات الإدارة العامة
-          </Link>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {(senior || officeManager || finance) && (
+            <Link href="/admin/office/control" className="inline-flex items-center gap-2 rounded-xl bg-navy-950 px-4 py-2.5 text-xs font-extrabold text-white">
+              <ShieldCheck size={15}/> أدوات الإدارة العامة
+            </Link>
+          )}
+          {(senior || officeManager) && (
+            <Link href="/admin/office/live" className="inline-flex items-center gap-2 rounded-xl border border-gold-300 bg-white px-4 py-2.5 text-xs font-extrabold text-navy-900 hover:bg-gold-50">
+              شاشة المكتب الحية
+            </Link>
+          )}
+        </div>
       </div>
 
       {branches.length ? (

@@ -183,7 +183,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
   );
 
   const quickList = (
-    <div className="w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-navy-100 bg-white p-2 shadow-xl">
+    <div className="max-h-[min(70vh,calc(100dvh-6rem))] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain scroll-smooth rounded-2xl border border-navy-100 bg-white p-2 shadow-xl">
       <p className="px-3 py-2 text-[10px] font-black text-gold-700">{COPY.quick}</p>
       <Link href="/my-day" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><ClipboardList size={15}/>يومي</Link>
       <Link href="/timesheets" className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-[12px] font-bold text-navy-700 hover:bg-ivory-50"><Clock3 size={15}/>ساعات العمل</Link>
@@ -248,7 +248,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
         </div>
       </div>
       {mobileOpen && session && (
-        <div className="border-t border-navy-100 bg-white p-3 lg:hidden">
+        <div className="max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain border-t border-navy-100 bg-white p-3 lg:hidden">
           <form onSubmit={doSearch} className="mb-3 flex gap-2"><input value={q} onChange={(event) => setQ(event.target.value)} placeholder={COPY.searchShort} className="h-10 flex-1 rounded-xl border border-navy-200 px-3 text-sm" /><button type="submit" className="rounded-xl bg-navy-950 px-3 text-gold-400" aria-label={COPY.search}><Search size={15} /></button></form>
           <div className="grid gap-1.5">
             <Link prefetch={true} href="/locations" className={navClass(false)}>{COPY.courts}</Link>

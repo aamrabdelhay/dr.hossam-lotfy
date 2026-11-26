@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
+import { shouldShowPwaActions } from '@/lib/pwa-display-core';
 import { BellRing, Download, Loader2, Smartphone } from 'lucide-react';
 
 type SubscribeResponse = { key?: string; enabled?: boolean; error?: string };
@@ -13,6 +15,7 @@ function base64UrlToBytes(value: string) {
 }
 
 export function PwaPushManager() {
+  const pathname = usePathname();
   const [installPrompt, setInstallPrompt] = React.useState<any>(null);
   const [busy, setBusy] = React.useState(false);
   const [installed, setInstalled] = React.useState(false);
@@ -109,6 +112,8 @@ export function PwaPushManager() {
     await installPrompt.userChoice;
     setInstallPrompt(null);
   };
+
+  if (!shouldShowPwaActions(pathname ?? '')) return null;
 
   return <div className="fixed bottom-4 start-4 z-[80] flex max-w-[min(92vw,360px)] flex-col items-start gap-2">
     <div className="flex flex-wrap gap-2">
