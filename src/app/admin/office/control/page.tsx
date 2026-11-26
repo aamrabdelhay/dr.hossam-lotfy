@@ -13,7 +13,9 @@ import { SecurityControls } from '@/components/admin/security-controls';
 
 export const metadata: Metadata = { title: 'أدوات الإدارة العامة' };
 
-export default async function OfficeControlPage() {
+export default async function OfficeControlPage({ searchParams }: { searchParams?: Promise<{ tab?: string }> }) {
+  const params = await searchParams ?? {};
+  const initialTab = params.tab === 'finance' ? 'finance' : 'branches';
   const session = await getCurrentUser();
   if (!session) redirect('/auth');
 
@@ -40,7 +42,7 @@ export default async function OfficeControlPage() {
       {senior || officeManager ? (
         <div className="space-y-6">
           {senior && <><SecurityControls /><SeniorAdminActions /><RequestGroupsClient /><FileDeletionRequests /></>}
-          <OfficeManagementClient />
+          <OfficeManagementClient initialTab={initialTab} canManageFinance={senior} />
         </div>
       ) : (
         <FinanceManagementClient canManage={finance} />
