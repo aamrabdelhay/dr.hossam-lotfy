@@ -87,7 +87,7 @@ export async function featuresFor(session: SessionUser | null): Promise<Feature[
   // A few legacy pages have narrower guards than their underlying API permissions.
   // Match the page-level guard as well, so the directory never advertises a dead end.
   return allowedByPermission.filter((feature) => {
-    if (feature.id === 'admin-clients') return session.role === 'admin' || officeManager;
+    if (feature.id === 'admin-clients') return session.role === 'admin' || (session.role === 'lawyer' && session.isAdmin) || officeManager;
     if (feature.id === 'admin-lawyer-guide') return session.role === 'admin';
     if (feature.id === 'admin-lawyers' && session.role === 'lawyer') {
       return permissionActor?.userRole === 'ADMIN' || permissionActor?.userRole === 'SUPER_ADMIN';
