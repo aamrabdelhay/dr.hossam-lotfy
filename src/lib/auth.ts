@@ -12,7 +12,7 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 180;
 
 export type SessionUser =
   | { role: 'admin'; userId: string; name: string; userRole: StaffRole }
-  | { role: 'lawyer'; lawyerId: string; name: string; slug: string; isAdmin: boolean };
+  | { role: 'lawyer'; lawyerId: string; name: string; slug: string; isAdmin: boolean; isSenior: boolean };
 
 function secret(): string { const s = process.env.SESSION_SECRET; if (!s) throw new Error('SESSION_SECRET is not set'); return s; }
 function hmac(payload: string): string { return crypto.createHmac('sha256', secret()).update(payload).digest('base64url'); }
@@ -63,18 +63,22 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Ses
     if (!lawyer || !lawyer.active) return null;
     const identityEmail = (lawyer.googleEmail || lawyer.email || '').trim().toLowerCase();
     let isAdmin = false;
+    let isSenior = false;
     if (identityEmail) {
       const adminAccount = await prisma.user.findUnique({ where: { email: identityEmail }, select: { role: true } });
       isAdmin = adminAccount?.role === 'SUPER_ADMIN' || adminAccount?.role === 'ADMIN';
+      isSenior = isAdmin;
     }
     if (!isAdmin) {
       const [senior, manager] = await Promise.all([
         prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "office_senior_members" WHERE "lawyer_id"=$1 LIMIT 1', lawyer.id).catch(() => []),
         prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "office_branch_managers" WHERE "lawyer_id"=$1 LIMIT 1', lawyer.id).catch(() => []),
       ]);
-      isAdmin = senior.length > 0 || manager.length > 0;
+      isSenior = senior.length > 0;
+      // isAdmin only opens the admin screens. Branch managers get it, but NOT senior privileges (isSenior).
+      isAdmin = isSenior || manager.length > 0;
     }
-    return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug, isAdmin };
+    return { role: 'lawyer', lawyerId: lawyer.id, name: lawyer.fullName, slug: lawyer.slug, isAdmin, isSenior };
   }
   return null;
 });

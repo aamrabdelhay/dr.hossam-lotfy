@@ -76,7 +76,7 @@ export function FileDeletionRequests(){
         {archives.map(item=><article key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ivory-50 p-3">
           <div className="min-w-0"><p className="break-words text-xs font-extrabold text-navy-900">{item.file_name}</p>
             <p className="mt-1 text-[10px] text-navy-400">{item.file_type==='case'?'ملف قضية':'ملف عميل'} · {item.resource_name||'الملف المرتبط'}</p>
-            <p className="mt-1 text-[10px] text-navy-500">تاريخ الموافقة: {dateLabel(item.decided_at)} · تنتهي الأرشفة: {dateLabel(item.archive_expires_at)}</p>
+            <p className="mt-1 text-[10px] text-navy-500">تاريخ الموافقة: {dateLabel(item.decided_at)} · {item.status==='ARCHIVE_EXPIRED'?'انتهت مدة الأرشفة (31 يومًا) والملف ما زال محفوظًا':'تنتهي مدة الأرشفة: '+dateLabel(item.archive_expires_at)}</p>
           </div><div className="flex shrink-0 items-center gap-2">
             {item.archive_url&&<a href={item.archive_url} target="_blank" rel="noreferrer" className="rounded-lg border border-navy-200 bg-white px-3 py-2 text-[10px] font-bold text-navy-700">فتح الملف</a>}
             <button type="button" disabled={busy===item.id} onClick={()=>void act(item.id,'restore')} className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[10px] font-extrabold text-emerald-700 disabled:opacity-50">استرجاع</button>
@@ -84,6 +84,6 @@ export function FileDeletionRequests(){
         </article>)}
       </div>}
     </div>
-    <p className="mt-3 text-[10px] leading-5 text-navy-400">بعد انتهاء مدة الأرشفة، تُحذف النسخة المخزنة فقط للطلبات التي وافقت عليها الإدارة العليا، وتظل سجلات القرار محفوظة.</p>
+    <p className="mt-3 text-[10px] leading-5 text-navy-400">لا يُحذف أي ملف تلقائيًا. بعد موافقة الإدارة العليا ينتقل الملف إلى الأرشيف لمدة 31 يومًا، وبعد انتهائها يبقى محفوظًا وتصل الإدارة العليا إشعار، ولا يتغير شيء إلا بقرار جديد منها.</p>
   </section>;
 }

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ArrowRight, CalendarDays, FileText, FolderOpen, UserRound, History } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
+import { logView } from '@/lib/audit';
 import { requireCaseFileAccess } from '@/lib/case-file-access';
 import { isSeniorManagement } from '@/lib/office-workflow';
 import { can } from '@/lib/rbac';
@@ -10,6 +11,13 @@ import { CaseSecurityPanel } from '@/components/case-security-panel';
 import { CaseScenarioPlanner } from '@/components/case-scenario-planner';
 import { prisma } from '@/lib/prisma';
 import { Card, EmptyState } from '@/components/ui';
+import { CaseRegisterPanel } from '@/components/case-register-panel';
+import { CaseChronologyPanel } from '@/components/case-chronology-panel';
+import { CasePartiesPanel } from '@/components/case-parties-panel';
+import { CaseFinancePanel } from '@/components/case-finance-panel';
+import { CaseQualityPanel } from '@/components/case-quality-panel';
+import { PlaybookApply } from '@/components/playbook-apply';
+import { CaseDeadlinesPanel } from '@/components/case-deadlines-panel';
 import { CaseFilesPanel } from '@/components/case-files-panel';
 import { CaseClientsPanel } from '@/components/case-clients-panel';
 import { CaseDevelopmentForm } from '@/components/case-development-form';
@@ -49,6 +57,7 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
   const { id } = await params;
   let caseAccess: Awaited<ReturnType<typeof requireCaseFileAccess>>;
   try { caseAccess = await requireCaseFileAccess(id); } catch { notFound(); }
+  await logView(session, 'case', id);
   const canManageSecurity = await isSeniorManagement(session);
   const canEditScenarios = caseAccess.canRequestChanges
     && (session.role !== 'admin' || can(session.userRole, 'writeTasks'));
@@ -131,7 +140,14 @@ export default async function CaseDetailsPage({ params }: { params: Promise<{ id
         </Card>
       </div>
 
+      <CaseChronologyPanel caseId={id} />
+      <CasePartiesPanel caseId={id} />
       <CaseClientsPanel caseId={id} />
+      <CaseRegisterPanel caseId={id} canEdit={caseAccess.canRequestChanges} />
+      <PlaybookApply caseId={id} canEdit={caseAccess.canRequestChanges} />
+<CaseFinancePanel caseId={id} />
+<CaseQualityPanel caseId={id} />
+      <CaseDeadlinesPanel caseId={id} canEdit={caseAccess.canRequestChanges} />
       <CaseFilesPanel caseId={id} />
       <Card className="mt-5 overflow-hidden">
         <div className="border-b border-navy-100 px-5 py-4">

@@ -1,3 +1,4 @@
+import { assertTaskVisible } from '@/lib/case-file-access';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { handle, json, readJson, user } from '@/lib/api';
@@ -48,7 +49,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     });
   }
 
-  const { id } = await ctx.params;
+  const { id } = await ctx.params; await assertTaskVisible(id);
   const task = await prisma.task.findUnique({ where: { id } });
   if (!task) return json({ error: 'المهمة غير موجودة' }, {
     status: 404,
@@ -73,7 +74,7 @@ const createSchema = z.object({
 
 /** Only an authenticated lawyer or admin may comment. */
 export const POST = handle(async (req: Request, ctx: Ctx) => {
-  const { id } = await ctx.params;
+  const { id } = await ctx.params; await assertTaskVisible(id);
   const session = await user();
   if (!session) return json({ error: 'يجب تسجيل الدخول لإضافة تعليق.' }, { status: 401 });
 

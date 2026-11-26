@@ -1,11 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import { handle, json, user } from '@/lib/api';
+import { snoozedIds } from '@/lib/notification-meta';
 export async function GET() {
   const session = await user();
   if (!session) return json({ notifications: [], unread: 0 });
   const owner = session.role === 'admin' ? { userId: session.userId } : { lawyerId: session.lawyerId };
   const now = new Date();
-  const where = session.role === 'admin' ? owner : { ...owner, OR: [{ type: { not: 'PERSONAL_REMINDER' } }, { type: 'PERSONAL_REMINDER', createdAt: { lte: now } }] };
+  const hide = await snoozedIds(session).catch(() => [] as string[]);
+  const base = session.role === 'admin' ? owner : { ...owner, OR: [{ type: { not: 'PERSONAL_REMINDER' } }, { type: 'PERSONAL_REMINDER', createdAt: { lte: now } }] };
+  const where = hide.length ? { ...base, id: { notIn: hide } } : base;
   const [notifications, unread] = await Promise.all([prisma.notification.findMany({ where, orderBy: { createdAt: 'desc' }, take: 40 }), prisma.notification.count({ where: { ...where, readAt: null } })]);
   return json({ notifications, unread });
 }

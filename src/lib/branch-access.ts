@@ -20,7 +20,7 @@ export async function getBranchScope(session:SessionUser|null):Promise<BranchSco
   if(!session)return{allBranches:false,branchIds:[],officeManagerBranchIds:[],financeManagerBranchIds:[],officeManager:false,financeManager:false};
   const userId=session.role==='admin'?session.userId:null;
   const lawyerId=session.role==='lawyer'?session.lawyerId:null;
-  const seniorByAccount=(session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN'))||(session.role==='lawyer'&&session.isAdmin);
+  const seniorByAccount=(session.role==='admin'&&(session.userRole==='ADMIN'||session.userRole==='SUPER_ADMIN'))||(session.role==='lawyer'&&session.isSenior);
   const seniorByMembership=!!(await prisma.$queryRawUnsafe<Array<{id:string}>>(
     `SELECT "id" FROM "office_senior_members" WHERE (("user_id"=$1 AND $1 IS NOT NULL) OR ("lawyer_id"=$2 AND $2 IS NOT NULL)) LIMIT 1`,userId,lawyerId).catch(()=>[]))[0];
   const seniorByPrincipal=!!(lawyerId && (await prisma.$queryRawUnsafe<Array<{id:string}>>(

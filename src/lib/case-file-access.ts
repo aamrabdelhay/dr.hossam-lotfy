@@ -115,3 +115,32 @@ export async function requireCaseFileAccess(caseId: string): Promise<CaseAccess>
   await logAuditEvent({ actorUserId: session.role === 'admin' ? session.userId : null, actorLawyerId: session.role === 'lawyer' ? session.lawyerId : null, action: 'CASE_ACCESS_GRANTED', resourceType: 'case', resourceId: caseId, summary: 'تم الوصول إلى ملف قضية: ' + access.caseRow.id });
   return access;
 }
+
+/**
+ * Cases this session must not see because of an ethical wall or classification (HIGHLY_CONFIDENTIAL, CONFIDENTIAL).
+ * Used to hide their sessions from feeds, sidebars, calendars and task pages. No session = all protected cases are hidden.
+ * Non-protected cases are not affected here (branch limits are applied separately by the callers).
+ */
+export async function hiddenCaseIds(session: SessionUser | null): Promise<string[]> {
+  const rows = await prisma.$queryRawUnsafe<Array<{ case_id: string }>>(
+    `SELECT "case_id" FROM "office_case_security" WHERE "ethical_wall_enabled" OR "classification" IN ('HIGHLY_CONFIDENTIAL','CONFIDENTIAL')`,
+  ).catch(() => [] as Array<{ case_id: string }>);
+  const ids = rows.map((r) => r.case_id);
+  if (!ids.length) return [];
+  if (!session) return ids;
+  const { visible } = await snapshot(session, ids);
+  return ids.filter((id) => !visible.has(id));
+}
+export async function hiddenCaseIdsForCurrentUser(): Promise<string[]> {
+  const { getCurrentUser } = await import('@/lib/auth');
+  return hiddenCaseIds(await getCurrentUser().catch(() => null));
+}
+export async function isTaskHidden(taskId: string): Promise<boolean> {
+  const rows = await prisma.$queryRawUnsafe<Array<{ caseId: string | null }>>(`SELECT "caseId" FROM "tasks" WHERE "id"=$1`, taskId);
+  const caseId = rows[0]?.caseId;
+  return Boolean(caseId && (await hiddenCaseIdsForCurrentUser()).includes(caseId));
+}
+/** 404 when the task belongs to a case this person may not see (wall or classification). */
+export async function assertTaskVisible(taskId: string): Promise<void> {
+  if (await isTaskHidden(taskId)) throw new ApiError(404, 'غير موجود');
+}

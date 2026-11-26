@@ -23,7 +23,7 @@ export default async function HomePage() {
   if (!session) redirect('/auth');
   const branchScope = await getBranchScope(session);
   const branchTaskIds = !branchScope.allBranches && branchScope.officeManager
-    ? await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "tasks" WHERE "branch_id"=ANY($1::text[])', branchScope.officeManagerBranchIds)
+    ? (await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "tasks" WHERE "branch_id"=ANY($1::text[])', branchScope.officeManagerBranchIds)).map((r) => r.id)
     : undefined;
   const navBranchId = !branchScope.allBranches && branchScope.officeManager ? branchScope.officeManagerBranchIds[0] : undefined;
   const [sidebar, feed, nav, stats, lawyerStatusPosts] = await Promise.all([getSidebarData(branchTaskIds), getFeed({ taskIds: branchTaskIds, limit: 1000 }), getSiteNav(navBranchId), getAdminStats(), getRecentLawyerStatusPosts()]);

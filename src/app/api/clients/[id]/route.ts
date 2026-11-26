@@ -3,6 +3,7 @@ import { handle, json, readJson, user } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { isSeniorManagement, officeId } from '@/lib/office-workflow';
+import { branchFilter } from '@/lib/office-ops';
 
 const schema = z.object({
   name: z.string().trim().min(1).max(300),
@@ -18,11 +19,13 @@ export const PUT = handle(async (req: Request, { params }: { params: Promise<{ i
   const session = await getCurrentUser();
   if (!session) return json({ error: 'غير مصرح' }, { status: 401 });
   const { id } = await params;
-  const existing = await prisma.$queryRawUnsafe<Array<{ id: string; assignedLawyerId: string | null }>>(`SELECT "id","assignedLawyerId" FROM "clients" WHERE "id"=$1 LIMIT 1`, id);
+  const existing = await prisma.$queryRawUnsafe<Array<{ id: string; assignedLawyerId: string | null; branch_id: string | null }>>(`SELECT "id","assignedLawyerId","branch_id" FROM "clients" WHERE "id"=$1 LIMIT 1`, id);
   if (!existing[0]) return json({ error: 'العميل غير موجود' }, { status: 404 });
   const isAdmin = session.role === 'admin' || !!session.isAdmin;
   const isAssignedLawyer = session.role === 'lawyer' && session.lawyerId === existing[0].assignedLawyerId;
-  if (!isAdmin && !isAssignedLawyer) return json({ error: 'ليس لديك صلاحية تعديل هذا العميل' }, { status: 403 });
+  const bf = isAdmin ? await branchFilter(session) : null;
+  const branchOk = !bf || bf.includes(existing[0].branch_id || 'branch_main');
+  if ((!isAdmin && !isAssignedLawyer) || (isAdmin && !branchOk && !isAssignedLawyer)) return json({ error: 'ليس لديك صلاحية تعديل هذا العميل' }, { status: 403 });
   const data = await readJson(req as never, schema);
   if (data.assignedLawyerId && !isAdmin) return json({ error: 'تعيين أو تغيير المحامي المسؤول متاح للإدارة فقط' }, { status: 403 });
   if (data.assignedLawyerId) {

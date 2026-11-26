@@ -29,6 +29,7 @@ async function asAdminSession(u: SessionUser | null): Promise<AdminSession | nul
   }
   return null;
 }
+export async function actorOf(): Promise<SessionUser> { const u = await user(); if (!u) throw new ApiError(401, 'يجب تسجيل الدخول'); return u; }
 export async function requireStaff(): Promise<AdminSession> { const u = await asAdminSession(await user()); if (!u) throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية إدارية'); return u; }
 export async function requirePermission(permission: keyof Permissions): Promise<AdminSession> { const u = await requireStaff(); if (!await hasEffectivePermission(u, permission)) throw new ApiError(403, 'لا تملك صلاحية تنفيذ هذا الإجراء'); return u; }
 export async function requireAdmin(): Promise<AdminSession> { const u = await requireStaff(); if (u.userRole !== 'SUPER_ADMIN' && u.userRole !== 'ADMIN') throw new ApiError(403, 'هذا الإجراء يتطلب صلاحية المدير العام'); return u; }

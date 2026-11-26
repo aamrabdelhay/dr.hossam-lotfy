@@ -17,3 +17,16 @@ html{scroll-behavior:smooth} body{background-color:#eef2f8;color:var(--color-nav
 .page-content{animation:page-enter .18s ease-out both}@keyframes page-enter{from{opacity:.78}to{opacity:1}}.scroll-reveal{opacity:0;transform:translateY(12px);transition:opacity .34s ease,transform .34s cubic-bezier(.22,1,.36,1)}.scroll-reveal-visible{opacity:1!important;transform:none!important}@media(prefers-reduced-motion:reduce){.page-content{animation:none}.scroll-reveal{opacity:1!important;transform:none!important;transition:none!important}}
 /* The login screen has no global navigation or footer. */
 body:has(.auth-page){padding-top:0!important}
+
+/* Item 92: one print style for every page. Hides chrome, uses paper-friendly colors, keeps blocks together. */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; color: #000 !important; }
+  header.fixed, nav, footer, aside, button, [role="dialog"], .no-print, [data-no-print] { display: none !important; }
+  main, .print-area { max-width: none !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+  a[href]::after { content: none !important; }
+  article, tr, li, a, p, .card { break-inside: avoid; }
+  * { box-shadow: none !important; }
+  h1, h2, h3 { break-after: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

@@ -1,3 +1,4 @@
+import { assertTaskVisible } from '@/lib/case-file-access';
 import { prisma } from '@/lib/prisma';
 import { handle, json, user } from '@/lib/api';
 import { appOrigin } from '@/lib/google-oauth';
@@ -6,7 +7,7 @@ import { isMailConfigured, officeCcRecipients, sendMail } from '@/lib/mail';
 type Ctx = { params: Promise<{ id: string }> };
 
 export const POST = handle(async (_req: Request, ctx: Ctx) => {
-  const { id } = await ctx.params;
+  const { id } = await ctx.params; await assertTaskVisible(id);
   const session = await user();
   if (!session) return json({ error: 'يجب تسجيل الدخول لتأكيد المهمة' }, { status: 401 });
 

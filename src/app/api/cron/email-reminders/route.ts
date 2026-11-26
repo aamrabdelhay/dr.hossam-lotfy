@@ -4,7 +4,7 @@ import { isMailConfigured, officeCcRecipients, sendSessionReminder } from '@/lib
 import { appOrigin } from '@/lib/google-oauth';
 import { formatDay } from '@/lib/dates';
 import { escapeTelegramHtml, isTelegramConfigured, sendTelegramGroupNotification } from '@/lib/telegram';
-import { purgeExpiredApprovedFiles } from '@/lib/file-deletion';
+import { markExpiredArchives } from '@/lib/file-deletion';
 import { recordRetentionReviewCandidates } from '@/lib/retention';
 
 export const dynamic = 'force-dynamic';
@@ -262,7 +262,7 @@ export async function GET(req: Request) {
   const [telegram, email, fileDeletionCleanup, retentionReview] = await Promise.all([
     dailySummaryDue ? sendTelegramDailySummary(todayKey).catch((error) => ({ error: String(error?.message ?? error) })) : Promise.resolve({ skipped: 'not-daily-run' }),
     sendEmailReminders().catch((error) => ({ error: String(error?.message ?? error) })),
-    purgeExpiredApprovedFiles().catch((error) => ({ error: String(error?.message ?? error) })),
+    markExpiredArchives().catch((error) => ({ error: String(error?.message ?? error) })),
     recordRetentionReviewCandidates().catch((error) => ({ error: String(error?.message ?? error) })),
   ]);
 

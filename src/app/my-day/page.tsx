@@ -5,6 +5,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBranchScope } from "@/lib/branch-access";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, EmptyState } from "@/components/ui";
+import { MyDayPersonalPanel } from "@/components/my-day-personal-panel";
+import { AttendanceTap } from "@/components/attendance-tap";
+import { getPrefs, listItems, listUndo } from "@/lib/personal-workspace";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "يومي" };
@@ -57,6 +60,8 @@ export default async function MyDayPage() {
     }),
   ]);
 
+  const [personalItems, undoEntries, prefs] = await Promise.all([listItems(session).catch(() => []), listUndo(session).catch(() => []), getPrefs(session).catch(() => ({} as Record<string, unknown>))]);
+  const quick = Array.isArray(prefs.quickActions) ? (prefs.quickActions as string[]) : [];
   const titleDate = new Intl.DateTimeFormat("ar-EG", { timeZone: "Africa/Cairo", weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
   return (
     <main className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-6">
@@ -64,6 +69,9 @@ export default async function MyDayPage() {
         <div><p className="text-[10px] font-extrabold tracking-widest text-gold-700">MY DAY</p><h1 className="mt-1 text-2xl font-extrabold text-navy-950">يومي</h1><p className="mt-1 text-sm font-semibold text-navy-500">{titleDate}</p></div>
         <div className="flex gap-2"><Link href="/court-mode" className="rounded-xl bg-navy-950 px-4 py-2.5 text-xs font-extrabold text-white">وضع المحاكم</Link><Link href="/calendar" className="rounded-xl border border-navy-200 bg-white px-4 py-2.5 text-xs font-extrabold text-navy-700">التقويم</Link></div>
       </header>
+
+      {session.role === "lawyer" && <AttendanceTap />}
+      <MyDayPersonalPanel items={personalItems.map((i: any) => ({ id: i.id, kind: i.kind, label: i.label, href: i.href }))} undo={undoEntries.map((u: any) => ({ id: u.id, label: u.label }))} quick={quick} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card className="p-4"><CalendarDays size={18} className="text-gold-700"/><p className="mt-3 text-2xl font-black text-navy-950">{todayTasks.length}</p><p className="mt-1 text-xs font-bold text-navy-500">مواعيد ومهام اليوم</p></Card>

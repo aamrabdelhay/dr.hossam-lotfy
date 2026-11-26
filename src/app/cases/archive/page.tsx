@@ -21,7 +21,7 @@ export default async function CaseArchivePage({ searchParams }: { searchParams: 
   const term = (q ?? '').trim();
   const scope = await getBranchScope(session);
   const branchId = !scope.allBranches && scope.officeManager ? scope.officeManagerBranchIds[0] : null;
-  const caseIds = branchId ? await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "case_records" WHERE COALESCE("branch_id",\'branch_main\')=$1',branchId) : undefined;
+  const caseIds = branchId ? (await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "case_records" WHERE COALESCE("branch_id",\'branch_main\')=$1',branchId)).map((r) => r.id) : undefined;
   const cases = await getOfficeCaseArchive({ q: term || undefined, caseIds });
   const needFollowUp = cases.filter((c) => c.lastSession && !c.nextSession);
   const relisted = cases.filter((c) => c.nextSession);

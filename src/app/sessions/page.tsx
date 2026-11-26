@@ -5,6 +5,7 @@ import { getFeed } from '@/lib/queries';
 import { Card, Badge, EmptyState } from '@/components/ui';
 import { formatDay } from '@/lib/dates';
 import { LOCATION_TYPE_LABEL } from '@/lib/constants';
+import { RollDraftPanel } from '@/components/roll-draft-panel';
 
 export const metadata: Metadata = { title: 'الجلسات والمواعيد' };
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,8 @@ export default async function SessionsPage() {
         <h1 className="text-xl font-extrabold text-navy-950">الجلسات والمواعيد</h1>
         <p className="mt-1 text-[13px] font-medium text-navy-400">جدول كل الجلسات القادمة مرتباً زمنياً، يليه سجل الجلسات السابقة.</p>
       </div>
+
+      <RollDraftPanel />
 
       <section className="mb-10">
         <h2 className="mb-3 flex items-center gap-2 text-[14px] font-extrabold text-navy-800"><CalendarClock size={17} className="text-gold-600" />القادمة <span className="text-[11px] font-bold text-navy-300">({upcoming.total})</span></h2>
