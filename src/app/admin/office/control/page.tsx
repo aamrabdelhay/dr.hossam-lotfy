@@ -42,7 +42,7 @@ export default async function OfficeControlPage({ searchParams }: { searchParams
       {senior || officeManager ? (
         <div className="space-y-6">
           {senior && <><SecurityControls /><SeniorAdminActions /><RequestGroupsClient /><FileDeletionRequests /></>}
-          <OfficeManagementClient initialTab={initialTab} canManageFinance={senior} />
+          <OfficeManagementClient initialTab={initialTab} canViewFinance={senior || finance} canAssignFinance={senior} />
         </div>
       ) : (
         <FinanceManagementClient canManage={finance} />
