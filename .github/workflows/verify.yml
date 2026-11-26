@@ -18,4 +18,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
+      - run: npm run typecheck
+      - name: Unit tests
+        run: |
+          for test in tests/*.unit.mts; do
+            echo "Running $test"
+            npx tsx "$test"
+          done
       - run: npm run build
