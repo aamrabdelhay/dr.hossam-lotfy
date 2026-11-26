@@ -1,0 +1,20 @@
+// Part 3 item 129: senior only; includes protected cases; audited; it lists, never decides.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'cc' + Date.now(); const nm = 'خصم' + t;
+const call = (c, b) => api('/api/admin/conflict-check', c, { method: 'POST', body: JSON.stringify(b) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'CC L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('CC L', t + 'l@example.test');
+await insertDummy('clients', { id: t + 'cl', name: 'عميل ' + nm, phone: '0100' + String(Date.now()).slice(-7), branch_id: 'branch_main' });
+await insertDummy('case_records', { id: t + 'c1', name: 'قضية عادية', number: 'C1-' + t, description: 'المدعى عليه ' + nm });
+await insertDummy('case_records', { id: t + 'c2', name: 'قضية محمية ' + nm, number: 'C2-' + t });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'c2', classification: 'HIGHLY_CONFIDENTIAL', ethical_wall_enabled: true });
+ok((await call(lc, { name: nm })).status === 403, 'a plain lawyer is refused (the answer would reveal hidden cases)');
+const r = await (await call(ac, { name: nm })).json();
+ok(r.clients.length === 1 && r.cases.length === 2, 'finds the client and both cases (' + r.clients.length + '/' + r.cases.length + ')');
+ok(r.cases.find((c) => c.id === t + 'c2')?.protected === true && r.cases.find((c) => c.id === t + 'c1')?.protected === false, 'marks the protected case');
+ok(/للإدارة العليا/.test(r.notice) && !('conflict' in r), 'it lists possible matches and does not declare a conflict');
+ok((await call(ac, { name: 'ab' })).status === 400, 'too-short name is rejected');
+ok((await q(`SELECT count(*)::int n FROM office_audit_events WHERE action='CONFLICT_CHECK'`))[0].n >= 1, 'the check is audited');
+await done('conflict-check');

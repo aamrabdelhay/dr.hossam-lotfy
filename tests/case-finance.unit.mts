@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { summarize, installmentAlerts, statement, reconcile, profit, type FinRow } from '../src/lib/case-finance.ts';
+let n = 0; const r = (kind: string, amount: number, extra: Partial<FinRow> = {}): FinRow => ({ id: 'r' + ++n, case_id: 'c', kind, amount: String(amount), currency: 'EGP', due_on: null, status: 'OPEN', ref_id: null, note: null, created_at: '2030-01-0' + (n % 9 + 1) + 'T00:00:00Z', ...extra });
+const rows = [r('FEE_AGREEMENT', 10000), r('EXTRA_SCOPE', 2000, { status: 'ACCEPTED' }), r('EXTRA_SCOPE', 999), r('INVOICE', 6000), r('PAYMENT', 2500.5), r('EXPENSE', 800), r('EXPENSE', 200, { status: 'REIMBURSED' }), r('BUDGET', 1000), r('TRUST_IN', 5000), r('TRUST_OUT', 1200), r('PAYMENT', 100, { status: 'CANCELLED' })];
+const s = summarize(rows);
+assert.equal(s.agreed, 1000000); assert.equal(s.extraAccepted, 200000); assert.equal(s.unbilledFees, 600000);
+assert.equal(s.paid, 250050); assert.equal(s.outstanding, 349950); assert.equal(s.expenses, 100000); assert.equal(s.expensesNotReimbursed, 80000);
+assert.equal(s.trustBalance, 380000); assert.equal(s.budgetUsedPct, 100); assert.equal(s.budgetState, 'NEAR');
+assert.equal(summarize([...rows, r('EXPENSE', 1)]).budgetState, 'EXCEEDED');
+const a = installmentAlerts([r('INSTALLMENT', 1, { due_on: '2030-01-01' }), r('INSTALLMENT', 1, { due_on: '2030-01-05' }), r('INSTALLMENT', 1, { due_on: '2030-03-01' }), r('INSTALLMENT', 1, { due_on: '2030-01-01', status: 'PAID' })], '2030-01-02');
+assert.equal(a.overdue.length, 1); assert.equal(a.dueSoon.length, 1);
+const st = statement(rows); assert.equal(st.at(-1)!.balance.includes('.'), true);
+assert.ok(reconcile(rows).includes('EXPENSES_NOT_REIMBURSED')); assert.ok(!reconcile(rows).includes('TRUST_NEGATIVE'));
+assert.equal(profit(rows).net, 250050 - 80000); assert.equal(profit(rows).timeCostIncluded, false);
+console.log('case-finance unit OK');

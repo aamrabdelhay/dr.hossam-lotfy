@@ -1,0 +1,20 @@
+// Part 3 item 172: absence coverage checklist. Senior only, read only. Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'cv' + Date.now();
+const call = (p, c) => api(p, c, {});
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'CV L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+await insertDummy('lawyers', { id: t + 'o', fullName: 'CV O', email: t + 'o@example.test', slug: t + 'os', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('CV L', t + 'l@example.test');
+const locId = (await q(`SELECT id FROM locations LIMIT 1`))[0]?.id ?? (await insertDummy('locations', { id: t + 'loc', name: 'L ' + t, slug: t + 'lc' }), t + 'loc');
+await insertDummy('case_records', { id: t + 'c', name: 'CV case', number: 'CV' + t });
+const mk = async (i, date, others) => { await insertDummy('tasks', { id: t + 't' + i, locationId: locId, caseId: t + 'c', description: 'task ' + i, scheduledDate: date, status: 'PENDING' }); await insertDummy('task_assignments', { id: t + 'a' + i, taskId: t + 't' + i, lawyerId: t + 'l' }); if (others) await insertDummy('task_assignments', { id: t + 'b' + i, taskId: t + 't' + i, lawyerId: t + 'o' }); };
+await mk(1, '2031-03-02', false); await mk(2, '2031-03-03', true); await mk(3, '2031-04-20', false);
+const U = (p) => `/api/admin/coverage?lawyerId=${t}l&from=2031-03-01&to=2031-03-31` + (p || '');
+ok((await call(U(), null)).status >= 401 && (await call(U(), lc)).status === 403, 'anonymous and plain lawyer refused');
+const d = await (await call(U(), ac)).json();
+ok(d.items.length === 2 && d.items.find((x) => x.id === t + 't1').needsSubstitute === true && d.items.find((x) => x.id === t + 't2').needsSubstitute === false, 'window lists only open tasks inside it; flags those with no other assignee');
+ok((await call(`/api/admin/coverage?lawyerId=${t}l&from=2031-03-31&to=2031-03-01`, ac)).status === 400, 'bad window refused');
+ok((await q(`SELECT count(*)::int n FROM task_assignments WHERE "lawyerId"=$1`, [t + 'l']))[0].n === 3, 'nothing was reassigned');
+await done('coverage');

@@ -1,0 +1,36 @@
+// Part 2 item 124: court bundle route keeps the case wall. Merge logic is covered by tests/bundle-merge.unit.mts (no S3 in the test box).
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'bu' + Date.now();
+const call = (p, c, b) => api(p, c, { method: 'POST', body: JSON.stringify(b) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'Bun L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('Bun L', t + 'l@example.test');
+await insertDummy('case_records', { id: t + 'c', name: 'قضية حزمة', number: 'B-' + t });
+await insertDummy('case_records', { id: t + 'w', name: 'قضية محمية', number: 'W-' + t });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'w', classification: 'HIGHLY_CONFIDENTIAL', ethical_wall_enabled: true });
+await q(`INSERT INTO case_files (id,case_id,name,kind,url) VALUES ($1,$2,'a.pdf','pdf','s3://x/cases/'||$2||'/a.pdf')`, [t + 'f', t + 'c']);
+await q(`INSERT INTO case_files (id,case_id,name,kind,url) VALUES ($1,$2,'w.pdf','pdf','s3://x/cases/'||$2||'/w.pdf')`, [t + 'wf', t + 'w']);
+ok((await call('/api/cases/' + t + 'w/bundle', lc, { fileIds: [t + 'wf'] })).status >= 403, 'lawyer without access cannot build a bundle for a walled case');
+ok((await call('/api/cases/' + t + 'c/bundle', ac, { fileIds: [t + 'nope'] })).status === 404, 'unknown file id is a 404, not a partial bundle');
+ok((await call('/api/cases/' + t + 'c/bundle', ac, { fileIds: [t + 'wf'] })).status === 404, 'a file of another case cannot be pulled into this bundle');
+ok((await call('/api/cases/' + t + 'c/bundle', ac, { fileIds: [] })).status === 400, 'empty selection is rejected');
+// Synthetic storage fixture (local folder, NOT S3): proves ordering, merge, skip report, audit through the real route.
+import fs from 'node:fs'; import { PDFDocument } from 'pdf-lib';
+const dir = process.env.BUNDLE_TEST_STORAGE_DIR; fs.mkdirSync(dir, { recursive: true });
+const mk = async (n) => { const d = await PDFDocument.create(); for (let i = 0; i < n; i++) d.addPage([595, 842]); return Buffer.from(await d.save()); };
+fs.writeFileSync(dir + '/a.pdf', await mk(3)); fs.writeFileSync(dir + '/b.pdf', await mk(2)); fs.writeFileSync(dir + '/c.docx', Buffer.from('x'));
+for (const [k, n, kind] of [['a', 'a.pdf', 'pdf'], ['b', 'b.pdf', 'pdf'], ['c', 'c.docx', 'word']]) await q(`INSERT INTO case_files (id,case_id,name,kind,mime_type,url) VALUES ($1,$2,$3,$4,$5,$6)`, [t + 'x' + k, t + 'c', n, kind, kind === 'pdf' ? 'application/pdf' : 'application/msword', 'fixture://cases/' + t + 'c/' + n]);
+const rr = await call('/api/cases/' + t + 'c/bundle', ac, { title: 'حزمة', fileIds: [t + 'xb', t + 'xc', t + 'xa'] });
+ok(rr.status === 200 && rr.headers.get('content-type') === 'application/pdf', 'bundle route returns a PDF from the fixture storage');
+ok(rr.headers.get('x-bundle-skipped') === '1', 'the unsupported docx is reported as skipped');
+const out = await PDFDocument.load(Buffer.from(await rr.arrayBuffer()));
+ok(out.getPageCount() === 1 + 2 + 3, 'pages = cover + b(2) + a(3) in the requested order (' + out.getPageCount() + ')');
+ok((await q(`SELECT count(*)::int n FROM office_audit_events WHERE action='CASE_BUNDLE_EXPORTED' AND resource_id=$1`, [t + 'c']))[0].n === 1, 'bundle export is audited');
+const wr = await call('/api/cases/' + t + 'c/bundle', ac, { title: 'حزمة', fileIds: [t + 'xb', t + 'xa'], watermark: 'سري - Loutfi' });
+ok(wr.status === 200, 'bundle with a watermark is built (item 155)');
+const wb = Buffer.from(await wr.arrayBuffer()); (await import('node:fs')).writeFileSync('/tmp/t/bundle-wm.pdf', wb);
+const wd = await PDFDocument.load(wb); ok(wd.getPageCount() === 1 + 2 + 3, 'watermark does not change the page count');
+ok((await call('/api/cases/' + t + 'c/bundle', ac, { fileIds: [t + 'xa'], watermark: 'x'.repeat(41) })).status === 400, 'watermark text is limited to 40 characters');
+ok((await call('/api/cases/' + t + 'c/bundle', lc, { fileIds: [t + 'xa'] })).status >= 403, 'lawyer with no grant or assignment is refused on the open case too');
+await done('bundle');

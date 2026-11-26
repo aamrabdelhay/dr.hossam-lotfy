@@ -10,7 +10,7 @@ export const officeId = (prefix: string) => `${prefix}_${crypto.randomUUID().rep
 export async function isSeniorManagement(session: SessionUser | null): Promise<boolean> {
   if (!session) return false;
   if (session.role === 'admin' && (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN')) return true;
-  if (session.role === 'lawyer' && session.isAdmin) return true;
+  if (session.role === 'lawyer' && session.isSenior) return true;
   const userId = session.role === 'admin' ? session.userId : null;
   const lawyerId = session.role === 'lawyer' ? session.lawyerId : null;
   const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(

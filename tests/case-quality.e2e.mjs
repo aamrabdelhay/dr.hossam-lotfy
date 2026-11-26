@@ -1,0 +1,20 @@
+// Part 4 item 215: file completeness score. Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'cq' + Date.now();
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'p', fullName: 'CQ Plain', email: t + 'p@example.test', slug: t + 'ps', approvedAt: new Date(), active: true });
+const pc = await lawyerCookie('CQ Plain', t + 'p@example.test');
+await insertDummy('case_records', { id: t + 'c', name: 'CQ ' + t, number: 'CQ' + t });
+await insertDummy('case_records', { id: t + 'w', name: 'CQW ' + t, number: 'CQW' + t });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'w', classification: 'INTERNAL', ethical_wall_enabled: true });
+let r = await (await api(`/api/cases/${t}c/quality`, ac)).json();
+ok(r.outOf === 8 && r.score === 1 && r.missing.length === 7, 'empty case: only the review criterion passes');
+await insertDummy('office_case_parties', { id: t + 'pa', case_id: t + 'c', name: 'طرف تجريبي', role: 'CLIENT' });
+await q(`INSERT INTO office_case_register (id, case_id, kind, title) VALUES ($1,$2,'POA','توكيل')`, [t + 'g', t + 'c']);
+r = await (await api(`/api/cases/${t}c/quality`, ac)).json();
+ok(r.score === 3 && !r.missing.some((m) => m.key === 'PARTIES' || m.key === 'POA'), 'parties and power of attorney now count');
+ok(r.notice.includes('ليست تقييمًا قانونيًا'), 'states it is not a legal judgment');
+ok([403, 404].includes((await api(`/api/cases/${t}w/quality`, pc)).status), 'walled case refused for outsider');
+ok((await api('/api/cases/nope/quality', ac)).status === 404, 'unknown case 404');
+await done('case-quality');

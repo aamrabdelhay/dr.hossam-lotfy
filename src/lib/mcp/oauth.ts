@@ -57,7 +57,7 @@ export async function refreshAccessToken(input:{refreshToken:string;clientId:str
 }
 async function userFromSession(s:any):Promise<SessionUser|null>{
   if(s.role==='admin'&&s.userId){const u=await prisma.user.findUnique({where:{id:s.userId}});if(!u)return null;return {role:'admin',userId:u.id,name:u.name,userRole:(s.userRole||u.role) as any};}
-  if(s.role==='lawyer'&&s.lawyerId){const l=await prisma.lawyer.findUnique({where:{id:s.lawyerId}});if(!l||!l.active)return null;return {role:'lawyer',lawyerId:l.id,name:l.fullName,slug:l.slug,isAdmin:false};}
+  if(s.role==='lawyer'&&s.lawyerId){const l=await prisma.lawyer.findUnique({where:{id:s.lawyerId}});if(!l||!l.active)return null;return {role:'lawyer',lawyerId:l.id,name:l.fullName,slug:l.slug,isAdmin:false,isSenior:false};}
   return null;
 }
 export async function authenticateAccessToken(raw:string, requiredScope?:string){

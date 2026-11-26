@@ -1,12 +1,8 @@
 import 'server-only';
 
-import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { del } from '@vercel/blob';
 import type { SessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { officeId, notifySenior } from '@/lib/office-workflow';
-import { getS3Client, parsePrivateS3Url, parsePrivateS3UrlForPrefix } from '@/lib/client-file-s3';
-import { isPrivateBlobUrl } from '@/lib/client-file-access';
 
 export type DeletableFileType = 'client' | 'case';
 
@@ -49,65 +45,32 @@ export async function createFileDeletionRequest(input: {
   return { id, duplicate: false };
 }
 
-export async function purgeExpiredApprovedFiles() {
-  const rows = await prisma.$queryRawUnsafe<Array<{
-    id:string; file_type:'client'|'case'; file_id:string; resource_id:string;
-    storage_url:string; archive_id:string|null;
-  }>>(
-    `SELECT "id","file_type","file_id","resource_id","storage_url","archive_id"
-     FROM "office_file_deletion_requests"
-     WHERE "status"='APPROVED' AND "purged_at" IS NULL
-       AND "archive_expires_at" IS NOT NULL AND "archive_expires_at" <= NOW()
-     ORDER BY "archive_expires_at" ASC LIMIT 100`,
+/**
+ * Files are NEVER deleted automatically. When the 31-day archive period ends,
+ * the item is only marked ARCHIVE_EXPIRED, stays stored, and senior management
+ * is notified once. Restoring, extending or any permanent action needs a new
+ * explicit senior decision (permanent deletion is not implemented here).
+ */
+export async function markExpiredArchives() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: string; file_name: string }>>(
+    `UPDATE "office_file_deletion_requests"
+        SET "status"='ARCHIVE_EXPIRED',"archive_expired_at"=NOW()
+      WHERE "status"='APPROVED' AND "archive_expires_at" IS NOT NULL AND "archive_expires_at" <= NOW()
+      RETURNING "id","file_name"`,
   );
-  let purged = 0;
-  let failed = 0;
   for (const row of rows) {
-    const claimed = await prisma.$executeRawUnsafe(
-      `UPDATE "office_file_deletion_requests"
-       SET "status"='PURGED',"purged_at"=NOW()
-       WHERE "id"=$1 AND "status"='APPROVED' AND "purged_at" IS NULL
-         AND "archive_expires_at" IS NOT NULL AND "archive_expires_at" <= NOW()`,
-      row.id,
-    ).catch(() => 0);
-    if (!claimed) continue;
-    try {
-      const s3Object = row.file_type === 'case'
-        ? parsePrivateS3UrlForPrefix(row.storage_url,'cases/' + row.resource_id + '/')
-        : parsePrivateS3Url(row.storage_url,row.resource_id);
-      if (s3Object) {
-        await getS3Client().send(new DeleteObjectCommand({Bucket:s3Object.bucket,Key:s3Object.key}));
-      } else if (row.file_type === 'client' && isPrivateBlobUrl(row.storage_url,row.resource_id)) {
-        await del(row.storage_url);
-      } else {
-        throw new Error('Stored file URL is not owned by the configured private storage.');
-      }
-      await prisma.$transaction(async (tx) => {
-        if (row.file_type === 'case') {
-          await tx.$executeRawUnsafe(
-            `DELETE FROM "case_files" WHERE "id"=$1 AND "case_id"=$2 AND "deleted_at" IS NOT NULL`,
-            row.file_id,row.resource_id,
-          );
-        } else {
-          await tx.$executeRawUnsafe(
-            `DELETE FROM "client_files" WHERE "id"=$1 AND "client_id"=$2 AND "deleted_at" IS NOT NULL`,
-            row.file_id,row.resource_id,
-          );
-        }
-        if (row.archive_id) {
-          await tx.$executeRawUnsafe(`DELETE FROM "office_archive" WHERE "id"=$1 AND "expires_at" <= NOW()`,row.archive_id);
-        }
-      });
-      purged += 1;
-    } catch (error) {
-      failed += 1;
-      await prisma.$executeRawUnsafe(
-        `UPDATE "office_file_deletion_requests" SET "status"='APPROVED',"purged_at"=NULL
-         WHERE "id"=$1 AND "status"='PURGED'`,
-        row.id,
-      ).catch(() => undefined);
-      console.error('[file-deletion] Expired approved file purge failed:',row.id,error);
-    }
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "office_audit_events" ("id","action","resource_type","resource_id","summary","metadata")
+       VALUES ($1,'ARCHIVE_PERIOD_ENDED','file_deletion_request',$2,$3,$4::jsonb)`,
+      officeId('audit'), row.id,
+      'انتهت مدة أرشفة الملف البالغة 31 يومًا. الملف ما زال محفوظًا ولم يُحذف.',
+      JSON.stringify({ autoDeleted: false }),
+    ).catch((error) => console.error('[file-deletion] Audit insert failed:', error));
+    await notifySenior(
+      'انتهت مدة أرشفة ملف',
+      'انتهت مدة 31 يومًا للملف «' + row.file_name + '». الملف ما زال محفوظًا ولن يُحذف تلقائيًا. القرار بيد الإدارة العليا.',
+      '/admin/office/control',
+    ).catch((error) => console.error('[file-deletion] Senior notification failed:', error));
   }
-  return {checked:rows.length,purged,failed};
+  return { expired: rows.length, autoDeleted: 0 };
 }

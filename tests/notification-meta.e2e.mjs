@@ -1,0 +1,27 @@
+// Item 90: priority, snooze, on-demand digest. Synthetic data only.
+import { db, ok, q, insertDummy, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'nm' + Date.now();
+const post = (p, c, b) => api(p, c, { method: 'POST', body: JSON.stringify(b) });
+await insertDummy('lawyers', { id: t + 'a', fullName: 'Notif A', email: t + 'a@example.test', slug: t + 'as', approvedAt: new Date(), active: true });
+await insertDummy('lawyers', { id: t + 'b', fullName: 'Notif B', email: t + 'b@example.test', slug: t + 'bs', approvedAt: new Date(), active: true });
+const ca = await lawyerCookie('Notif A', t + 'a@example.test'), cb = await lawyerCookie('Notif B', t + 'b@example.test');
+for (const k of ['n1', 'n2', 'n3']) await insertDummy('notifications', { id: t + k, lawyerId: t + 'a', type: 'TASK_EDITED', title: 'T ' + k, readAt: null, createdAt: new Date() });
+await insertDummy('notifications', { id: t + 'nb', lawyerId: t + 'b', type: 'TASK_EDITED', title: 'B only', readAt: null, createdAt: new Date() });
+const list = async (c) => (await (await api('/api/notifications', c)).json()).notifications.map(n => n.id);
+ok((await list(ca)).includes(t + 'n1'), 'baseline: notification listed');
+const future = new Date(Date.now() + 3600e3).toISOString();
+ok((await post(`/api/notifications/${t}n1/snooze`, ca, { until: future })).status === 200, 'owner snoozes');
+ok(!(await list(ca)).includes(t + 'n1'), 'snoozed notification hidden from list');
+ok((await post(`/api/notifications/${t}n1/snooze`, cb, { until: future })).status === 404, "another user cannot snooze it");
+ok((await post(`/api/notifications/${t}nb/snooze`, ca, { priority: 'HIGH' })).status === 404, "cannot set priority on someone else's notification");
+ok((await post(`/api/notifications/${t}n2/snooze`, ca, { until: new Date(Date.now() + 30 * 86400e3).toISOString() })).status === 404, 'snooze beyond 14 days rejected');
+ok((await post(`/api/notifications/${t}n2/snooze`, ca, { priority: 'HIGH' })).status === 200, 'owner sets HIGH');
+await post(`/api/notifications/${t}n3/snooze`, ca, { priority: 'LOW' });
+const d = await (await api('/api/notifications/digest', ca)).json();
+ok(d.byPriority.HIGH.map(x => x.id).join() === t + 'n2' && d.byPriority.LOW.map(x => x.id).join() === t + 'n3', 'digest groups by priority');
+ok(d.total === 2 && !JSON.stringify(d).includes(t + 'n1') && !JSON.stringify(d).includes('B only'), 'digest excludes snoozed and other users');
+ok(String(d.delivery).includes('on-demand'), 'digest states it is on demand, not scheduled');
+ok((await post(`/api/notifications/${t}n1/snooze`, ca, { until: null })).status === 200 && (await list(ca)).includes(t + 'n1'), 'clearing snooze brings it back');
+ok((await api('/api/notifications/digest')).status === 401, 'anonymous digest refused');
+await done('notification-meta');

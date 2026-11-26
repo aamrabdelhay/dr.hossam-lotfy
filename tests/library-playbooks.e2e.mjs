@@ -1,0 +1,30 @@
+// Part 3 items 144 and 142: library (lawyers add with a source, senior deactivates) and playbooks (senior writes, applied to a case as checklist items). Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'lp' + Date.now();
+const call = (p, c, m = 'GET', b) => api(p, c, { method: m, ...(b ? { body: JSON.stringify(b) } : {}) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'LP L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('LP L', t + 'l@example.test');
+await insertDummy('case_records', { id: t + 'c', name: 'LP ' + t, number: 'LP' + t });
+await insertDummy('case_records', { id: t + 'w', name: 'LPW ' + t, number: 'LW' + t });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'w', classification: 'INTERNAL', ethical_wall_enabled: true });
+ok((await call('/api/library', null)).status >= 401, 'anonymous refused');
+ok((await call('/api/library', lc, 'POST', { kind: 'MEMO', title: 'مذكرة بلا مصدر' })).status === 400, 'a source reference is required');
+const r = await call('/api/library', lc, 'POST', { kind: 'JUDGMENT', title: 'حكم تجريبي ' + t, court: 'محكمة تجريبية', decidedOn: '2030-01-02', summary: 'ملخص نصي', sourceRef: 'مرجع تجريبي', tags: ['نقض', 'نقض'] });
+const id = (await r.json()).id; ok(r.status === 201 && id, 'a lawyer adds an entry with a source');
+ok(JSON.stringify((await q(`SELECT tags FROM office_library WHERE id=$1`, [id]))[0].tags) === JSON.stringify(['نقض']), 'tags de-duplicated');
+let e = (await (await call('/api/library?q=' + encodeURIComponent(t) + '&tag=' + encodeURIComponent('نقض'), lc)).json()).entries; ok(e.length === 1 && e[0].decided_on === '2030-01-02', 'search by text and tag');
+ok((await call('/api/library', lc, 'PATCH', { id, active: false })).status === 403, 'a lawyer cannot deactivate');
+ok((await call('/api/library', ac, 'PATCH', { id, active: false })).status === 200 && (await q(`SELECT 1 FROM office_library WHERE id=$1`, [id])).length === 1, 'senior deactivates, row kept');
+ok((await call('/api/library', ac, 'DELETE')).status === 405, 'no delete');
+// playbooks
+ok((await call('/api/playbooks', lc, 'POST', { title: 'دليل', steps: ['خطوة'] })).status === 403, 'a lawyer cannot write a playbook');
+ok((await call('/api/playbooks', ac, 'POST', { title: 'دليل', steps: [] })).status === 400, 'a playbook needs at least one step');
+const pr = await call('/api/playbooks', ac, 'POST', { title: 'دليل تجريبي ' + t, steps: ['الخطوة الأولى', 'الخطوة الثانية', 'الخطوة الثالثة'] }); const pid = (await pr.json()).id; ok(pr.status === 201, 'senior writes a playbook');
+ok((await call('/api/playbooks', lc)).status === 200, 'a lawyer reads playbooks');
+const ap = await call(`/api/cases/${t}c/playbook`, ac, 'POST', { playbookId: pid }); ok(ap.status === 201 && (await ap.json()).created === 3, 'applying creates one checklist item per step');
+const items = await q(`SELECT title FROM office_case_register WHERE case_id=$1 AND kind='CHECKLIST' ORDER BY created_at, title`, [t + 'c']); ok(items.length === 3, 'checklist items stored in the case register');
+ok((await call(`/api/cases/${t}w/playbook`, lc, 'POST', { playbookId: pid })).status === 403, 'outsider cannot apply to a walled case');
+ok((await call(`/api/cases/${t}c/playbook`, ac, 'POST', { playbookId: 'nope' })).status === 404, 'unknown playbook refused');
+await done('library-playbooks');

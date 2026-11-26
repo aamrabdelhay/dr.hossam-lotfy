@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { diffText, diffStats } from '../src/lib/text-diff.ts';
+const p = diffText('البند الأول 10 days سداد', 'البند الأول 15 days سداد غرامة');
+const rebuiltA = p.filter((d) => d.op !== 'add').map((d) => d.text).join('');
+const rebuiltB = p.filter((d) => d.op !== 'del').map((d) => d.text).join('');
+assert.equal(rebuiltA, 'البند الأول 10 days سداد');
+assert.equal(rebuiltB, 'البند الأول 15 days سداد غرامة');
+const s = diffStats(p);
+assert.equal(s.removed, 1); assert.equal(s.added, 2);
+assert.deepEqual(diffText('a b', 'a b').map((d) => d.op), ['same']);
+assert.throws(() => diffText('w '.repeat(3000), 'z '.repeat(3000)));
+console.log('text-diff unit OK');

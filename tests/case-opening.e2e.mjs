@@ -1,0 +1,27 @@
+// Part 2 item 122: case opening approval. A lawyer's new case is a request; nothing exists until a senior approves; the approved case keeps the details typed in the request.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'co' + Date.now();
+const call = (p, c, m = 'GET', b) => api(p, c, { method: m, ...(b ? { body: JSON.stringify(b) } : {}) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'Open L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('Open L', t + 'l@example.test');
+const body = { name: 'قضية فتح ' + t, number: 'OPEN-' + t, court: 'محكمة تجريبية', plaintiff: 'مدعي تجريبي', defendant: 'مدعى عليه تجريبي', year: '2026' };
+const r = await (await call('/api/cases', lc, 'POST', body)).json();
+ok(r.requiresApproval && r.requestId, 'lawyer case opening becomes a pending request');
+ok((await q(`SELECT count(*)::int n FROM case_records WHERE number=$1`, ['OPEN-' + t]))[0].n === 0, 'no case exists before approval');
+ok((await call('/api/admin/office/decision', lc, 'POST', { id: r.requestId, decision: 'APPROVED' })).status === 403, 'the requester cannot approve');
+ok((await q(`SELECT count(*)::int n FROM case_records WHERE number=$1`, ['OPEN-' + t]))[0].n === 0, 'still no case after refused self-approval');
+const ap = await call('/api/admin/office/decision', ac, 'POST', { id: r.requestId, decision: 'APPROVED' }); if (ap.status !== 200) console.log('DEBUG', ap.status, (await ap.text()).slice(0, 300)); ok(ap.status === 200, 'senior approves');
+const c = (await q(`SELECT id,description,category_id,workflow_status FROM case_records WHERE number=$1`, ['OPEN-' + t]))[0];
+ok(!!c, 'case exists after approval');
+ok(c.description.includes('محكمة تجريبية') && c.description.includes('مدعي تجريبي') && c.description.includes('مدعى عليه تجريبي'), 'approved case keeps court and party details from the request');
+ok(c.category_id === 'casecat_litigation' && c.workflow_status === 'UNDER_REVIEW', 'approved case gets default category and workflow status');
+ok((await call('/api/admin/office/decision', ac, 'POST', { id: r.requestId, decision: 'APPROVED' })).status === 409, 'a decided request cannot be approved twice');
+const r2 = await (await call('/api/cases', lc, 'POST', { name: 'رفض ' + t, number: 'REJ-' + t })).json();
+ok((await call('/api/admin/office/decision', ac, 'POST', { id: r2.requestId, decision: 'REJECTED' })).status === 200 && (await q(`SELECT count(*)::int n FROM case_records WHERE number=$1`, ['REJ-' + t]))[0].n === 0, 'rejected opening creates no case');
+const direct = await call('/api/cases', ac, 'POST', { name: 'مباشر ' + t, number: 'DIR-' + t });
+ok(direct.status === 201, 'senior can create a case directly (was a 500 from an unknown Prisma field)');
+const dc = (await q(`SELECT category_id,workflow_status FROM case_records WHERE number=$1`, ['DIR-' + t]))[0];
+ok(dc?.category_id === 'casecat_litigation' && dc?.workflow_status === 'UNDER_REVIEW', 'direct case gets default category and workflow status');
+await done('case-opening');

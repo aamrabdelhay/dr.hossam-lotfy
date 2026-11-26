@@ -1,0 +1,38 @@
+// Part 3 items 150/152: document type, tags, version chain on case_files. Rows are inserted directly (the S3 upload path is not exercised here). Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'dv' + Date.now();
+const call = (p, c, m = 'GET', b) => api(p, c, { method: m, ...(b ? { body: JSON.stringify(b) } : {}) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'DV L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('DV L', t + 'l@example.test');
+for (const k of ['a', 'b', 'w']) await insertDummy('case_records', { id: t + k, name: 'Case ' + k + t, number: 'N' + k + t });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'w', classification: 'INTERNAL', ethical_wall_enabled: true });
+const mk = (id, c, name) => insertDummy('case_files', { id, case_id: c, name, kind: 'pdf', mime_type: 'application/pdf', size_bytes: 10 });
+await mk(t + 'f1', t + 'a', 'مذكرة دفاع.pdf'); await mk(t + 'f2', t + 'a', 'مذكرة دفاع معدلة.pdf'); await mk(t + 'f3', t + 'a', 'مذكرة دفاع نهائية.pdf'); await mk(t + 'g1', t + 'b', 'other.pdf'); await mk(t + 'x1', t + 'a', 'عقد.pdf');
+const F = (c) => `/api/cases/${c}/files`;
+ok((await call(F(t + 'a'), ac, 'PATCH', { fileId: t + 'f1', docType: 'مذكرة', tags: ['دفاع', 'دفاع', 'عاجل'] })).status === 200, 'type and tags saved');
+ok(JSON.stringify((await q(`SELECT tags FROM case_files WHERE id=$1`, [t + 'f1']))[0].tags) === JSON.stringify(['دفاع', 'عاجل']), 'tags de-duplicated');
+ok((await call(F(t + 'a'), ac, 'PATCH', { fileId: t + 'f2', versionOf: t + 'f1' })).status === 200, 'second file marked as version 2');
+ok((await call(F(t + 'a'), ac, 'PATCH', { fileId: t + 'f3', versionOf: t + 'f2' })).status === 200, 'linking to a later version resolves to the same root');
+const rows = await q(`SELECT id, version_of, version_no FROM case_files WHERE id = ANY($1) ORDER BY version_no`, [[t + 'f1', t + 'f2', t + 'f3']]);
+ok(rows[1].version_of === t + 'f1' && rows[2].version_of === t + 'f1' && rows[2].version_no === 3, 'chain root f1, numbers 1,2,3');
+ok((await call(F(t + 'a'), ac, 'PATCH', { fileId: t + 'x1', versionOf: t + 'g1' })).status === 404, 'a file of another case cannot be a version target');
+ok((await call(F(t + 'a'), ac, 'PATCH', { fileId: t + 'f1', versionOf: t + 'f1' })).status === 400, 'self version refused');
+ok((await call(F(t + 'a'), ac, 'PATCH', { fileId: t + 'f2', versionOf: t + 'x1' })).status === 409, 'a file that is already a version cannot be re-linked');
+const v = (await (await call(F(t + 'a') + '/' + t + 'f3/versions', ac)).json()).versions; ok(v.length === 3 && v[0].id === t + 'f1', 'version history lists all three, oldest first');
+let l = (await (await call(F(t + 'a') + '?latest=1', ac)).json()).files; ok(l.length === 2 && l.some((x) => x.id === t + 'f3') && !l.some((x) => x.id === t + 'f1'), 'latest=1 shows only the newest version per chain');
+l = (await (await call(F(t + 'a') + '?tag=' + encodeURIComponent('عاجل'), ac)).json()).files; ok(l.length === 1 && l[0].id === t + 'f1', 'tag filter');
+l = (await (await call(F(t + 'a') + '?docType=' + encodeURIComponent('مذكرة'), ac)).json()).files; ok(l.length === 1, 'type filter');
+l = (await (await call(F(t + 'a') + '?q=' + encodeURIComponent('عقد'), ac)).json()).files; ok(l.length === 1 && l[0].id === t + 'x1', 'name search');
+ok((await call(F(t + 'a') + '/' + t + 'f1/versions', ac, 'DELETE')).status === 405, 'no delete on versions');
+ok((await call(F(t + 'w'), lc, 'PATCH', { fileId: t + 'f1', docType: 'x' })).status === 403, 'outsider cannot edit a walled case');
+// item 158: review and approval
+ok((await call(F(t + 'a'), ac, 'PUT', { fileId: t + 'f1', reviewStatus: 'IN_REVIEW' })).status === 200, 'document sent to review');
+ok((await call(F(t + 'a'), ac, 'PUT', { fileId: t + 'f1', reviewStatus: 'APPROVED' })).status === 200, 'senior approves');
+const rv = (await q(`SELECT review_status, reviewed_by FROM case_files WHERE id=$1`, [t + 'f1']))[0]; ok(rv.review_status === 'APPROVED' && rv.reviewed_by.startsWith('admin:'), 'status and reviewer stored');
+ok((await call(F(t + 'a'), ac, 'PUT', { fileId: t + 'f1', reviewStatus: 'BAD' })).status === 400, 'bad status refused');
+ok((await call(F(t + 'a'), ac, 'PUT', { fileId: t + 'nope', reviewStatus: 'IN_REVIEW' })).status === 404, 'unknown file refused');
+ok((await q(`SELECT count(*)::int n FROM office_audit_events WHERE action='CASE_FILE_REVIEW' AND resource_id=$1`, [t + 'f1']))[0].n === 2, 'reviews are audited');
+ok((await call(F(t + 'w'), lc, 'PUT', { fileId: t + 'f1', reviewStatus: 'APPROVED' })).status === 403, 'outsider cannot review on a walled case');
+await done('doc-versions');

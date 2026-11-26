@@ -1,0 +1,26 @@
+// Part 2 item 110 (text path). Draft only: matches visible cases, flags duplicates, refuses images (no OCR provider).
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'rd' + Date.now(), n1 = String(Date.now()).slice(-5);
+const call = (c, b) => api('/api/hearings/roll-draft', c, { method: 'POST', body: JSON.stringify(b) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'RD L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('RD L', t + 'l@example.test');
+await insertDummy('locations', { id: t + 'loc' });
+await insertDummy('case_records', { id: t + 'c', name: 'قضية الرول', number: n1 + '/2031' });
+await insertDummy('case_records', { id: t + 'w', name: 'محمية', number: n1 + '1/2031' });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'w', classification: 'HIGHLY_CONFIDENTIAL', ethical_wall_enabled: true });
+await insertDummy('tasks', { id: t + 'tk', locationId: t + 'loc', caseId: t + 'c', description: 'x', scheduledDate: '2031-05-01' });
+const text = `2031-05-01 09:30 ${n1}/2031 دائرة\n2031-05-02 10:00 ${n1}1/2031\nسطر غير مقروء`;
+const before = (await q(`SELECT count(*)::int n FROM tasks`))[0].n;
+const r = await (await call(ac, { text })).json();
+ok(r.saved === false && r.rows.length === 3, 'draft keeps all 3 lines and saves nothing');
+ok(r.rows[0].case?.id === t + 'c' && r.rows[0].duplicate === true, 'row 1 matches the case and is flagged as a duplicate of an existing session');
+ok(r.rows[1].case?.id === t + 'w', 'senior sees the walled case match');
+ok(r.rows[2].problems.length === 2, 'unreadable line has problem notes');
+ok((await q(`SELECT count(*)::int n FROM tasks`))[0].n === before, 'no session was created');
+const rl = await (await call(lc, { text })).json();
+ok(rl.rows[1].case === null && rl.rows[1].caseNote, 'a lawyer without access does not get the walled case');
+ok((await call(ac, { imageBase64: 'AAAA' })).status === 501, 'a photo is refused: OCR provider not configured');
+ok((await call(ac, {})).status === 400, 'empty input is rejected');
+await done('roll-draft');

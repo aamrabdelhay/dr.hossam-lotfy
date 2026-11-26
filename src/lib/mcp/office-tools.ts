@@ -382,7 +382,7 @@ export function isWriteTool(name: string) {
 
 export async function assertMcpUser(session: SessionUser | null) {
   if (!session) throw new Error('يجب تسجيل الدخول لاستخدام مساعد المكتب');
-  if (session.role === 'lawyer' && !session.isAdmin && !(await isSeniorManagement(session))) {
+  if (session.role === 'lawyer' && !(await isSeniorManagement(session))) {
     return { requiresApproval: true };
   }
   return { requiresApproval: false };

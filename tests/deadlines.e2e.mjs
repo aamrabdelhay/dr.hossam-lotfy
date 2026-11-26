@@ -1,0 +1,28 @@
+// Part 2 items 113/114. Rules come from a senior with a source; the case wall applies; nothing is computed without a rule.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'dl' + Date.now();
+const call = (p, c, m = 'GET', b) => api(p, c, { method: m, ...(b ? { body: JSON.stringify(b) } : {}) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'DL L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('DL L', t + 'l@example.test');
+await insertDummy('case_records', { id: t + 'c', name: 'قضية مهل', number: 'D-' + t });
+await insertDummy('case_records', { id: t + 'w', name: 'قضية محمية', number: 'DW-' + t });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'w', classification: 'HIGHLY_CONFIDENTIAL', ethical_wall_enabled: true });
+ok((await q(`SELECT count(*)::int n FROM office_deadline_rules`))[0].n === 0, 'no legal period is seeded');
+ok((await call('/api/admin/deadline-rules', lc, 'POST', { name: 'x rule', unit: 'DAYS', amount: 60, sourceRef: 'مادة تجريبية' })).status === 403, 'a plain lawyer cannot add a rule');
+ok((await call('/api/admin/deadline-rules', ac, 'POST', { name: 'قاعدة بلا مصدر', unit: 'DAYS', amount: 60, sourceRef: '' })).status === 400, 'a rule without a source is rejected');
+const r = await call('/api/admin/deadline-rules', ac, 'POST', { name: 'مهلة تجريبية', unit: 'DAYS', amount: 60, sourceRef: 'نص تجريبي للاختبار فقط' });
+const rule = await r.json(); ok(r.status === 201 && rule.id, 'senior adds a rule with a source');
+const g = await (await call('/api/admin/deadline-rules?ruleId=' + rule.id + '&startDate=2026-11-26', lc)).json();
+ok(g.dueDate === '2027-01-25' && /العطلات/.test(g.notice) && g.rule.source_ref.includes('نص تجريبي'), 'calculator returns the date, the source and the holiday warning');
+ok((await call('/api/admin/deadline-rules?ruleId=nope&startDate=2026-11-26', lc)).status === 404, 'unknown rule gives 404, no invented date');
+const add = await call('/api/cases/' + t + 'c/deadlines', ac, 'POST', { ruleId: rule.id, startDate: '2026-11-26', note: 'اختبار' });
+ok(add.status === 201, 'deadline added to a case');
+const list = await (await call('/api/cases/' + t + 'c/deadlines', ac)).json();
+ok(list.deadlines.length === 1 && list.deadlines[0].due_date === '2027-01-25' && list.deadlines[0].source_ref.includes('نص تجريبي') && typeof list.deadlines[0].daysLeft === 'number', 'map lists due date, source and days left');
+ok((await call('/api/cases/' + t + 'w/deadlines', lc)).status >= 403, 'walled case deadlines are denied to a lawyer without access');
+ok((await call('/api/cases/' + t + 'w/deadlines', lc, 'POST', { ruleId: rule.id, startDate: '2026-11-26' })).status >= 403, 'cannot add a deadline to a walled case');
+ok((await call('/api/cases/' + t + 'c/deadlines', ac, 'PATCH', { deadlineId: list.deadlines[0].id, status: 'DONE' })).status === 200, 'status can be set to DONE');
+ok((await q(`SELECT count(*)::int n FROM office_audit_events WHERE action IN ('DEADLINE_RULE_CREATED','CASE_DEADLINE_ADDED','CASE_DEADLINE_STATUS') AND created_at > NOW() - INTERVAL '5 minutes'`))[0].n >= 3, 'rule, add and status are audited');
+await done('deadlines');

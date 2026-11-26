@@ -1,0 +1,25 @@
+// Item 93: templates render text and a wa.me link; nothing is sent. Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'wa' + Date.now(), A = 'brA' + t, B = 'brB' + t;
+const send = (path, c, method, body) => api(path, c, { method, body: JSON.stringify(body) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'law', fullName: 'Plain WA', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+await insertDummy('lawyers', { id: t + 'mgr', fullName: 'Mgr WA', email: t + 'm@example.test', slug: t + 'ms', approvedAt: new Date(), active: true });
+await insertDummy('office_branch_managers', { id: t + 'bm', branch_id: A, manager_type: 'OFFICE_MANAGER', lawyer_id: t + 'mgr' });
+const lc = await lawyerCookie('Plain WA', t + 'l@example.test'), mc = await lawyerCookie('Mgr WA', t + 'm@example.test');
+await insertDummy('clients', { id: t + 'cb', name: 'Client B', phone: '0109' + String(Date.now()).slice(-7), branch_id: B });
+await insertDummy('clients', { id: t + 'ca', name: 'Client A', phone: '0108' + String(Date.now()).slice(-7), branch_id: A });
+ok((await send('/api/admin/whatsapp-templates', lc, 'POST', { name: 'x' + t, body: 'hi' })).status === 403, 'plain lawyer cannot save templates');
+ok((await send('/api/admin/whatsapp-templates', ac, 'POST', { name: 'bad' + t, body: 'hi {{secretField}}' })).status === 400, 'unknown placeholder rejected');
+ok((await send('/api/admin/whatsapp-templates', ac, 'POST', { name: 'rem' + t, body: 'Hello {{clientName}}, your appointment is {{date}} at {{time}}.' })).status === 201, 'template saved');
+const id = (await (await api('/api/admin/whatsapp-templates', lc)).json()).templates.find(x => x.name === 'rem' + t)?.id;
+ok(!!id, 'signed-in user lists templates');
+const r = await (await send('/api/admin/whatsapp-templates', ac, 'PUT', { templateId: id, clientId: t + 'ca', values: { date: '1 Jan' } })).json();
+ok(r.text.includes('Client A') && r.text.includes('1 Jan') && r.missing.join() === 'time', 'render fills known fields and reports the missing one');
+ok(r.link?.startsWith('https://wa.me/') && r.sent === false, 'wa.me link present, sent=false');
+const m = await send('/api/admin/whatsapp-templates', mc, 'PUT', { templateId: id, clientId: t + 'cb' });
+ok(m.status === 403, 'branch manager A cannot render for a client of branch B (status ' + m.status + ')');
+ok((await send('/api/admin/whatsapp-templates', mc, 'PUT', { templateId: id, clientId: t + 'ca' })).status === 200, 'branch manager A can render for own branch client');
+ok((await send('/api/admin/whatsapp-templates', undefined, 'PUT', { templateId: id })).status === 401, 'anonymous cannot render');
+await done('whatsapp-templates');

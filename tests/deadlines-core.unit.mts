@@ -1,0 +1,10 @@
+import { addPeriod, daysBetween } from '../src/lib/deadlines-core.ts';
+let fail = 0; const eq = (a: unknown, b: unknown, m: string) => { const c = a === b; console.log((c ? 'PASS ' : 'FAIL ') + m + (c ? '' : ` (got ${a}, want ${b})`)); if (!c) fail++; };
+eq(addPeriod('2026-01-31', 'MONTHS', 1), '2026-02-28', 'month-end clamps to Feb 28');
+eq(addPeriod('2028-01-31', 'MONTHS', 1), '2028-02-29', 'leap year Feb 29');
+eq(addPeriod('2026-11-26', 'DAYS', 40), '2027-01-05', '40 days crosses the year');
+eq(addPeriod('2026-12-15', 'MONTHS', 3), '2027-03-15', 'months cross the year');
+eq(addPeriod('2024-02-29', 'YEARS', 1), '2025-02-28', 'leap day plus one year clamps');
+eq(addPeriod('2026-03-10', 'MONTHS', 24), '2028-03-10', '24 months');
+eq(daysBetween('2026-11-26', '2026-12-01'), 5, 'days between');
+process.exit(fail ? 1 : 0);

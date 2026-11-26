@@ -1,0 +1,26 @@
+// Part 3 item 182: inventory by movements, branch limits, never below zero, low-stock flag, no delete.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'iv' + Date.now(), A = 'brA' + t, B = 'brB' + t;
+const call = (p, c, m = 'GET', b) => api(p, c, { method: m, ...(b ? { body: JSON.stringify(b) } : {}) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'm', fullName: 'IV M', email: t + 'm@example.test', slug: t + 'ms', approvedAt: new Date(), active: true });
+await insertDummy('office_branch_managers', { id: t + 'bm', branch_id: A, manager_type: 'OFFICE_MANAGER', lawyer_id: t + 'm' });
+const mc = await lawyerCookie('IV M', t + 'm@example.test');
+await insertDummy('lawyers', { id: t + 'p', fullName: 'IV P', email: t + 'p@example.test', slug: t + 'ps', approvedAt: new Date(), active: true });
+const pc = await lawyerCookie('IV P', t + 'p@example.test');
+ok((await call('/api/admin/inventory', pc)).status === 403, 'a plain lawyer is refused');
+const a = await (await call('/api/admin/inventory', mc, 'POST', { name: 'ورق A4 ' + t, minQty: 10, initialQty: 8, branchId: A })).json();
+ok(!!a.id, 'branch A manager adds an item with opening stock');
+ok((await call('/api/admin/inventory', mc, 'POST', { name: 'x item', branchId: B })).status === 403, 'cannot add to branch B');
+const b = await (await call('/api/admin/inventory', ac, 'POST', { name: 'حبر ' + t, branchId: B })).json();
+let l = (await (await call('/api/admin/inventory', mc)).json()).items.filter((i) => [a.id, b.id].includes(i.id));
+ok(l.length === 1 && l[0].qty === 8 && l[0].low === true, 'manager sees only branch A; qty 8 below minimum 10 is flagged low');
+ok((await call('/api/admin/inventory', mc, 'PATCH', { itemId: b.id, delta: 5 })).status === 404, 'cannot move stock of a branch B item');
+ok((await call('/api/admin/inventory', mc, 'PATCH', { itemId: a.id, delta: -9 })).status === 400, 'stock cannot go below zero');
+ok((await call('/api/admin/inventory', mc, 'PATCH', { itemId: a.id, delta: 5, reason: 'توريد' })).status === 200, 'add 5');
+l = (await (await call('/api/admin/inventory', mc)).json()).items.filter((i) => i.id === a.id);
+ok(l[0].qty === 13 && l[0].low === false, 'qty is the sum of movements (13), no longer low');
+ok((await call('/api/admin/inventory', mc, 'PATCH', { itemId: a.id, delta: 0 })).status === 400, 'zero movement rejected');
+ok((await q(`SELECT count(*)::int n FROM office_inventory_moves WHERE item_id=$1`, [a.id]))[0].n === 2, 'movements are kept as rows (opening + add)');
+await done('inventory');

@@ -1,0 +1,70 @@
+// Part 1 group C1: items 56, 57, 91, 94, 98.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'oo' + Date.now(), A = 'brA' + t, B = 'brB' + t;
+const post = (path, c, body) => api(path, c, { method: 'POST', body: JSON.stringify(body) });
+const jj = async (r) => ({ s: r.status, b: await r.json().catch(() => ({})) });
+const ac = await adminCookie(); // before any extra user exists, so the code login picks the default senior admin
+await insertDummy('lawyers', { id: t + 'law', fullName: 'Plain Lawyer', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+await insertDummy('lawyers', { id: t + 'mgr', fullName: 'Branch Manager', email: t + 'm@example.test', slug: t + 'ms', approvedAt: new Date(), active: true });
+await insertDummy('users', { id: t + 'u', email: t + 'm@example.test', name: 'Branch Manager', role: 'OFFICE_MANAGER' });
+await insertDummy('office_branch_managers', { id: t + 'bm', branch_id: A, manager_type: 'OFFICE_MANAGER', lawyer_id: t + 'mgr' });
+const lc = await lawyerCookie('Plain Lawyer', t + 'l@example.test'), mc = await lawyerCookie('Branch Manager', t + 'm@example.test');
+// numbering
+const nums = await Promise.all(Array.from({ length: 10 }, () => post('/api/admin/numbering', ac, { scope: 'case' }).then(r => r.json())));
+const set = new Set(nums.map(n => n.number));
+ok(set.size === 10 && [...set].every(n => /^CASE-\d{4}-\d{5}$/.test(n)), '10 parallel numbers are all unique and well formed');
+ok(nums[0].qr.startsWith('pending'), 'QR reported as pending, not faked');
+ok((await post('/api/admin/numbering', ac, { scope: 'evil' })).status === 400, 'unknown scope rejected');
+ok((await post('/api/admin/numbering', lc, { scope: 'case' })).status === 403, 'plain lawyer cannot take numbers');
+// courts
+ok((await post('/api/admin/courts', lc, { name: 'x' })).status === 403, 'plain lawyer cannot add courts');
+ok((await post('/api/admin/courts', ac, { name: 'Test Court ' + t, city: 'Giza', governorate: 'Giza' })).status === 201, 'court added');
+ok((await api('/api/admin/courts')).status === 401, 'anonymous cannot read courts');
+const crt = (await jj(await api('/api/admin/courts', lc))).b.courts.find(c => c.name === 'Test Court ' + t);
+ok(!!crt, 'any signed-in user can read the court dictionary');
+await api('/api/admin/courts', ac, { method: 'DELETE', body: JSON.stringify({ id: crt.id }) });
+ok((await q(`SELECT active FROM office_courts WHERE id=$1`, [crt.id]))[0].active === false, 'court deactivated, row kept');
+// templates and checklist
+await insertDummy('locations', { id: t + 'loc' });
+await insertDummy('case_records', { id: t + 'wall', name: 'W ' + t, number: 'W' });
+await insertDummy('office_case_security', { id: t + 'sec', case_id: t + 'wall', classification: 'INTERNAL', ethical_wall_enabled: true });
+ok((await post('/api/admin/task-templates', lc, { action: 'save', name: 'n', description: 'd', checklist: [] })).status === 403, 'plain lawyer cannot save templates');
+ok((await post('/api/admin/task-templates', ac, { action: 'save', name: 'Tpl ' + t, description: 'Prepare file', checklist: ['Copy ID', 'Sign proxy', 'Pay fees'] })).status === 201, 'template saved');
+const tpl = (await jj(await api('/api/admin/task-templates', ac))).b.templates.find(x => x.name === 'Tpl ' + t);
+const used = await jj(await post('/api/admin/task-templates', ac, { action: 'use', templateId: tpl.id, locationId: t + 'loc', scheduledDate: '2027-02-01' }));
+ok(used.s === 201, 'task created from template');
+const items = (await jj(await api('/api/admin/task-checklist?taskId=' + used.b.taskId, ac))).b.items;
+ok(items.length === 3 && items[0].text === 'Copy ID', 'checklist copied in order');
+ok((await api('/api/admin/task-checklist', ac, { method: 'PATCH', body: JSON.stringify({ itemId: items[0].id, done: true }) })).status === 200, 'item ticked');
+ok((await q(`SELECT done_at FROM office_task_checklist_items WHERE id=$1`, [items[0].id]))[0].done_at !== null, 'tick stored');
+const wallTask = await jj(await post('/api/admin/task-templates', ac, { action: 'use', templateId: tpl.id, locationId: t + 'loc', caseId: t + 'wall' }));
+ok(wallTask.s === 201, 'senior admin can use template on walled case ' + JSON.stringify(wallTask));
+const wi = (await jj(await api('/api/admin/task-checklist?taskId=' + wallTask.b.taskId, ac))).b.items;
+ok((await api('/api/admin/task-checklist?taskId=' + wallTask.b.taskId, lc)).status === 404, 'lawyer cannot read checklist of a walled-case task');
+ok((await api('/api/admin/task-checklist', lc, { method: 'PATCH', body: JSON.stringify({ itemId: wi[0].id, done: true }) })).status === 404, 'lawyer cannot tick walled-case checklist item');
+// waitlist and no-show with branches
+const cl = async (id, br) => insertDummy('clients', { id: t + id, name: 'Client ' + id, phone: '010' + String(Math.random()).slice(2, 10), branch_id: br });
+await cl('a', A); await cl('b', B);
+ok((await post('/api/admin/waitlist', lc, { clientId: t + 'a', fromDate: '2027-03-01', toDate: '2027-03-10' })).status === 403, 'plain lawyer cannot use waitlist');
+ok((await post('/api/admin/waitlist', ac, { clientId: t + 'a', fromDate: '2027-03-10', toDate: '2027-03-01' })).status >= 400, 'inverted dates rejected');
+const wa = await jj(await post('/api/admin/waitlist', ac, { clientId: t + 'a', fromDate: '2027-03-01', toDate: '2027-03-10', notes: 'prefers morning' }));
+const wb = await jj(await post('/api/admin/waitlist', ac, { clientId: t + 'b', fromDate: '2027-03-01', toDate: '2027-03-10' }));
+ok(wa.s === 201 && wb.s === 201, 'senior adds waitlist for both branches');
+const ml = (await jj(await api('/api/admin/waitlist', ac))).b.entries || [];
+ok(ml.some(e => e.id === wa.b.id) && ml.some(e => e.id === wb.b.id), 'senior sees entries of both branches');
+const mm = (await jj(await api('/api/admin/waitlist?matchDate=2027-03-05&branchId=' + A, ac))).b.matches;
+ok(mm?.length === 1 && mm[0].clientId === t + 'a', 'match for a freed slot is limited to that branch and date range');
+ok(((await jj(await api('/api/admin/waitlist?matchDate=2027-05-05&branchId=' + A, ac))).b.matches || []).length === 0, 'no match outside the date range');
+ok((await api('/api/admin/waitlist', ac, { method: 'PATCH', body: JSON.stringify({ id: wa.b.id, status: 'OFFERED' }) })).status === 200, 'entry marked offered');
+ok((await q(`SELECT count(*)::int n FROM client_appointments WHERE client_id=$1`, [t + 'a']))[0].n === 0, 'matching booked nothing automatically');
+await insertDummy('client_appointments', { id: t + 'ap1', client_id: t + 'a', appointment_date: '2020-01-01', appointment_time: '10:00', branch_id: A, source_submission_id: t + 's1' });
+await insertDummy('client_appointments', { id: t + 'ap2', client_id: t + 'b', appointment_date: '2020-01-01', appointment_time: '10:00', branch_id: B, source_submission_id: t + 's2' });
+await insertDummy('client_appointments', { id: t + 'ap3', client_id: t + 'a', appointment_date: '2099-01-01', appointment_time: '10:00', branch_id: A, source_submission_id: t + 's3' });
+ok((await post('/api/admin/no-shows', ac, { appointmentId: t + 'ap1', note: 'did not come' })).status === 201, 'no-show marked');
+ok((await post('/api/admin/no-shows', ac, { appointmentId: t + 'ap3' })).status === 400, 'future appointment cannot be a no-show');
+ok((await post('/api/admin/no-shows', ac, { appointmentId: t + 'ap1' })).status === 201, 'marking twice is harmless');
+ok((await jj(await api('/api/admin/no-shows?clientId=' + t + 'a', ac))).b.count === 1, 'history counts once');
+ok((await post('/api/admin/no-shows', lc, { appointmentId: t + 'ap2' })).status === 403, 'plain lawyer cannot mark');
+ok((await q(`SELECT status FROM client_appointments WHERE id=$1`, [t + 'ap1']))[0].status === 'PENDING', 'appointment row itself unchanged');
+await done('office-ops');

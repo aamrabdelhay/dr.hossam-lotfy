@@ -1,0 +1,32 @@
+// Part 3 items 162 and 163: translation memory (people-entered term pairs) and the lawyer hand-over checklist (senior, read only). Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'th' + Date.now();
+const call = (p, c, m = 'GET', b) => api(p, c, { method: m, ...(b ? { body: JSON.stringify(b) } : {}) });
+const ac = await adminCookie();
+await insertDummy('lawyers', { id: t + 'l', fullName: 'TH L ' + t, email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('TH L ' + t, t + 'l@example.test');
+const T = '/api/translation-memory';
+ok((await call(T, null)).status >= 401, 'anonymous refused');
+ok((await call(T, lc, 'POST', { sourceLang: 'ar', targetLang: 'en', sourceText: 'x', targetText: 'y' })).status === 403, 'a plain lawyer cannot add a term');
+ok((await call(T, ac, 'POST', { sourceLang: 'ar', targetLang: 'ar', sourceText: 'x', targetText: 'y' })).status === 400, 'same language refused');
+ok((await call(T, ac, 'POST', { sourceLang: 'xx', targetLang: 'en', sourceText: 'x', targetText: 'y' })).status === 400, 'unknown language refused');
+const r = await call(T, ac, 'POST', { sourceLang: 'ar', targetLang: 'fr', sourceText: 'صيغة تنفيذية ' + t, targetText: 'formule exécutoire ' + t, sourceRef: 'مرجع تجريبي' });
+const id = (await r.json()).id; ok(r.status === 201 && id, 'senior adds a term pair');
+let e = (await (await call(T + '?q=' + encodeURIComponent('exécutoire ' + t), lc)).json()).entries; ok(e.length === 1 && e[0].source_ref === 'مرجع تجريبي', 'a plain lawyer can search by either side');
+e = (await (await call(T + '?from=en&q=' + t, lc)).json()).entries; ok(e.length === 0, 'language filter works');
+ok((await call(T, ac, 'PATCH', { id, active: false })).status === 200 && (await q(`SELECT 1 FROM office_translation_memory WHERE id=$1`, [id])).length === 1, 'deactivated, row kept');
+ok((await call(T, ac, 'DELETE')).status === 405, 'no delete');
+// handover
+const loc = (await q(`SELECT id FROM locations LIMIT 1`))[0]?.id ?? (await insertDummy('locations', { id: t + 'loc', name: 'L ' + t, slug: t + 'lc' }), t + 'loc');
+await insertDummy('case_records', { id: t + 'c', name: 'TH case', number: 'TH' + t });
+await insertDummy('tasks', { id: t + 't', locationId: loc, caseId: t + 'c', description: 'task', scheduledDate: '2031-01-01', status: 'PENDING' });
+await insertDummy('task_assignments', { id: t + 'a', taskId: t + 't', lawyerId: t + 'l' });
+await insertDummy('office_case_register', { id: t + 'r', case_id: t + 'c', kind: 'NOTE', title: 'ملاحظة', status: 'OPEN', data: '{}', created_by: 'lawyer:' + t + 'l' });
+const H = `/api/admin/handover?lawyerId=${t}l`;
+ok((await call(H, lc)).status === 403, 'a plain lawyer cannot read the hand-over list');
+const h = await (await call(H, ac)).json();
+ok(h.openTasks.length === 1 && h.cases.length === 1 && h.openRegisterItems.length === 1 && h.filesUploaded === 0, 'lists open tasks, cases and register items tied to the lawyer');
+ok((await call('/api/admin/handover?lawyerId=nope', ac)).status === 404, 'unknown lawyer refused');
+ok((await q(`SELECT count(*)::int n FROM task_assignments WHERE "lawyerId"=$1`, [t + 'l']))[0].n === 1, 'nothing was reassigned');
+await done('translation-handover');

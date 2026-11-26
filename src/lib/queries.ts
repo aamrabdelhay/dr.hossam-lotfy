@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { prisma, Prisma } from './prisma';
 import type { Task, Lawyer, Location } from './prisma';
 import { daysUntil, urgencyOf, type Urgency } from './dates';
+import { hiddenCaseIdsForCurrentUser } from './case-file-access';
 
 export type TaskVM = {
   id: string;
@@ -119,8 +120,10 @@ function byDateAsc(a: TaskVM, b: TaskVM): number {
 export const getSidebarData = cache(async function getSidebarData(taskIds?: string[]): Promise<SidebarData> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const hidden = await hiddenCaseIdsForCurrentUser();
   const rows = await prisma.task.findMany({
     where: {
+      ...(hidden.length ? { AND: [{ OR: [{ caseId: null }, { caseId: { notIn: hidden } }] }] } : {}),
       ...(taskIds ? { id: { in: taskIds } } : {}),
       OR: [
         { scheduledDate: { gte: today } },
@@ -163,7 +166,9 @@ export async function getFeed(params: {
 } = {}): Promise<{ items: TaskVM[]; total: number }> {
   const { lawyerId, locationId, status, from, to, q, taskIds, limit = 30, offset = 0 } = params;
   const term = q?.trim();
+  const hidden = await hiddenCaseIdsForCurrentUser();
   const where: Prisma.TaskWhereInput = {
+    ...(hidden.length ? { AND: [{ OR: [{ caseId: null }, { caseId: { notIn: hidden } }] }] } : {}),
     ...(taskIds ? { id: { in: taskIds } } : {}),
     ...(locationId ? { locationId } : {}),
     ...(lawyerId ? { assignees: { some: { lawyerId } } } : {}),
@@ -255,6 +260,7 @@ export async function getTaskVM(id: string, withRaw = false): Promise<TaskVM | T
     },
   });
   if (!t) return null;
+  if (t.caseId && (await hiddenCaseIdsForCurrentUser()).includes(t.caseId)) return null;
   const vm = toTaskVM(t as never);
   if (!withRaw) return vm;
   return {

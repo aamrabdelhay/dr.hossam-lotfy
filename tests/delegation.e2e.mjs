@@ -1,0 +1,20 @@
+// Item 6 verification: temporary delegation is enforced by time and revocation. Synthetic ACCOUNT user, no Google login.
+import { db, ok, q, insertDummy, accountCookie, api, done } from './helpers.mjs';
+await db.connect();
+const t = 'dg' + Date.now(); const ROLE = process.env.NOWRITE_ROLE || 'VIEWER';
+await insertDummy('users', { id: t + 'u', email: t + '@example.test', name: 'Delegate', role: ROLE });
+const c = await accountCookie(t + 'u', ROLE);
+const tryWrite = async () => (await api('/api/admin/courts', c, { method: 'POST', body: JSON.stringify({ name: 'Court ' + t + Math.random() }) })).status;
+ok(await tryWrite() === 403, 'without delegation the role cannot write (403)');
+const del = (id, starts, expires, revoked) => insertDummy('office_permission_delegations', { id: t + id, grantee_user_id: t + 'u', permission_key: 'writeTasks', reason: 'test', starts_at: starts, expires_at: expires, revoked_at: revoked });
+await del('exp', new Date(Date.now() - 7200e3), new Date(Date.now() - 3600e3), null);
+ok(await tryWrite() === 403, 'expired delegation grants nothing');
+await del('fut', new Date(Date.now() + 3600e3), new Date(Date.now() + 7200e3), null);
+ok(await tryWrite() === 403, 'delegation that has not started grants nothing');
+await del('rev', new Date(Date.now() - 3600e3), new Date(Date.now() + 3600e3), new Date());
+ok(await tryWrite() === 403, 'revoked delegation grants nothing');
+await del('live', new Date(Date.now() - 60e3), new Date(Date.now() + 3600e3), null);
+ok(await tryWrite() === 201, 'active delegation grants writeTasks');
+await q(`UPDATE office_permission_delegations SET expires_at = NOW() - interval '1 second' WHERE id=$1`, [t + 'live']);
+ok(await tryWrite() === 403, 'access ends by itself when it expires');
+await done('delegation');

@@ -1,0 +1,25 @@
+// Item 82: import preview is read-only and classifies rows; MERGED clients are never matched. Synthetic data only.
+import { db, ok, q, insertDummy, adminCookie, lawyerCookie, BASE, done } from './helpers.mjs';
+await db.connect();
+const t = 'ip' + Date.now(); const base = String(Date.now()).slice(-6); const ph = (n) => '0111' + base + n;
+const ac = await adminCookie();
+await insertDummy('clients', { id: t + 'ex', name: 'Existing ' + t, phone: ph(1), branch_id: 'branch_main' });
+await insertDummy('clients', { id: t + 'mg', name: 'Merged ' + t, phone: ph(2), branch_id: 'branch_main', status: 'MERGED' });
+const csv = ['اسم العميل,الهاتف,البريد,الرقم القومي', `Existing ${t},${ph(1)},,`, `Merged ${t},${ph(2)},,`, `Fresh ${t},${ph(3)},bad-email,123`, `Fresh ${t},${ph(3)},,`, `,${ph(4)},,`].join('\n');
+const send = (cookie, preview) => { const f = new FormData(); f.set('file', new File([csv], 'c.csv', { type: 'text/csv' })); if (preview) f.set('preview', '1'); return fetch(BASE + '/api/admin/clients/import', { method: 'POST', body: f, headers: cookie ? { cookie } : {} }); };
+const before = (await q(`SELECT count(*)::int n FROM clients`))[0].n;
+const r = await send(ac, true); const b = await r.json();
+ok(r.status === 200 && b.preview === true && b.saved === false, 'preview returns without saving (status ' + r.status + ')');
+ok((await q(`SELECT count(*)::int n FROM clients`))[0].n === before, 'client count unchanged after preview');
+const st = Object.fromEntries(b.rows.map((x) => [x.row, x]));
+ok(st[2]?.status === 'MATCHES_EXISTING' && st[2].existingId === t + 'ex', 'existing client is flagged as a match');
+ok(st[3]?.status === 'NEW', 'MERGED client is not matched (row treated as new)');
+ok(st[4]?.status === 'NEW' && st[4].reasons.includes('email-format') && st[4].reasons.includes('national-id-not-14-digits'), 'bad email and short national id are warned');
+ok(st[5]?.status === 'DUPLICATE_IN_FILE', 'repeat inside the file is flagged');
+ok(st[6]?.status === 'INVALID', 'row without a name is invalid');
+ok(b.totals.rows === 5 && b.totals.invalid === 1, 'totals add up');
+await insertDummy('lawyers', { id: t + 'l', fullName: 'Imp L', email: t + 'l@example.test', slug: t + 'ls', approvedAt: new Date(), active: true });
+const lc = await lawyerCookie('Imp L', t + 'l@example.test');
+ok((await send(lc, true)).status >= 400, 'plain lawyer cannot preview or import');
+ok((await send(undefined, true)).status >= 400, 'anonymous cannot preview');
+await done('import-preview');
