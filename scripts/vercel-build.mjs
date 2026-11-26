@@ -11,6 +11,7 @@
  * explicit emergency/manual-migration workflow.
  */
 import { spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import 'dotenv/config';
 import { databaseSteps } from './build-guard.mjs';
 
