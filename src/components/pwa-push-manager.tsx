@@ -53,8 +53,11 @@ export function PwaPushManager() {
       navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(async (registration) => {
         if (!active) return;
         currentRegistration = registration;
-        const subscription = await registration.pushManager.getSubscription().catch(() => null);
-        if (active) setPushEnabled(Boolean(subscription));
+        const subscription = 'PushManager' in window
+          ? await registration.pushManager.getSubscription().catch(() => null)
+          : null;
+        if (!active) return;
+        setPushEnabled(Boolean(subscription));
 
         const seen = new Set<string>();
         let initialLoad = true;
