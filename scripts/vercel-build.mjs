@@ -11,6 +11,7 @@
  * explicit emergency/manual-migration workflow.
  */
 import { spawnSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import 'dotenv/config';
 import { databaseSteps } from './build-guard.mjs';
 
@@ -78,5 +79,22 @@ if (shouldSeed) {
     env: { ...process.env, DEMO: '' },
   });
 }
+
+// Stamp the service-worker script for every deployment, including redeploys of
+// the same Git commit. This forces installed PWAs to detect the new app build.
+const serviceWorkerPath = new URL('../public/sw.js', import.meta.url);
+const serviceWorkerSource = readFileSync(serviceWorkerPath, 'utf8');
+const serviceWorkerMarker = "const APP_BUILD_ID = '__APP_BUILD_ID__';";
+if (!serviceWorkerSource.includes(serviceWorkerMarker)) {
+  console.error('[vercel-build] public/sw.js is missing its build-id marker.');
+  process.exit(1);
+}
+const appBuildId = `${process.env.VERCEL_GIT_COMMIT_SHA || 'local'}-${Date.now().toString(36)}`;
+writeFileSync(
+  serviceWorkerPath,
+  serviceWorkerSource.replace(serviceWorkerMarker, `const APP_BUILD_ID = ${JSON.stringify(appBuildId)};`),
+  'utf8',
+);
+console.log(`[vercel-build] stamped service worker for app build ${appBuildId}`);
 
 run('building Next.js…', 'npx', ['next', 'build']);
