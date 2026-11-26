@@ -3,6 +3,9 @@ import { requireCaseFileAccess } from '@/lib/case-file-access';
 import { officeId } from '@/lib/office-workflow';
 import { prisma } from '@/lib/prisma';
 import { parsePrivateS3UrlForPrefix, verifyUploadedPrivateS3File, MAX_CLIENT_FILE_BYTES } from '@/lib/client-file-s3';
+import { isSeniorManagement } from '@/lib/office-workflow';
+import { logAuditEvent } from '@/lib/audit';
+import { applyMeta, metaSchema, resolveVersion, reviewSchema, setReview } from '@/lib/case-file-meta';
 import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +18,11 @@ type CaseFileRow = {
   size_bytes: number | null;
   url: string | null;
   created_at: Date | string;
+  doc_type: string | null;
+  tags: string[];
+  version_of: string | null;
+  version_no: number;
+  review_status: string;
 };
 
 const FILE_TYPES: Record<string, { mime: string; kind: string }> = {
@@ -37,20 +45,27 @@ const createSchema = z.object({
   mimeType: z.string().min(1).max(180),
   size: z.number().int().positive().max(MAX_CLIENT_FILE_BYTES),
   url: z.string().min(1).max(2048),
-});
+}).merge(metaSchema);
+const patchSchema = metaSchema.extend({ fileId: z.string().min(1) });
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export const GET = handle(async (_request: Request, { params }: Ctx) => {
+export const GET = handle(async (request: Request, { params }: Ctx) => {
   const { id } = await params;
   await requireCaseFileAccess(id);
+  const sp = new URL(request.url).searchParams;
+  const q = (sp.get('q') || '').trim().slice(0, 100); const docType = (sp.get('docType') || '').trim(); const tag = (sp.get('tag') || '').trim();
+  const latest = sp.get('latest') === '1';
   const rows = await prisma.$queryRawUnsafe<CaseFileRow[]>(
-    `SELECT "id", "name", "kind", "mime_type", "size_bytes", "url", "created_at"
-       FROM "case_files"
-      WHERE "case_id" = $1 AND "deleted_at" IS NULL
-      ORDER BY "created_at" DESC
+    `SELECT f."id", f."name", f."kind", f."mime_type", f."size_bytes", f."url", f."created_at", f."doc_type", f."tags", f."version_of", f."version_no", f."review_status"
+       FROM "case_files" f
+      WHERE f."case_id" = $1 AND f."deleted_at" IS NULL
+        AND ($2::text = '' OR f."name" ILIKE '%' || replace(replace($2,'%','\\%'),'_','\\_') || '%')
+        AND ($3::text = '' OR f."doc_type" = $3) AND ($4::text = '' OR $4::text = ANY(f."tags"))
+        AND (NOT $5::boolean OR f."version_no" = (SELECT max(g."version_no") FROM "case_files" g WHERE g."case_id"=f."case_id" AND g."deleted_at" IS NULL AND COALESCE(g."version_of",g."id") = COALESCE(f."version_of",f."id")))
+      ORDER BY f."created_at" DESC
       LIMIT 300`,
-    id,
+    id, q, docType, tag, latest,
   );
   const prefix = `cases/${id}/`;
   return json({
@@ -83,11 +98,12 @@ export const POST = handle(async (request: Request, { params }: Ctx) => {
   const valid = await verifyUploadedPrivateS3File(data.url, prefix, data.size, fileType.mime);
   if (!valid) throw new ApiError(400, 'لم يتم التحقق من الملف في مخزن Amazon S3. أعد رفعه ثم حاول مرة أخرى.');
 
+  const ver = data.versionOf ? await resolveVersion(id, data.versionOf) : null;
   const fileId = officeId('casefile');
   await prisma.$executeRawUnsafe(
     `INSERT INTO "case_files"
-      ("id", "case_id", "name", "kind", "mime_type", "size_bytes", "url", "created_by_user_id", "created_by_lawyer_id")
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      ("id", "case_id", "name", "kind", "mime_type", "size_bytes", "url", "created_by_user_id", "created_by_lawyer_id", "doc_type", "tags", "version_of", "version_no")
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::text[], $12, $13)`,
     fileId,
     id,
     data.name,
@@ -97,6 +113,10 @@ export const POST = handle(async (request: Request, { params }: Ctx) => {
     data.url,
     session.role === 'admin' ? session.userId : null,
     session.role === 'lawyer' ? session.lawyerId : null,
+    data.docType ?? null,
+    [...new Set(data.tags ?? [])],
+    ver?.root ?? null,
+    ver?.no ?? 1,
   );
 
   return json({
@@ -111,4 +131,26 @@ export const POST = handle(async (request: Request, { params }: Ctx) => {
       created_at: new Date().toISOString(),
     },
   }, { status: 201 });
+});
+
+/** Items 150/152: set document type and tags, or mark an existing file as the next version of another file of the same case. */
+export const PATCH = handle(async (request: Request, { params }: Ctx) => {
+  const { id } = await params;
+  const access = await requireCaseFileAccess(id);
+  if (!access.canRequestChanges) throw new ApiError(403, 'لا تملك صلاحية تعديل مستندات هذه القضية.');
+  const { fileId, ...meta } = await readJson(request, patchSchema);
+  await applyMeta(id, fileId, meta);
+  return json({ ok: true });
+});
+
+/** Item 158: send a case document to legal review, or approve or reject it (senior management only). Audited. */
+export const PUT = handle(async (request: Request, { params }: Ctx) => {
+  const { id } = await params;
+  const access = await requireCaseFileAccess(id);
+  if (!access.canRequestChanges) throw new ApiError(403, 'لا تملك صلاحية مراجعة مستندات هذه القضية.');
+  const b = await readJson(request, reviewSchema);
+  const s = access.session; const senior = await isSeniorManagement(s);
+  await setReview(id, b.fileId, b.reviewStatus, senior, s.role === 'admin' ? 'admin:' + s.userId : 'lawyer:' + s.lawyerId);
+  await logAuditEvent({ actorUserId: s.role === 'admin' ? s.userId : null, actorLawyerId: s.role === 'lawyer' ? s.lawyerId : null, action: 'CASE_FILE_REVIEW', resourceType: 'case_file', resourceId: b.fileId, summary: 'مراجعة مستند: ' + b.reviewStatus, metadata: { caseId: id } });
+  return json({ ok: true });
 });

@@ -12,6 +12,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import 'dotenv/config';
+import { databaseSteps } from './build-guard.mjs';
 
 function run(label, command, args, options = {}) {
   console.log(`[vercel-build] ${label}`);
@@ -30,10 +31,12 @@ function run(label, command, args, options = {}) {
   }
 }
 
-const skipMigrations = process.env.SKIP_DB_MIGRATE === '1';
-const shouldSeed = process.env.SEED_ON_BUILD === '1';
+const steps = databaseSteps(process.env);
+const shouldSeed = steps.seed;
 
-if (skipMigrations) {
+if (!steps.production) {
+  console.warn(`[vercel-build] VERCEL_ENV=${process.env.VERCEL_ENV ?? '(unset)'} is not production: migrations, directory sync and seed are skipped. No database is touched.`);
+} else if (!steps.migrate) {
   console.warn('[vercel-build] SKIP_DB_MIGRATE=1 — migrations were explicitly skipped.');
 } else {
   if (!process.env.DATABASE_URL) {
@@ -45,7 +48,7 @@ if (skipMigrations) {
   run('applying database migrations…', 'node', ['scripts/apply-migrations.mjs']);
 }
 
-if (shouldSeed && !process.env.DATABASE_URL) {
+if (steps.production && shouldSeed && !process.env.DATABASE_URL) {
   console.error('[vercel-build] SEED_ON_BUILD=1 requires DATABASE_URL.');
   process.exit(1);
 }
@@ -56,9 +59,9 @@ run('generating Prisma client…', 'npx', ['prisma', 'generate']);
 // Every deploy re-syncs the official directory (119 courts + 15 government
 // offices + 15 justice bodies) so /lawyer-guide never ships empty again.
 // Idempotent upserts.
-const skipGuideSync = process.env.SKIP_LAWYER_GUIDE_SYNC === '1';
-
-if (skipGuideSync) {
+if (!steps.production) {
+  console.warn('[vercel-build] directory sync skipped (not production).');
+} else if (!steps.guideSync) {
   console.warn('[vercel-build] SKIP_LAWYER_GUIDE_SYNC=1 — lawyer guide sync was explicitly skipped.');
 } else if (!process.env.DATABASE_URL) {
   console.error(

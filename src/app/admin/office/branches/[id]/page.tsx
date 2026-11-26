@@ -41,7 +41,7 @@ export default async function BranchDetailsPage({params}:{params:Promise<{id:str
   }
 
   const adminIdentity=await getAdminIdentity(session);
-  const taskIds=await prisma.$queryRawUnsafe<string[]>('SELECT "id" FROM "tasks" WHERE "branch_id"=$1 ORDER BY "createdAt" DESC LIMIT 1000',id);
+  const taskIds=(await prisma.$queryRawUnsafe<Array<{id:string}>>('SELECT "id" FROM "tasks" WHERE "branch_id"=$1 ORDER BY "createdAt" DESC LIMIT 1000',id)).map((r)=>r.id);
   const branchLawyerRows=await prisma.$queryRawUnsafe<Array<{id:string}>>('SELECT "lawyer_id" AS "id" FROM "office_branch_lawyers" WHERE "branch_id"=$1',id);
   const [stats,lawyers,locations,cases,categories,activity,notifications,feed]=await Promise.all([
     getBranchAdminStats(id),

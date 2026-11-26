@@ -35,6 +35,9 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // PDF export (Part 2): pdfkit reads its own data files at runtime, and the Arabic font files must ship with the routes that use them.
+  serverExternalPackages: ['pdfkit'],
+  outputFileTracingIncludes: { '/api/hearings/**': ['./assets/fonts/**'] },
   reactStrictMode: true,
   images: {
     unoptimized: true,

@@ -36,7 +36,7 @@ export const GET = handle(async () => {
      LEFT JOIN "lawyers" l ON l."id"=r."requested_by_lawyer_id"
      LEFT JOIN "case_records" cr ON r."file_type"='case' AND cr."id"=r."resource_id"
      LEFT JOIN "clients" c ON r."file_type"='client' AND c."id"=r."resource_id"
-     WHERE r."status" IN ('PENDING','APPROVED')
+     WHERE r."status" IN ('PENDING','APPROVED','ARCHIVE_EXPIRED')
      ORDER BY CASE WHEN r."status"='PENDING' THEN 0 ELSE 1 END,r."requested_at" DESC
      LIMIT 500`,
   );
@@ -45,7 +45,7 @@ export const GET = handle(async () => {
     archive_url:x.archive_id?'/api/admin/file-archives/'+encodeURIComponent(x.archive_id)+'/content':null,
   });
   const pending=rows.filter(x=>x.status==='PENDING').map(safe);
-  const archives=rows.filter(x=>x.status==='APPROVED'&&x.archive_expires_at&&new Date(x.archive_expires_at)>new Date()).map(safe);
+  const archives=rows.filter(x=>x.status==='APPROVED'||x.status==='ARCHIVE_EXPIRED').map(safe);
   return json({pending,archives},{headers:{'Cache-Control':'private, no-store, max-age=0'}});
 });
 
@@ -113,8 +113,7 @@ export const POST = handle(async (request:Request) => {
       );
       return {status:'APPROVED',archiveId};
     }
-    if(item.status!=='APPROVED'||!item.archive_id) throw new ApiError(409,'لا يوجد ملف نشط في الأرشيف لاسترجاعه.');
-    if(!item.archive_expires_at||new Date(item.archive_expires_at)<=new Date()) throw new ApiError(410,'انتهت مدة أرشفة الملف البالغة 31 يومًا.');
+    if((item.status!=='APPROVED'&&item.status!=='ARCHIVE_EXPIRED')||!item.archive_id) throw new ApiError(409,'لا يوجد ملف نشط في الأرشيف لاسترجاعه.');
     const table=item.file_type==='case'?'case_files':'client_files';
     const ownerColumn=item.file_type==='case'?'case_id':'client_id';
     const sql='UPDATE "'+table+'" SET "deleted_at"=NULL WHERE "id"=$1 AND "'+ownerColumn+'"=$2 AND "deleted_at" IS NOT NULL';
@@ -122,11 +121,11 @@ export const POST = handle(async (request:Request) => {
     if(!restored) throw new ApiError(409,'تعذر استرجاع الملف؛ قد يكون قد انتهى أو حُذف نهائيًا.');
     await tx.$executeRawUnsafe(
       `UPDATE "office_archive" SET "restored_at"=NOW(),"restored_by_user_id"=$2
-       WHERE "id"=$1 AND "restored_at" IS NULL AND ("expires_at" IS NULL OR "expires_at">NOW())`,
+       WHERE "id"=$1 AND "restored_at" IS NULL`,
       item.archive_id,actorUserId,
     );
     await tx.$executeRawUnsafe(
-      `UPDATE "office_file_deletion_requests" SET "status"='RESTORED' WHERE "id"=$1 AND "status"='APPROVED'`,
+      `UPDATE "office_file_deletion_requests" SET "status"='RESTORED' WHERE "id"=$1 AND "status" IN ('APPROVED','ARCHIVE_EXPIRED')`,
       item.id,
     );
     return {status:'RESTORED',archiveId:item.archive_id};

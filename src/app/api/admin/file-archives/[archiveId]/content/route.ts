@@ -19,11 +19,11 @@ export const GET=handle(async(request:Request,{params}:Ctx)=>{
   const rows=await prisma.$queryRawUnsafe<Row[]>(
     `SELECT "file_type","resource_id","file_name","mime_type","storage_url","archive_expires_at","status"
      FROM "office_file_deletion_requests"
-     WHERE "archive_id"=$1 AND "status"='APPROVED' AND "archive_expires_at">NOW()
+     WHERE "archive_id"=$1 AND "status" IN ('APPROVED','ARCHIVE_EXPIRED')
      LIMIT 1`,archiveId,
   );
   const file=rows[0];
-  if(!file) return json({error:'انتهت مدة الأرشفة أو الملف غير موجود.'},{status:404});
+  if(!file) return json({error:'الملف غير موجود في الأرشيف.'},{status:404});
   let stream:ReadableStream<Uint8Array>|null=null;
   let contentType=file.mime_type||'application/octet-stream';
   let contentLength:number|null=null;

@@ -125,6 +125,29 @@ export const POST = handle(async (request: Request) => {
   const branchId = scope.allBranches ? 'branch_main' : allowedBranchIds[0];
   const branchConstraint = scope.allBranches ? null : branchId;
   const rows = grid.slice(1).slice(0, 5000);
+  // Item 82: preview mode. Read only. Classifies every row before anything is saved.
+  if (form.get('preview') === '1') {
+    const seen = new Map<string, number>();
+    const out: Array<{ row: number; name: string; status: 'NEW' | 'MATCHES_EXISTING' | 'DUPLICATE_IN_FILE' | 'INVALID'; reasons: string[]; existingId?: string }> = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rowToImport(rows[i], headers); const reasons: string[] = [];
+      if (!r.name) { out.push({ row: i + 2, name: '', status: 'INVALID', reasons: ['missing-name'] }); continue; }
+      if (r.phone && !/^[+\d][\d\s-]{6,19}$/.test(r.phone)) reasons.push('phone-format');
+      if (r.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email)) reasons.push('email-format');
+      if (r.nationalId && !/^\d{14}$/.test(r.nationalId)) reasons.push('national-id-not-14-digits');
+      if (r.updateDate && !parseEventDate(r.updateDate)) reasons.push('update-date-unreadable');
+      const keys = [r.nationalId && 'n:' + r.nationalId, r.phone && 'p:' + r.phone, !r.nationalId && !r.phone && 'm:' + r.name.trim().toLowerCase()].filter(Boolean) as string[];
+      const dup = keys.find((k) => seen.has(k));
+      if (dup) { out.push({ row: i + 2, name: r.name, status: 'DUPLICATE_IN_FILE', reasons: [...reasons, `same-as-row-${seen.get(dup)}`] }); continue; }
+      keys.forEach((k) => seen.set(k, i + 2));
+      const m = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        'SELECT "id" FROM "clients" WHERE (($1::text IS NOT NULL AND "nationalId"=$1) OR ($2::text IS NOT NULL AND "phone"=$2) OR (($1::text IS NULL AND $2::text IS NULL) AND lower(trim("name"))=lower(trim($3)))) AND COALESCE("status",\'MAIN\') NOT IN (\'DELETED\',\'MERGED\') AND ($4::text IS NULL OR COALESCE("branch_id",\'branch_main\')=$4) LIMIT 1',
+        r.nationalId || null, r.phone || null, r.name, branchConstraint);
+      out.push(m[0] ? { row: i + 2, name: r.name, status: 'MATCHES_EXISTING', reasons, existingId: m[0].id } : { row: i + 2, name: r.name, status: 'NEW', reasons });
+    }
+    const count = (st: string) => out.filter((o) => o.status === st).length;
+    return json({ preview: true, saved: false, totals: { rows: out.length, new: count('NEW'), matchesExisting: count('MATCHES_EXISTING'), duplicateInFile: count('DUPLICATE_IN_FILE'), invalid: count('INVALID'), withWarnings: out.filter((o) => o.reasons.length).length }, note: 'Nothing was saved. A row that matches an existing client is UPDATED when imported (non-empty file values overwrite the saved ones), not duplicated.', rows: out.slice(0, 500) });
+  }
   let created = 0;
   let updated = 0;
   let casesCreated = 0;
@@ -143,7 +166,7 @@ export const POST = handle(async (request: Request) => {
           id: string; name: string; phone: string | null; email: string | null; nationalId: string | null;
           address: string | null; notes: string | null; branch_id: string | null;
         }>>(
-          'SELECT "id","name","phone","email","nationalId","address","notes","branch_id" FROM "clients" WHERE (($1::text IS NOT NULL AND "nationalId"=$1) OR ($2::text IS NOT NULL AND "phone"=$2) OR (($1::text IS NULL AND $2::text IS NULL) AND lower(trim("name"))=lower(trim($3)))) AND ($4::text IS NULL OR COALESCE("branch_id",\'branch_main\')=$4) ORDER BY CASE WHEN $1::text IS NOT NULL AND "nationalId"=$1 THEN 0 WHEN $2::text IS NOT NULL AND "phone"=$2 THEN 1 ELSE 2 END LIMIT 1',
+          'SELECT "id","name","phone","email","nationalId","address","notes","branch_id" FROM "clients" WHERE (($1::text IS NOT NULL AND "nationalId"=$1) OR ($2::text IS NOT NULL AND "phone"=$2) OR (($1::text IS NULL AND $2::text IS NULL) AND lower(trim("name"))=lower(trim($3)))) AND COALESCE("status",\'MAIN\') NOT IN (\'DELETED\',\'MERGED\') AND ($4::text IS NULL OR COALESCE("branch_id",\'branch_main\')=$4) ORDER BY CASE WHEN $1::text IS NOT NULL AND "nationalId"=$1 THEN 0 WHEN $2::text IS NOT NULL AND "phone"=$2 THEN 1 ELSE 2 END LIMIT 1',
           nationalId, phone, input.name, branchConstraint,
         );
         let clientId: string;

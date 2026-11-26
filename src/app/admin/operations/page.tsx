@@ -6,6 +6,14 @@ import { getBranchScope } from "@/lib/branch-access";
 import { isSeniorManagement } from "@/lib/office-workflow";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, EmptyState } from "@/components/ui";
+import { InventoryPanel } from "@/components/inventory-panel";
+import { AnalyticsPanel } from "@/components/analytics-panel";
+import { OfficeLogPanel } from "@/components/office-log-panel";
+import { HandoverCoveragePanel } from "@/components/handover-coverage-panel";
+import { WorkflowPanel } from "@/components/workflow-panel";
+import { PeriodReportPanel } from "@/components/period-report-panel";
+import { DashboardCard } from "@/components/dashboard-card";
+import { ConflictCheckPanel } from "@/components/conflict-check-panel";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "مركز العمليات الذكية" };
@@ -48,7 +56,17 @@ export default async function OperationsCenterPage() {
     ),
   ]);
 
+  const lawyerRows = senior ? await prisma.$queryRawUnsafe<{ id: string; name: string }[]>('SELECT "id", "fullName" AS name FROM "lawyers" ORDER BY "fullName" LIMIT 500') : [];
+
   return <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6">
+    {senior && <ConflictCheckPanel />}
+    {senior && <HandoverCoveragePanel lawyers={lawyerRows} />}
+    {senior && <DashboardCard />}
+    {senior && <WorkflowPanel />}
+    {senior && <PeriodReportPanel />}
+    <OfficeLogPanel />
+    <InventoryPanel />
+    <AnalyticsPanel />
     <header className="mb-6 rounded-3xl bg-navy-950 p-5 text-white sm:p-7">
       <p className="text-[10px] font-extrabold tracking-[0.2em] text-gold-400">INTELLIGENT OPERATIONS</p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-3"><div><h1 className="text-2xl font-black">مركز العمليات الذكية</h1><p className="mt-2 max-w-2xl text-xs leading-6 text-slate-300">متابعة مبنية على السجلات الفعلية: المهام المتأخرة، الجلسات القريبة غير المسندة، والقضايا التي لا تحتوي على مستندات مرفوعة.</p></div><Link href="/admin/office" className="rounded-xl border border-white/20 px-4 py-2 text-xs font-bold text-white">الإدارة العامة</Link></div>

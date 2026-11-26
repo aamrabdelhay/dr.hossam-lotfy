@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { handle, json, requireStaff } from '@/lib/api';
+import { hiddenCaseIds } from '@/lib/case-file-access';
 
 export const GET = handle(async (req: Request) => {
   const session = await requireStaff();
@@ -20,8 +21,20 @@ export const GET = handle(async (req: Request) => {
       ],
     };
   }
+  const hidden = await hiddenCaseIds(session);
+  let hiddenTaskIds: string[] = [];
+  if (hidden.length) {
+    const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>('SELECT "id" FROM "tasks" WHERE "caseId" = ANY($1::text[])', hidden);
+    hiddenTaskIds = rows.map((r) => r.id);
+  }
   const limit = 100;
   const activity = await prisma.activityLog.findMany({
+    where: {
+      AND: [
+        ...(where ? [where] : []),
+        ...(hiddenTaskIds.length ? [{ OR: [{ taskId: null }, { taskId: { notIn: hiddenTaskIds } }] }] : []),
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     take: limit,
     include: {
