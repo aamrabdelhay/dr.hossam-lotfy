@@ -25,7 +25,7 @@ check(manager.includes('تحديث الآن') && manager.includes('window.locati
 check(manager.includes('/api/push/subscribe'), 'push subscription mechanism remains in place');
 check(serviceWorker.includes("const APP_BUILD_ID = '__APP_BUILD_ID__';") && serviceWorker.includes('self.skipWaiting()'), 'service worker exposes a per-build version marker and activates updates');
 check(vercelBuild.includes('VERCEL_GIT_COMMIT_SHA') && vercelBuild.includes('stamped service worker'), 'every Vercel build stamps a unique service-worker version');
-const pageContentRule = globalCss.match(/\\.page-content\\{[^}]*\\}/)?.[0] ?? '';
+const pageContentRule = globalCss.match(/\.page-content\{[^}]*\}/)?.[0] ?? '';
 check(!pageContentRule.includes('transform') && !pageContentRule.includes('animation'), 'main page wrapper does not trap fixed dialogs in a stacking context');
 check(footer.includes('{isLoggedIn && <div className="mt-4 flex justify-center"><Link href="/features"'), 'feature directory footer link is login-gated');
 check(navbar.includes('overflow-y-auto overscroll-contain scroll-smooth'), 'quick navigation dropdown has internal scrolling');
