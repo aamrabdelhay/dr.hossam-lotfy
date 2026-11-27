@@ -4,6 +4,8 @@ import { Clock3, MapPin, Phone, FileText } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, EmptyState } from "@/components/ui";
+import { CourtCaseDetails } from "@/components/court-case-details";
+import { CourtArrivalButtons } from "@/components/court-arrival-buttons";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "وضع المحاكم" };
@@ -21,6 +23,7 @@ export default async function CourtModePage() {
   const tasks = await prisma.task.findMany({
     where: { status: { not: "CANCELLED" }, scheduledDate: day, assignees: { some: { lawyerId: session.lawyerId } }, location: { type: "COURT" } },
     include: {
+      assignees: { select: { lawyer: { select: { fullName: true } } } },
       location: { select: { name: true, address: true, phone: true, googleMapsUrl: true, governorate: true, city: true } },
       caseRecord: { select: { id: true, name: true, number: true, clientName: true } },
     },
@@ -44,7 +47,11 @@ export default async function CourtModePage() {
               <div><h2 className="text-base font-extrabold leading-7 text-navy-950">{task.description}</h2><p className="mt-1 flex items-center gap-1 text-sm font-bold text-navy-700"><Clock3 size={15}/>{task.scheduledTime || "الوقت غير محدد"}</p></div>
               <div className="rounded-xl border border-navy-100 bg-white p-3"><p className="flex items-center gap-2 text-sm font-extrabold text-navy-900"><MapPin size={16} className="text-gold-600"/>{task.location.name}</p>{task.location.address && <p className="mt-1 text-xs leading-5 text-navy-500">{task.location.address}</p>}</div>
               {task.caseRecord && <div className="rounded-xl bg-ivory-50 p-3"><p className="flex items-center gap-2 text-xs font-bold text-navy-500"><FileText size={14}/>القضية</p><p className="mt-1 text-sm font-extrabold text-navy-900">{task.caseRecord.name}</p><p className="text-xs font-semibold text-navy-500">{task.caseRecord.number}{task.caseRecord.clientName ? " · " + task.caseRecord.clientName : ""}</p></div>}
+              {task.caseRecord && <CourtCaseDetails caseId={task.caseRecord.id} taskId={task.id} />}
               <div className="grid grid-cols-2 gap-2"><a href={maps} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-navy-950 px-3 text-xs font-extrabold text-white"><MapPin size={15}/>فتح الاتجاهات</a>{task.location.phone ? <a href={"tel:" + task.location.phone} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-navy-200 px-3 text-xs font-extrabold text-navy-800"><Phone size={15}/>اتصال بالمحكمة</a> : <Link href={"/sessions/" + task.id} className="flex min-h-12 items-center justify-center rounded-xl border border-navy-200 px-3 text-xs font-extrabold text-navy-800">فتح الجلسة</Link>}</div>
+              {task.notes && <div className="rounded-xl border border-gold-200 bg-gold-50/50 p-3"><p className="text-xs font-bold text-navy-500">ملاحظات</p><p className="mt-1 whitespace-pre-line text-sm font-semibold leading-6 text-navy-900">{task.notes}</p></div>}
+              {task.assignees.length > 1 && <div className="rounded-xl bg-ivory-50 p-3"><p className="text-xs font-bold text-navy-500">المحامون على الجلسة</p><p className="mt-1 text-sm font-extrabold text-navy-900">{task.assignees.map((a) => a.lawyer.fullName).join("، ")}</p></div>}
+              <CourtArrivalButtons taskId={task.id} />
               <Link href={"/sessions/" + task.id} className="block rounded-xl bg-gold-500 px-3 py-3 text-center text-xs font-extrabold text-navy-950">فتح الجلسة وتسجيل النتيجة</Link>
             </div>
           </Card>;
