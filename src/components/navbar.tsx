@@ -347,7 +347,7 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
       {session && (
         <>
           {mobileOpen && (
-            <div className="fixed inset-x-0 bottom-0 top-[calc(68px+var(--pin-h,0px))] z-[80] lg:hidden" role="dialog" aria-modal="true">
+            <div className="fixed inset-x-0 bottom-0 top-[calc(68px+var(--pin-h,0px))] max-h-[calc(100dvh-5.5rem)] z-[80] lg:hidden" style={{ maxHeight: "calc(100dvh - 68px - var(--pin-h, 0px))" }} role="dialog" aria-modal="true">
               <button type="button" aria-label="إغلاق" className="absolute inset-0 bg-navy-950/40" onClick={() => setMobileOpen(false)} />
               <div className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto overscroll-contain rounded-b-3xl bg-white p-4 shadow-2xl">
                 <div className="mb-3 flex items-center justify-between">
