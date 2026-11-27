@@ -37,6 +37,9 @@ export default async function OfficeManagementPage() {
               <ShieldCheck size={15}/> أدوات الإدارة العامة
             </Link>
           )}
+          {(senior || finance) && (
+            <Link href="/admin/finance" className="inline-flex items-center gap-2 rounded-xl border border-gold-300 bg-white px-4 py-2.5 text-xs font-extrabold text-navy-900 hover:bg-gold-50">الإدارة المالية</Link>
+          )}
           {(senior || officeManager) && (
             <Link href="/admin/office/live" className="inline-flex items-center gap-2 rounded-xl border border-gold-300 bg-white px-4 py-2.5 text-xs font-extrabold text-navy-900 hover:bg-gold-50">
               شاشة المكتب الحية

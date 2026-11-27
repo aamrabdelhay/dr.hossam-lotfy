@@ -30,3 +30,10 @@ body:has(.auth-page){padding-top:0!important}
   h1, h2, h3 { break-after: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Phones: room for the floating buttons, no sticky hover zoom on touch, readable controls. */
+@media(max-width:1023px){main{padding-bottom:1.5rem}body{padding-top:64px!important;padding-bottom:0}}
+@media(max-width:1023px){footer{display:none}}
+@media(max-width:639px){#two-week-warning p{font-size:11.5px}}
+@media(hover:none){button:hover:not(:disabled),[role="button"]:hover:not([aria-disabled="true"]),.btn-bubble:hover,.card-hover:hover{transform:none!important}}
+@media(max-width:639px){input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px}[role="tab"]{min-height:44px}}

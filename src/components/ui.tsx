@@ -13,8 +13,8 @@ export function buttonClasses(variant: ButtonVariant = 'primary', size: ButtonSi
   const base =
     'btn-bubble inline-flex items-center justify-center gap-2 font-semibold select-none whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none';
   const sizes: Record<ButtonSize, string> = {
-    sm: 'h-8 px-3.5 text-[13px] rounded-full',
-    md: 'h-10 px-5 text-sm rounded-full',
+    sm: 'h-10 px-3.5 text-[13px] rounded-full sm:h-8',
+    md: 'h-11 px-5 text-sm rounded-full sm:h-10',
     lg: 'h-12 px-7 text-base rounded-full',
   };
   const variants: Record<ButtonVariant, string> = {
@@ -46,7 +46,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     <input
       ref={ref}
       className={cn(
-        'h-10 w-full rounded-xl border border-navy-200/80 bg-ivory-50/60 px-3.5 text-sm text-navy-900 transition-all placeholder:text-navy-300',
+        'h-11 w-full rounded-xl border border-navy-200/80 bg-ivory-50/60 px-3.5 text-base sm:h-10 sm:text-sm text-navy-900 transition-all placeholder:text-navy-300',
         'focus:border-gold-500/70 focus:bg-white focus:ring-2 focus:ring-gold-500/20 focus:outline-none',
         className,
       )}
