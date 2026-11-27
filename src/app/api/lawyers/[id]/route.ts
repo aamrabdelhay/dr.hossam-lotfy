@@ -73,6 +73,8 @@ export const PATCH = handle(async (req: Request, ctx: Ctx) => {
 
   // Only update fields sent by the caller. In particular, don't clear photos
   // when unrelated lawyer details are edited.
+  if (payload.active === true && !lawyer.approvedAt) payload.approvedAt = new Date();
+
   const updated = await prisma.lawyer.update({ where: { id }, data: payload });
   await logActivity({
     action: 'PROFILE_UPDATED',
