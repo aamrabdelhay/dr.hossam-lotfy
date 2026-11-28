@@ -7,7 +7,8 @@ import {
   Search, Landmark, Scale, KeyRound, LogOut, Menu, X, UserCircle2,
   Archive, ChevronDown, Users, UserPlus, ClipboardList,
   WalletCards, ShieldCheck, Building2, Clock3,
-  House, CalendarDays, ListChecks, Bell, Ellipsis, Bot
+  House, CalendarDays, ListChecks, Bell, Ellipsis, Bot,
+  ArrowLeft, Pin, PinOff, BookOpen, FileText, GitCompareArrows
 } from 'lucide-react';
 import { Avatar } from './ui';
 import { NotificationBell } from './notification-bell';
@@ -63,6 +64,9 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [dropdown, setDropdown] = React.useState<'locations' | 'lawyers' | 'branches' | 'quick' | null>(null);
   const [q, setQ] = React.useState('');
+  const [moreEditing, setMoreEditing] = React.useState(false);
+  const [morePins, setMorePins] = React.useState<string[]>([]);
+  const [morePinsLoaded, setMorePinsLoaded] = React.useState(false);
   const wrapRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -78,7 +82,16 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
     setDropdown(null);
   }, [pathname]);
 
-  if (pathname === '/auth') return null;
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem('lhl-more-pins');
+      if (stored) {
+        const parsed: unknown = JSON.parse(stored);
+        if (Array.isArray(parsed)) setMorePins(parsed.filter((value): value is string => typeof value === 'string'));
+      }
+    } catch { /* Ignore malformed local preferences. */ }
+    setMorePinsLoaded(true);
+  }, []);
 
   const doSearch = (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -97,6 +110,54 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
   const isAdmin = Boolean(session && (session.role === 'admin' || session.isSenior));
   const isManagement = Boolean(session && (session.role === 'admin' || session.isSenior || session.isOffice || session.isFinance));
   const canNavigateBranches = Boolean(isAdmin && branches.length);
+
+  const moreTiles: Array<{ href: string; label: string; icon: React.ElementType; show: boolean; action?: 'back' }> = [
+    ...(pathname !== '/' ? [{ href: '__back', label: 'رجوع', icon: ArrowLeft, show: true, action: 'back' as const }] : []),
+    { href: '/admin/office', label: 'دخول الإدارة', icon: Building2, show: !!(canNavigateBranches || isManagement) },
+    { href: '/profile', label: COPY.profile, icon: UserCircle2, show: !!session },
+    { href: '/sessions', label: 'الجلسات', icon: Scale, show: true },
+    { href: '/tasks', label: 'المهام', icon: ClipboardList, show: true },
+    { href: '/locations', label: COPY.courts, icon: Landmark, show: true },
+    { href: '/lawyers', label: COPY.lawyers, icon: Users, show: true },
+    { href: '/search', label: COPY.search, icon: Search, show: true },
+    { href: '/court-mode', label: 'وضع المحاكم', icon: Landmark, show: true },
+    { href: '/timesheets', label: 'ساعات العمل', icon: Clock3, show: true },
+    { href: '/library', label: 'المكتبة والأدلة', icon: BookOpen, show: true },
+    { href: '/directory', label: 'دليل الخبراء والمترجمين', icon: Users, show: true },
+    { href: '/tools/compare', label: 'مقارنة النصوص', icon: GitCompareArrows, show: true },
+    { href: '/tools/redact', label: 'إخفاء بيانات في صورة', icon: FileText, show: true },
+    { href: '/profile/security', label: 'الأجهزة وجلسات الدخول', icon: ShieldCheck, show: true },
+    { href: '/finance', label: 'الطلبات المالية', icon: WalletCards, show: true },
+    { href: '/admin/finance', label: 'الإدارة المالية', icon: Landmark, show: !!(session?.isFinance || session?.isSenior) },
+    { href: '/admin/operations', label: 'العمليات', icon: ShieldCheck, show: !!isManagement },
+    { href: '/admin/clients', label: COPY.clients, icon: Users, show: !!isAdmin },
+    { href: '/admin?tab=tasks', label: COPY.assign, icon: ClipboardList, show: !!isAdmin },
+    { href: '/admin?tab=lawyers', label: COPY.addLawyer, icon: UserPlus, show: !!isAdmin },
+    { href: '/admin?tab=locations', label: COPY.addLocation, icon: Landmark, show: !!isAdmin },
+    { href: '/cases/archive', label: COPY.archive, icon: Archive, show: !!isAdmin },
+  ].filter((item) => item.show);
+  const pinnedTiles = moreTiles.filter((item) => morePins.includes(item.href));
+
+  React.useEffect(() => {
+    if (!morePinsLoaded) return;
+    document.documentElement.style.setProperty('--pin-h', pinnedTiles.length ? '36px' : '0px');
+    window.localStorage.setItem('lhl-more-pins', JSON.stringify(morePins));
+  }, [morePins, morePinsLoaded, pinnedTiles.length]);
+
+  const toggleMorePin = (href: string) => {
+    setMorePins((current) => current.includes(href) ? current.filter((item) => item !== href) : [...current, href]);
+  };
+  const activateMoreTile = (item: (typeof moreTiles)[number]) => {
+    if (moreEditing) {
+      toggleMorePin(item.href);
+      return;
+    }
+    setMobileOpen(false);
+    if (item.action === 'back') router.back();
+    else router.push(item.href);
+  };
+
+  if (pathname === '/auth') return null;
 
   const navClass = (active: boolean) =>
     cn(
@@ -233,6 +294,15 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
           </button>
         </nav>
       )}
+      {session && morePinsLoaded && pinnedTiles.length > 0 && (
+        <div className="flex h-9 items-center gap-2 overflow-x-auto border-t border-navy-100/70 bg-white/95 px-2 lg:hidden" aria-label="العناصر المثبّتة">
+          {pinnedTiles.map((item) => (
+            <button key={item.href} type="button" onClick={() => moreEditing ? toggleMorePin(item.href) : (setMobileOpen(false), item.action === 'back' ? router.back() : router.push(item.href))} className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-gold-300 bg-gold-50 px-3 text-[11px] font-bold text-navy-800">
+              <item.icon size={14} className="text-gold-700" />{item.label}{moreEditing && <PinOff size={12} className="text-gold-700" />}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="relative hidden min-h-14 items-center gap-1 px-2 sm:px-4 lg:flex">
         
@@ -277,28 +347,20 @@ export function Navbar({ lawyers, locations, branches, session, unread, logoData
       {session && (
         <>
           {mobileOpen && (
-            <div className="fixed inset-0 z-[65] lg:hidden" role="dialog" aria-modal="true">
+            <div className="fixed inset-x-0 bottom-0 top-[calc(68px+var(--pin-h,0px))] max-h-[calc(100dvh-5.5rem)] z-[80] lg:hidden" style={{ maxHeight: "calc(100dvh - 68px - var(--pin-h, 0px))" }} role="dialog" aria-modal="true">
               <button type="button" aria-label="إغلاق" className="absolute inset-0 bg-navy-950/40" onClick={() => setMobileOpen(false)} />
-              <div className="absolute inset-x-0 top-[68px] max-h-[calc(100dvh-76px)] overflow-y-auto overscroll-contain rounded-b-3xl bg-white p-4 shadow-2xl">
-                
+              <div className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto overscroll-contain rounded-b-3xl bg-white p-4 shadow-2xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-extrabold text-navy-900">المزيد</h2>
+                  <button type="button" onClick={() => setMoreEditing((value) => !value)} className={cn("rounded-full border px-3 py-1.5 text-[11px] font-bold", moreEditing ? "border-gold-500 bg-gold-50 text-gold-800" : "border-navy-200 bg-white text-navy-600")}>{moreEditing ? "تم" : "تعديل"}</button>
+                </div>
                 <form onSubmit={doSearch} className="mb-4 flex gap-2"><input value={q} onChange={(event) => setQ(event.target.value)} placeholder={COPY.searchShort} className="h-11 min-w-0 flex-1 rounded-full border border-navy-200 bg-ivory-50 px-4 text-base" /><button type="submit" className="flex h-11 w-11 items-center justify-center rounded-full bg-navy-950 text-gold-400" aria-label={COPY.search}><Search size={17} /></button></form>
                 <div className="grid grid-cols-3 gap-2.5 text-center">
-                  {[
-                    { href: '/sessions', label: 'الجلسات', icon: Scale, show: true },
-                    { href: '/tasks', label: 'المهام', icon: ClipboardList, show: true },
-                    { href: '/locations', label: COPY.courts, icon: Landmark, show: true },
-                    { href: '/lawyers', label: COPY.lawyers, icon: Users, show: true },
-                    { href: '/search', label: COPY.search, icon: Search, show: true },
-                    { href: '/profile', label: COPY.profile, icon: UserCircle2, show: true },
-                    { href: '/admin/office', label: canNavigateBranches ? 'المكاتب والفروع' : 'دخول الإدارة', icon: Building2, show: !!(canNavigateBranches || isManagement) },
-                    { href: '/finance', label: 'الطلبات المالية', icon: WalletCards, show: true },
-                    { href: '/admin/finance', label: 'الإدارة المالية', icon: Landmark, show: !!(session?.isFinance || session?.isSenior) },
-                    { href: '/admin/operations', label: 'العمليات', icon: ShieldCheck, show: !!isManagement },
-                    { href: '/admin/clients', label: COPY.clients, icon: Users, show: !!isAdmin },
-                  ].filter((i) => i.show).map((item) => (
-                    <Link key={item.href + item.label} href={item.href} onClick={() => setMobileOpen(false)} className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl bg-ivory-100 px-1 text-[12px] font-bold text-navy-800 active:bg-ivory-200">
+                  {moreTiles.filter((item) => !morePins.includes(item.href)).map((item) => (
+                    <button key={item.href} type="button" onClick={() => activateMoreTile(item)} className={cn("relative flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl bg-ivory-100 px-1 text-[12px] font-bold text-navy-800 active:bg-ivory-200", moreEditing && "ring-1 ring-gold-300")}>
                       <item.icon size={22} className="text-gold-600" />{item.label}
-                    </Link>
+                      {moreEditing && <Pin size={14} className="absolute end-2 top-2 text-gold-700" />}
+                    </button>
                   ))}
                 </div>
                 <button type="button" onClick={logout} className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-50 text-[13px] font-bold text-red-600"><LogOut size={16} />{COPY.logout}</button>
